@@ -1,6 +1,6 @@
 # Features
 - Minimum Eigenvalue Objectives
-# TODO: trace polynomial, complex field, state polynomial, trace, variables some commutes with all and square to one
+# TODO: trace polynomial, complex field, state polynomial, trace, 
 # TODO: TSSOS: another package b/c it considers a lot of traditional optimization problem
 # TODO: No extension, just return cliques
 - Noncommuting and commuting variables (using `DynamicPolynomials.jl`)
