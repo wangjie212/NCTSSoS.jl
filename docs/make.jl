@@ -5,9 +5,11 @@ makedocs(;
     sitename="NCTSSoS.jl",
     pages=[
         "Home" => "index.md",
-        "API" => "api.md"
+        "Noncommutative Polynomial Optimization" => "ncpop.md",
+        "API" => "api.md",
+        "Examples" => ["Bell inequalities" => "bell.md"],
     ],
-    modules=[NCTSSOS],
+    modules=[NCTSSoS],
     format=Documenter.HTML(; prettyurls=get(ENV, "CI", nothing) == "true"),
 )
 

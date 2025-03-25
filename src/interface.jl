@@ -27,7 +27,7 @@ Configuration for solving polynomial optimization problems.
 
 
 # Examples
-```jldoctest; setup=:(using NCTSSOS, Clarabel)
+```jldoctest; setup=:(using NCTSSoS, Clarabel)
 julia> solver_config = SolverConfig(optimizer=Clarabel.Optimizer, mom_order=2) # default elimination algorithms
 SolverConfig(Clarabel.MOIwrapper.Optimizer, 2, NoElimination(), NoElimination())
 ```
