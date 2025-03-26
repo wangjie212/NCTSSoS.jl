@@ -31,17 +31,17 @@ function cyclic_canonicalize(poly::Polynomial)
     return mapreduce(p -> coefficient(p) * cyclic_canonicalize(monomial(p)), +, terms(poly); init=zero(poly))
 end
 
-function get_basis(vars::Vector{PolyVar{C}}, d::Int) where {C}
+function get_basis(vars::Vector{Variable{V,M}}, d::Int) where {V,M}
     # need to remove zero degree other wise sortting fails
     # return mapreduce(cur_d -> remove_zero_degree.(monomials(vars, cur_d)), vcat, 0:d)
     return remove_zero_degree.(sort(monomials(vars, 0:d)))
 end
 
-function support(poly::Polynomial{C,T}, canonicalize::Function) where {C,T}
+function support(poly::Polynomial{V,M,T}, canonicalize::Function) where {V,M,T}
     return canonicalize.(monomials(poly))
 end
 
-function neat_dot(x::Monomial{C}, y::Monomial{C}) where {C}
+function neat_dot(x::Monomial{V,M}, y::Monomial{V,M}) where {V,M}
     # NOTE: the `*` in DynamicPolynomials sometimes creates monomials with degree 0, which we don't want
     return remove_zero_degree(star(x) * y)
 end
@@ -51,7 +51,7 @@ sorted_union(xs...) = sort(union(xs...))
 
 get_dim(cons::VectorConstraint) = cons.set isa MOI.PositiveSemidefiniteConeSquare ? JuMP.shape(cons).side_dimension : JuMP.shape(cons).dims[1]
 
-function _comm(mono::Monomial{C}, comm_gp::Set{PolyVar{C}}) where {C}
+function _comm(mono::Monomial{V,M}, comm_gp::Set{Variable{V,M}}) where {V,M}
     return prod(zip(mono.vars, mono.z)) do (var, expo)
         var in comm_gp ? var^expo : var^(zero(expo))
     end *

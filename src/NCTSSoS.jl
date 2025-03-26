@@ -2,7 +2,7 @@ module NCTSSoS
 
 using DynamicPolynomials
 using DynamicPolynomials:
-    AbstractVariable, variables, coefficient, monomial, terms, isconstant
+    AbstractVariable, variables, coefficient, monomial, terms, isconstant, AbstractPolynomial, NonCommutative, Monomial
 using SparseArrays, LinearAlgebra
 using JuMP
 using CliqueTrees
@@ -12,6 +12,7 @@ using ChordalGraph
 using Graphs
 
 export PolyOpt
+export StatePolynomial
 export TRACE, EIGEN, STATE
 export SolverConfig
 export cs_nctssos, cs_nctssos_higher
@@ -21,6 +22,8 @@ export MF, MMD, NoElimination
 export @ncpolyvar, @polyvar
 
 include("pop.jl")
+
+include("statepolynomial.jl")
 
 include("sparse.jl")
 

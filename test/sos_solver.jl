@@ -4,6 +4,7 @@ using SparseArrays
 using JuMP
 using Graphs
 using CliqueTrees
+using DynamicPolynomials: NonCommutative, CreationOrder, Graded, LexOrder
 using NCTSSoS: get_Cαj, clique_decomp, correlative_sparsity, sorted_union, neat_dot, iterate_term_sparse_supp, symmetric_canonicalize, TermSparsity, moment_relax, sos_dualize
 
 # TODO: add Broyden banded for larger test case
@@ -83,7 +84,7 @@ end
     corr_sparsity = correlative_sparsity(pop, order, NoElimination())
 
     cliques_term_sparsities = [
-        [TermSparsity(Vector{Monomial{false}}(), [basis]) for basis in idx_basis]
+        [TermSparsity(Monomial{NonCommutative{CreationOrder},Graded{LexOrder}}[], [basis]) for basis in idx_basis]
         for idx_basis in corr_sparsity.cliques_idcs_bases
     ]
 
@@ -117,7 +118,7 @@ end
 
     @testset "Dense" begin
         cliques_term_sparsities = [
-            [TermSparsity(Vector{Monomial{false}}(), [basis]) for basis in idx_basis]
+            [TermSparsity(Monomial{NonCommutative{CreationOrder},Graded{LexOrder}}[], [basis]) for basis in idx_basis]
             for idx_basis in corr_sparsity.cliques_idcs_bases
         ]
 
@@ -170,7 +171,7 @@ end
     corr_sparsity = correlative_sparsity(pop, order, NoElimination())
 
     cliques_term_sparsities = [
-        [TermSparsity(Vector{Monomial{false}}(), [basis]) for basis in idx_basis]
+        [TermSparsity(Monomial{NonCommutative{CreationOrder},Graded{LexOrder}}[], [basis]) for basis in idx_basis]
         for idx_basis in corr_sparsity.cliques_idcs_bases
     ]
 
@@ -202,7 +203,7 @@ end
     corr_sparsity = correlative_sparsity(pop, order, NoElimination())
 
     cliques_term_sparsities = [
-        [TermSparsity(Vector{Monomial{false}}(), [basis]) for basis in idx_basis]
+        [TermSparsity(Monomial{NonCommutative{CreationOrder},Graded{LexOrder}}[], [basis]) for basis in idx_basis]
         for idx_basis in corr_sparsity.cliques_idcs_bases
     ]
 
@@ -232,7 +233,7 @@ end
     objective = sum(1.0 * pij[[findvaridx(ee.src, ee.dst) for ee in edges(star)]])
 
     gs = 
-        [
+        unique!([
             (
                 pij[findvaridx(sort([i, j])...)] * pij[findvaridx(sort([j, k])...)] +
                 pij[findvaridx(sort([j, k])...)] * pij[findvaridx(sort([i, j])...)] -
@@ -240,7 +241,7 @@ end
                 pij[findvaridx(sort([i, k])...)] + 1.0
             ) for i in 1:num_sites, j in 1:num_sites, k in 1:num_sites if
             (i != j && j != k && i != k)
-        ]
+        ])
     
 
     pop = PolyOpt(objective; constraints=gs, is_equality=[true for _ in gs],is_unipotent=true)
@@ -250,7 +251,7 @@ end
     corr_sparsity = correlative_sparsity(pop, order, NoElimination())
 
     cliques_term_sparsities = [
-        [TermSparsity(Vector{Monomial{false}}(), [basis]) for basis in idx_basis]
+        [ TermSparsity(Monomial{NonCommutative{CreationOrder},Graded{LexOrder}}[], [basis]) for basis in idx_basis]
         for idx_basis in corr_sparsity.cliques_idcs_bases
     ]
 
@@ -281,7 +282,7 @@ end
     corr_sparsity = correlative_sparsity(pop, order, cs_algo)
 
     cliques_term_sparsities = [
-        [TermSparsity(Vector{Monomial{false}}(), [basis]) for basis in idx_basis]
+        [TermSparsity(Monomial{NonCommutative{CreationOrder},Graded{LexOrder}}[], [basis]) for basis in idx_basis]
         for idx_basis in corr_sparsity.cliques_idcs_bases
     ]
 
@@ -314,14 +315,14 @@ end
     corr_sparsity_s = correlative_sparsity(pop, order, cs_algo)
 
     cliques_term_sparsities_s = [
-        [TermSparsity(Vector{Monomial{false}}(), [basis]) for basis in idx_basis]
+        [TermSparsity(Monomial{NonCommutative{CreationOrder},Graded{LexOrder}}[], [basis]) for basis in idx_basis]
         for idx_basis in corr_sparsity_s.cliques_idcs_bases
     ]
 
     corr_sparsity = correlative_sparsity(pop, order, NoElimination())
 
     cliques_term_sparsities = [
-        [TermSparsity(Vector{Monomial{false}}(), [basis]) for basis in idx_basis]
+        [TermSparsity(Monomial{NonCommutative{CreationOrder},Graded{LexOrder}}[], [basis]) for basis in idx_basis]
         for idx_basis in corr_sparsity.cliques_idcs_bases
     ]
 

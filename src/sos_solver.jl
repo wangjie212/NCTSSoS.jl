@@ -26,7 +26,7 @@ function get_Cαj(basis::Vector{GenericVariableRef{T}}, localizing_mtx::VectorCo
     return [sparse(Is[i], Js[i], Vs[i], dim, dim) for i in eachindex(basis)]
 end
 
-function sos_dualize(moment_problem::MomentProblem{C,T}) where {C,T}
+function sos_dualize(moment_problem::MomentProblem{V,M,T}) where {V,M,T}
     dual_model = GenericModel{T}()
 
     # Initialize Gj as variables

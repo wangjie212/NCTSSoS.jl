@@ -1,14 +1,15 @@
-# C: is the varaibles commuting
+# V: is the varaibles commuting
+# M: Ordering of variables
 # T: type of the coefficients
 # monomap: map from monomials in DynamicPolynomials to variables in JuMP
-struct MomentProblem{C,T,CR<:ConstraintRef} <: OptimizationProblem
+struct MomentProblem{V,M,T,CR<:ConstraintRef} <: OptimizationProblem
     model::GenericModel{T}
     constraints::Vector{CR}
-    monomap::Dict{Monomial{C},GenericVariableRef{T}}  # TODO: maybe refactor.
+    monomap::Dict{Monomial{V,M},GenericVariableRef{T}}  # TODO: maybe refactor.
     reduce_func::Function
 end
 
-function substitute_variables(poly::Polynomial{C,T}, monomap::Dict{Monomial{C},GenericVariableRef{T}}) where {C,T}
+function substitute_variables(poly::Polynomial{V,M,T}, monomap::Dict{Monomial{V,M},GenericVariableRef{T}}) where {V,M,T}
     mapreduce(x -> (coefficient(x) * monomap[monomial(x)]), +, terms(poly))
 end
 
@@ -16,7 +17,7 @@ end
 # global_cons: constraints that are not in any single clique
 # cliques_term_sparsities: each clique, each obj/constraint, each ts_clique, each basis needed to index moment matrix
 # FIXME: should I use CorrelativeSparsity here instead of cliques_cons and global_cons
-function moment_relax(pop::PolyOpt{C,T}, cliques_cons::Vector{Vector{Int}}, global_cons::Vector{Int}, cliques_term_sparsities::Vector{Vector{TermSparsity{C}}}) where {C,T}
+function moment_relax(pop::PolyOpt{V,M,T}, cliques_cons::Vector{Vector{Int}}, global_cons::Vector{Int}, cliques_term_sparsities::Vector{Vector{TermSparsity{V,M}}}) where {V,M,T}
     # NOTE: objective and constraints may have integer coefficients, but popular JuMP solvers does not support integer coefficients
     # left type here to support BigFloat model for higher precision
     model = GenericModel{T}()
@@ -68,12 +69,12 @@ end
 
 function constrain_moment_matrix!(
     model::GenericModel{T},
-    poly::Polynomial{C,T},
-    local_basis::Vector{Monomial{C}},
-    monomap::Dict{Monomial{C},GenericVariableRef{T}},
+    poly::Polynomial{V,M,T},
+    local_basis::Vector{Monomial{V,M}},
+    monomap::Dict{Monomial{V,M},GenericVariableRef{T}},
     cone, # FIXME: which type should I use?
     reduce_func::Function
-) where {C,T}
+) where {V,M,T}
     moment_mtx = [
         substitute_variables(sum([coef * reduce_func(neat_dot(row_idx, mono * col_idx)) for (coef, mono) in zip(coefficients(poly), monomials(poly))]), monomap) for
         row_idx in local_basis, col_idx in local_basis

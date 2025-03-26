@@ -1,5 +1,6 @@
 using Test, NCTSSoS
 using DynamicPolynomials
+using DynamicPolynomials: NonCommutative, CreationOrder
 
 @testset "PolyOpt Constructor" begin
     nvars = 10
@@ -13,15 +14,14 @@ using DynamicPolynomials
 
         @test pop.is_equality == Bool[]
         @test sort(pop.variables) == sort(x)
-        @test pop.comm_gp == Set{PolyVar{false}}()
-        @test !pop.is_unipotent 
+        @test pop.comm_gp == Set{Variable{NonCommutative,LexOrder}}()
+        @test !pop.is_unipotent
         @test !pop.is_projective
 
         pop = PolyOpt(objective; comm_gp=[x[1]], obj_type=TRACE)
 
         @test pop.comm_gp == Set([x[1]])
-        @test pop isa PolyOpt{false,Float64,TRACE} 
-
+        @test pop isa PolyOpt{NonCommutative{CreationOrder},Graded{LexOrder},Float64,TRACE}
     end
 
     @testset "Constrainted Optimization Problem" begin

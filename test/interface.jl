@@ -23,7 +23,7 @@ using Clarabel
     objective = (sum([J1 * hij[ij2idx_dict[(i,j)]] for (i,j) in J1_interactions]) + sum([J2 * hij[ij2idx_dict[(i,j)]] for (i,j) in J2_interactions]))
 
     gs = 
-         unique([
+         unique!([
             (
                 hij[ij2idx_dict[tuple(sort([i, j])...)]] * hij[ij2idx_dict[tuple(sort([j, k])...)]] +
                 hij[ij2idx_dict[tuple(sort([j, k])...)]] * hij[ij2idx_dict[tuple(sort([i, j])...)]] - 0.5 *(hij[ij2idx_dict[tuple(sort([i, j])...)]] + hij[ij2idx_dict[tuple(sort([j, k])...)]] - hij[ij2idx_dict[tuple(sort([i, k])...)]])

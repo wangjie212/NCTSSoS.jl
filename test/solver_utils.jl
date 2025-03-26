@@ -1,5 +1,6 @@
 using Test, NCTSSoS
 using DynamicPolynomials
+using DynamicPolynomials: NonCommutative, Monomial
 using JuMP
 using NCTSSoS: remove_zero_degree, star, symmetric_canonicalize, get_basis, support, neat_dot, get_dim, _comm, _unipotent, _projective, cyclic_canonicalize, reducer, sorted_unique
 
@@ -7,30 +8,30 @@ using NCTSSoS: remove_zero_degree, star, symmetric_canonicalize, get_basis, supp
     @ncpolyvar x y z
 
     @testset "Remove Variables with zero degree" begin
-        mono1 = Monomial{false}([x, y, z], [2, 0, 1])
+        mono1 = Monomial([x, y, z], [2, 0, 1])
         mono1_simp = remove_zero_degree(mono1)
         @test mono1_simp.vars == [x, z]
         @test mono1_simp.z == [2, 1]
 
-        mono2 = Monomial{false}([x, y, z], [2, 1, 1])
+        mono2 = Monomial([x, y, z], [2, 1, 1])
         mono2_simp = remove_zero_degree(mono2)
         @test mono2_simp.vars == [x, y, z]
         @test mono2_simp.z == [2, 1, 1]
 
-        mono3 = Monomial{false}([x, y, z], [0, 0, 0])
+        mono3 = Monomial([x, y, z], [0, 0, 0])
         mono3_simp = remove_zero_degree(mono3)
         @test mono3_simp == 1
     end
 
     @testset "Star Operation" begin
-        mono1 = Monomial{false}([x, y, z], [2, 0, 1])
+        mono1 = Monomial([x, y, z], [2, 0, 1])
 
         # NOTE: I am assuming all variables are Hermitian
         mono1_star = star(mono1)
 
         @test mono1_star == z * x^2
 
-        mono2 = Monomial{false}([x, y, z], [0, 0, 0])
+        mono2 = Monomial([x, y, z], [0, 0, 0])
         mono2_star = star(mono2)
 
         @test mono2_star == 1
@@ -120,11 +121,11 @@ using NCTSSoS: remove_zero_degree, star, symmetric_canonicalize, get_basis, supp
     end
 
     @testset "neat_dot" begin
-        mono1 = Monomial{false}([x, y], [1, 0])
+        mono1 = Monomial([x, y], [1, 0])
 
-        mono2 = Monomial{false}([x, y], [1, 1])
+        mono2 = Monomial([x, y], [1, 1])
 
-        @test neat_dot(mono1, mono2) == Monomial{false}([x, y], [2, 1])
+        @test neat_dot(mono1, mono2) == Monomial([x, y], [2, 1])
     end
 
     @testset "VectorConstraint Dim" begin
@@ -176,7 +177,7 @@ using NCTSSoS: remove_zero_degree, star, symmetric_canonicalize, get_basis, supp
 
         pop = PolyOpt(obj; comm_gp = Set([x]), is_unipotent=true)
         reducer_func = reducer(pop)
-        @test reducer_func(y*x^2*y) == one(y) 
+        @test reducer_func(y*x^2*y) == one(y)
         @test sorted_unique(reducer_func.(basis)) == sort([one(x*y),z,y,x,z*y,x*y,y*z,x*z,x*z*y,z*y*z,y*z*y,x*y*z])
 
         pop = PolyOpt(obj; comm_gp = Set([x]), is_projective=true)

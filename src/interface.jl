@@ -1,7 +1,7 @@
-struct PolyOptResult{C,T}
+struct PolyOptResult{V,M,T}
     objective::T # support for high precision solution
-    corr_sparsity::CorrelativeSparsity{C}
-    cliques_term_sparsities::Vector{Vector{TermSparsity{C}}}
+    corr_sparsity::CorrelativeSparsity{V,M}
+    cliques_term_sparsities::Vector{Vector{TermSparsity{V,M}}}
     # should contain objective and moment matrix or gram matrix for manually checking what happened
 end
 
@@ -45,7 +45,7 @@ end
 # consider adding Solver Interface
 # consider obtaining enough information on Moment matrix etc to check if problem solved correctly
 # prev_ans::Union{Nothing,PolyOptResult{C,T}}=nothing
-function cs_nctssos(pop::PolyOpt{C,T}, solver_config::SolverConfig) where {C,T}
+function cs_nctssos(pop::PolyOpt{V,M,T}, solver_config::SolverConfig) where {V,M,T}
     mom_order = iszero(solver_config.mom_order) ? maximum([ceil(Int, maxdegree(poly) / 2) for poly in [pop.objective; pop.constraints]]) : solver_config.mom_order
 
     corr_sparsity = correlative_sparsity(pop, mom_order, solver_config.cs_algo)
@@ -53,7 +53,7 @@ function cs_nctssos(pop::PolyOpt{C,T}, solver_config::SolverConfig) where {C,T}
     cliques_objective = [reduce(+, [issubset(effective_variables(mono), clique) ? coef * mono : zero(mono) for (coef, mono) in zip(coefficients(pop.objective), monomials(pop.objective))]) for clique in corr_sparsity.cliques]
 
     # prepare the support for each term sparse localizing moment
-    initial_activated_supp = [sorted_union(symmetric_canonicalize.(monomials(obj_part)), mapreduce(a -> monomials(a), vcat, pop.constraints[cons_idx]; init=Monomial{C}[]), [neat_dot(b, b) for b in idcs_bases[1]])
+    initial_activated_supp = [sorted_union(symmetric_canonicalize.(monomials(obj_part)), mapreduce(a -> monomials(a), vcat, pop.constraints[cons_idx]; init=Monomial{V,M}[]), [neat_dot(b, b) for b in idcs_bases[1]])
                               for (obj_part, cons_idx, idcs_bases) in zip(cliques_objective, corr_sparsity.cliques_cons, corr_sparsity.cliques_idcs_bases)]
 
     cliques_term_sparsities = map(zip(initial_activated_supp, corr_sparsity.cliques_cons, corr_sparsity.cliques_idcs_bases)) do (activated_supp, cons_idx, idcs_bases)
@@ -68,7 +68,7 @@ function cs_nctssos(pop::PolyOpt{C,T}, solver_config::SolverConfig) where {C,T}
     return PolyOptResult(objective_value(sos_problem.model), corr_sparsity, cliques_term_sparsities)
 end
 
-function cs_nctssos_higher(pop::PolyOpt{C,T}, prev_res::PolyOptResult, solver_config::SolverConfig) where {C,T}
+function cs_nctssos_higher(pop::PolyOpt{V,M,T}, prev_res::PolyOptResult, solver_config::SolverConfig) where {V,M,T}
     initial_activated_supp = [sorted_union([poly_term_sparsity.term_sparse_graph_supp for poly_term_sparsity in term_sparsities]...)
                               for term_sparsities in prev_res.cliques_term_sparsities]
 

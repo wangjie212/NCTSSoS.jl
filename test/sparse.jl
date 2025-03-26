@@ -2,6 +2,7 @@ using Test, NCTSSoS
 using DynamicPolynomials
 using Graphs
 using CliqueTrees
+using DynamicPolynomials: NonCommutative
 using NCTSSoS: assign_constraint, get_correlative_graph, clique_decomp, get_term_sparsity_graph, term_sparsity_graph_supp
 
 @testset "Term Sparsity Graph" begin
@@ -16,7 +17,7 @@ using NCTSSoS: assign_constraint, get_correlative_graph, clique_decomp, get_term
 
     G_tsp = get_term_sparsity_graph([one(x[1])],activated_support,mtx_basis)
     @test G_tsp.fadjlist == [[5,6],[3,5],[2,4,6],[3,6],[1,2],[1,3,4]]
-    @test term_sparsity_graph_supp(G_tsp, mtx_basis, one(Polynomial{true,Float64})) == [one(x[1]), x[1]^2, x[2]^2, x[3]^2, x[1]^2 * x[2]^2, x[2]^2 * x[3]^2, x[1] * x[2], x[2] * x[3], x[1]^2 * x[2], x[2]^2 * x[3], x[2] * x[3]^2]
+    @test term_sparsity_graph_supp(G_tsp, mtx_basis, polynomial([1],[one(x[1])])) == [one(x[1]), x[1]^2, x[2]^2, x[3]^2, x[1]^2 * x[2]^2, x[2]^2 * x[3]^2, x[1] * x[2], x[2] * x[3], x[1]^2 * x[2], x[2]^2 * x[3], x[2] * x[3]^2]
 
     # Example 10.2
     @ncpolyvar x y
@@ -28,7 +29,7 @@ using NCTSSoS: assign_constraint, get_correlative_graph, clique_decomp, get_term
 
     G_tsp = get_term_sparsity_graph([one(x)],activated_support,mtx_basis)
     @test G_tsp.fadjlist == [[4,5],Int[],Int[],[1,6],[1,7],[4,7],[5,6]]
-    @test sort(term_sparsity_graph_supp(G_tsp, mtx_basis, one(Polynomial{false,Float64}))) == sort([one(x * y), x^2, y^2, x^4, y^4, y * x^2 * y, x * y^2 * x, x^3 * y, y^3 * x, y * x * y * x])
+    @test sort(term_sparsity_graph_supp(G_tsp, mtx_basis, polynomial([1],[one(x * y)]))) == sort([one(x * y), x^2, y^2, x^4, y^4, y * x^2 * y, x * y^2 * x, x^3 * y, y^3 * x, y * x * y * x])
     @test sort(term_sparsity_graph_supp(G_tsp, mtx_basis, 1.0 - x^2)) == sort([one(x * y), x^2, y^2, y * x * y * x, y * x^2 * y, y^3 * x, y^4, x * y^2 * x, x^2 * y^2, x^3 * y, x^4, y * x^3 * y * x, y * x^4 * y, y^2 * x^2 * y * x, y^2 * x^2 * y^2, x * y * x^2 * y * x, x^5 * y, x^6])
 end
 
@@ -37,10 +38,10 @@ end
     @ncpolyvar x[1:n]
 
     cliques = [x[[1, 2, 4]], x[[2, 3, 4]]]
-    cons = Polynomial{false,Float64}[x[1] * x[2],
-        x[2] * x[3],
-        x[3] * x[4],
-        x[4] * x[1]]
+    cons = polynomial.(Ref([1]),[[x[1] * x[2]],
+        [x[2] * x[3]],
+        [x[3] * x[4]],
+        [x[4] * x[1]]])
 
     @test assign_constraint(cliques, cons) == ([[1, 4], [2, 3]], Int[])
 

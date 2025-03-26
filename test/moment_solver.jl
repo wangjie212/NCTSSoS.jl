@@ -3,6 +3,7 @@ using JuMP
 using Clarabel
 using Graphs
 using DynamicPolynomials
+using DynamicPolynomials: NonCommutative, Monomial, CreationOrder, Graded, LexOrder
 using NCTSSoS: correlative_sparsity, sorted_union, symmetric_canonicalize, neat_dot, iterate_term_sparse_supp, moment_relax, TermSparsity, get_basis, substitute_variables, star, remove_zero_degree, constrain_moment_matrix!
 
 @testset "Special Constraint Type " begin
@@ -77,7 +78,7 @@ end
 end
 
 @testset "Moment Method Heisenberg Model on Star Graph" begin
-    num_sites = 10 
+    num_sites = 10
     g = star_graph(num_sites)
 
     true_ans = -1.0
@@ -90,8 +91,8 @@ end
 
     objective = sum(1.0 * pij[[findvaridx(ee.src, ee.dst) for ee in edges(g)]])
 
-    gs = 
-        [
+    gs =
+        unique!([
             (
                 pij[findvaridx(sort([i, j])...)] * pij[findvaridx(sort([j, k])...)] +
                 pij[findvaridx(sort([j, k])...)] * pij[findvaridx(sort([i, j])...)] -
@@ -99,8 +100,8 @@ end
                 pij[findvaridx(sort([i, k])...)] + 1.0
             ) for i in 1:num_sites, j in 1:num_sites, k in 1:num_sites if
             (i != j && j != k && i != k)
-        ]
-    
+        ])
+
 
     pop = PolyOpt(objective; constraints=gs, is_equality=[true for _ in gs], is_unipotent=true)
     order = 1
@@ -109,7 +110,7 @@ end
     corr_sparsity = correlative_sparsity(pop, order, cs_algo)
 
     cliques_term_sparsities = [
-        [TermSparsity(Vector{Monomial{false}}(), [basis]) for basis in idx_basis]
+        [TermSparsity(Monomial{NonCommutative{CreationOrder},Graded{LexOrder}}[], [basis]) for basis in idx_basis]
         for idx_basis in corr_sparsity.cliques_idcs_bases
     ]
 
@@ -185,7 +186,7 @@ end
 
     @testset "Dense" begin
         cliques_term_sparsities = [
-            [TermSparsity(Vector{Monomial{false}}(), [basis]) for basis in idx_basis]
+            [TermSparsity(Monomial{NonCommutative{CreationOrder},Graded{LexOrder}}[], [basis]) for basis in idx_basis]
             for idx_basis in corr_sparsity.cliques_idcs_bases
         ]
 
@@ -238,7 +239,7 @@ end
 
     @testset "Dense" begin
         cliques_term_sparsities = [
-            [TermSparsity(Vector{Monomial{false}}(), [basis]) for basis in idx_basis]
+            [TermSparsity(Monomial{NonCommutative{CreationOrder},Graded{LexOrder}}[], [basis]) for basis in idx_basis]
             for idx_basis in corr_sparsity.cliques_idcs_bases
         ]
 
@@ -292,7 +293,7 @@ end
 
     @testset "Correlative Sparse" begin
         cliques_term_sparsities = [
-            [TermSparsity(Vector{Monomial{false}}(), [basis]) for basis in idx_basis]
+            [TermSparsity(Monomial{NonCommutative{CreationOrder},Graded{LexOrder}}[], [basis]) for basis in idx_basis]
             for idx_basis in corr_sparsity.cliques_idcs_bases
         ]
 
