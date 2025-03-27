@@ -16,11 +16,30 @@ using DynamicPolynomials: NonCommutative, CreationOrder
     end
     @testset "Example 7.2.2" begin
         @ncpolyvar x[1:3] y[1:3]
-        vvvp = [[[1.0 * x[1] * (y[1] + y[2] + y[3]) - x[2] * (y[1] + y[2] - y[3]) +x[3] * (y[1] - y[2])], [-x[1], y[1] + y[2] + y[3]], [-x[2], y[1] + y[2] - y[3]], [-x[3], y[1] - y[2]]]]
-        sp = StatePolynomial(vvvp, monomial.([one(x[1])]))
-        pop = StatePolyOpt(sp; is_unipotent=true,comm_gps= [x,y,z])
+        vvvp = [[1.0 * x[1] * (y[1] + y[2] + y[3]) - x[2] * (y[1] + y[2] - y[3]) + x[3] * (y[1] - y[2])], polynomial.([-1.0 * x[1], y[1] + y[2] + y[3]]), polynomial.([-1.0 * x[2], y[1] + y[2] - y[3]]), polynomial.([-1.0 * x[3], y[1] - y[2]])]
+        sp = StatePolynomial(vvvp, monomial.([one(x[1]), one(x[1]), one(x[1]), one(x[1])]))
+        pop = StatePolyOpt(sp; is_unipotent=true,comm_gps= [x,y])
         @test pop.objective == sp
         @test pop.constraints == []
+        @test pop.is_unipotent == true
+        @test pop.is_equality == Bool[]
+        @test pop.comm_gps == [Set(x),Set(y)]
+        
+        @ncpolyvar z[1:3]
+        @test_throws AssertionError StatePolyOpt(sp; comm_gps=[x, y, z])
+    end
+
+    @testset "Example 8.1.2" begin
+        @ncpolyvar A[1:3] B[1:3] 
+        J1 = 0.5 * (A[1] + A[2] + A[3] + 1) * (B[1] * A[1] + B[1] * A[2])
+        J2_1 = 0.5 * (A[1] + A[2] - A[3] - 1) * (B[2] * A[1] - B[2] * A[2])
+        J2_2 = 0.5 * (A[1] - A[2]) * (B[3] * A[1] - B[3] * A[2])
+        L = 4.0 + A[1] + A[2]
+
+        vvp = [[2 .* J1, J2_1], [2 .* J1, J2_2], [2 .* J1, L], [2 .* J2_1, L], [2 .* J2_2, L], [-1 .* J1, J1], [-1 .* J2, J2], [-1 .* L, L]]
+        fill(one(A[1]),6)
+        sp = StatePolynomial(vvp, fill(one(A[1]), 6))
+        pop = StatePolyOpt(sp; is_unipotent=true, comm_gps = [A,B])
     end
 end
 

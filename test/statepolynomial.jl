@@ -1,5 +1,20 @@
 using Test, NCTSSoS
+using NCTSSoS: StateWord
 using DynamicPolynomials
+
+@testset "StateWord" begin
+    @ncpolyvar x[1:2]
+    sw = StateWord([x[1]*x[2], x[2]^2])
+    @test string(sw) == "⟨x[1]*x[2]⟩ ⟨x[2]^2⟩"
+end
+
+@testset "StateTerm" begin
+
+end
+
+@teestset "StatePolynomial" begin
+
+end
 
 @testset "State Polynomial" begin
     @ncpolyvar x[1:2]
