@@ -2,6 +2,23 @@ using Test, NCTSSoS
 using DynamicPolynomials
 using DynamicPolynomials: NonCommutative, CreationOrder
 
+@testset "StatePolyOpt Constructor" begin
+    @ncpolyvar x[1:2] y[1:2]
+    @testset "Example 7.2.1" begin
+        sp = StatePolynomial([[x[1] * y[2] + x[2] * y[1], x[1] * y[2] + x[2] * y[1]], [x[1] * y[1] - x[2] * y[2], x[1] * y[1] - x[2] * y[2]]], [one(x[1]), one(x[1])])
+        pop = StatePolyOpt(sp)
+        @test pop.objective == sp
+        @test pop.constraints == []
+        @test pop.is_equality == Bool[]
+    end
+    @testset "Example 7.2.2" begin
+        sp = StatePolynomial([1.0, 2.0], [[x[1]*x[2],x[2]^2],[x[1]*x[2]],[one(x[1])]], [x[1], x[2]*x[2], one(x[1])])
+        pop = StatePolyOpt(sp)
+        @test pop.objective == sp
+        @test pop.constraints == []
+    end
+end
+
 @testset "PolyOpt Constructor" begin
     nvars = 10
     ncons = 3

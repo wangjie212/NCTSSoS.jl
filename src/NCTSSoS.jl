@@ -10,10 +10,11 @@ using CliqueTrees: EliminationAlgorithm, SupernodeType
 import CliqueTrees.cliquetree
 using ChordalGraph
 using Graphs
+using Base.Iterators: product, flatten
 
 export PolyOpt
 export StatePolynomial
-export TRACE, EIGEN, STATE
+export TRACE, EIGEN
 export SolverConfig
 export cs_nctssos, cs_nctssos_higher
 
@@ -21,9 +22,9 @@ export cs_nctssos, cs_nctssos_higher
 export MF, MMD, NoElimination
 export @ncpolyvar, @polyvar
 
-include("pop.jl")
-
 include("statepolynomial.jl")
+
+include("pop.jl")
 
 include("sparse.jl")
 
