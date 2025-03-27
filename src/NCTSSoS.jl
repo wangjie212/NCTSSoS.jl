@@ -12,7 +12,7 @@ using ChordalGraph
 using Graphs
 using Base.Iterators: product, flatten
 
-export PolyOpt
+export PolyOpt, StatePolyOpt
 export StatePolynomial
 export TRACE, EIGEN
 export SolverConfig

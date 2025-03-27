@@ -3,17 +3,22 @@ using DynamicPolynomials
 using DynamicPolynomials: NonCommutative, CreationOrder
 
 @testset "StatePolyOpt Constructor" begin
-    @ncpolyvar x[1:2] y[1:2]
     @testset "Example 7.2.1" begin
-        sp = StatePolynomial([[x[1] * y[2] + x[2] * y[1], x[1] * y[2] + x[2] * y[1]], [x[1] * y[1] - x[2] * y[2], x[1] * y[1] - x[2] * y[2]]], [one(x[1]), one(x[1])])
-        pop = StatePolyOpt(sp)
+        @ncpolyvar x[1:2] y[1:2]
+        sp = StatePolynomial([[1.0 * x[1] * y[2] + x[2] * y[1], x[1] * y[2] + x[2] * y[1]], [x[1] * y[1] - x[2] * y[2], x[1] * y[1] - x[2] * y[2]]], [one(x[1]), one(x[1])])
+        pop = StatePolyOpt(sp; is_unipotent=true, comm_gps=[x, y])
         @test pop.objective == sp
         @test pop.constraints == []
         @test pop.is_equality == Bool[]
+        @test pop.is_unipotent == true 
+        @test pop.is_projective == false
+        @test pop.comm_gps == [Set(x),Set(y)]
     end
     @testset "Example 7.2.2" begin
-        sp = StatePolynomial([1.0, 2.0], [[x[1]*x[2],x[2]^2],[x[1]*x[2]],[one(x[1])]], [x[1], x[2]*x[2], one(x[1])])
-        pop = StatePolyOpt(sp)
+        @ncpolyvar x[1:3] y[1:3]
+        vvvp = [[[1.0 * x[1] * (y[1] + y[2] + y[3]) - x[2] * (y[1] + y[2] - y[3]) +x[3] * (y[1] - y[2])], [-x[1], y[1] + y[2] + y[3]], [-x[2], y[1] + y[2] - y[3]], [-x[3], y[1] - y[2]]]]
+        sp = StatePolynomial(vvvp, monomial.([one(x[1])]))
+        pop = StatePolyOpt(sp; is_unipotent=true,comm_gps= [x,y,z])
         @test pop.objective == sp
         @test pop.constraints == []
     end
