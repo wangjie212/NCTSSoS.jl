@@ -9,7 +9,6 @@ using DynamicPolynomials
         sw = StateWord([x[1] * x[2], x[2]^2])
         @test string(sw) == "<x[2]^2> * <x[1]*x[2]>"
         @test sort(variables(sw)) == sort(x)
-        @test_throws AssertionError StateWord([one(x[1]), x[2]^2, x[1]])
 
         sw_sorted = StateWord([x[2]^2, x[1] * x[2]])
         @test sw_sorted == sw
@@ -19,6 +18,9 @@ using DynamicPolynomials
 
         @test unique([sw,sw_sorted]) == [sw]
         @test sw * sw_less == StateWord([x[2]^2, x[1] * x[2], x[1] * x[2], x[1]^2])
+
+        sw_partial = StateWord([x[1]*x[2]])
+        @test sw != sw_partial
     end
 
     @testset "StatePolynomial" begin

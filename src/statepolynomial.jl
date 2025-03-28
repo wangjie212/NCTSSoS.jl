@@ -1,18 +1,17 @@
 struct StateWord{V,M}
     state_monos::Vector{Monomial{V,M}}
     function StateWord(monos::Vector{Monomial{V,M}}) where {V,M}
-        @assert !any(isconstant.(monos)) "State Word cannot contain constants"
+        # has to be relaxed since I need to be able to express constants
+        # @assert !any(isconstant.(monos)) "State Word cannot contain constants"
         new{V,M}(sort!(monos))
     end
 end
 
-function StateWord(vars::Vector{Variable{V,M}}) where {V,M}
-    StateWord(monomial.(vars))
-end
+StateWord(vars::Vector{Variable{V,M}}) where {V,M} = StateWord(monomial.(vars))
 
 DynamicPolynomials.variables(sw::StateWord) = union(variables.(sw.state_monos)...)
 Base.show(io::IO, sw::StateWord) = print(io, join(map(x -> "<$(x)>", sw.state_monos), " * "))
-Base.:(==)(a::StateWord, b::StateWord) = all(a.state_monos .== b.state_monos) # NOTE: need to guarantee it is always sorted
+Base.:(==)(a::StateWord, b::StateWord) = length(a.state_monos) == length(b.state_monos) && all(a.state_monos .== b.state_monos) # NOTE: need to guarantee it is always sorted
 Base.hash(a::StateWord) = hash(a.state_monos)
 Base.isless(a::StateWord, b::StateWord) = isless(a.state_monos, b.state_monos)
 Base.:(*)(a::StateWord, b::StateWord) = StateWord([a.state_monos; b.state_monos])
@@ -27,6 +26,8 @@ struct StatePolynomial{V,M,T}
     end
 end
 
+StatePolynomial(coeffs::Vector{T}, state_monos::Vector{Monomial{V,M}}) where {V,M,T} = StatePolynomial(coeffs, [StateWord([sm]) for sm in state_monos])
+
 DynamicPolynomials.variables(sp::StatePolynomial) = union(variables.(sp.state_words)...)
 Base.show(io::IO, sp::StatePolynomial) = print(io, join(map(x -> "$(x[1]) * $(x[2])", zip(sp.coeffs, sp.state_words)), " + "))
 Base.:(==)(a::StatePolynomial, b::StatePolynomial) = (length(a.coeffs) == length(b.coeffs)) && mapfoldl(x -> (isequal(x[1], x[3]) && (x[2] == x[4])), &, zip(a.coeffs, a.state_words, b.coeffs, b.state_words))
@@ -34,6 +35,7 @@ Base.:(*)(a::StatePolynomial{V,M,T}, b::StatePolynomial{V,M,T}) where {V,M,T} =
     StatePolynomial(mapfoldl((args...) -> push!.(args...), product(zip(a.coeffs, a.state_words), zip(b.coeffs, b.state_words)); init=(T[], StateWord{V,M}[])) do ((ca, wa), (cb, wb))
         ca * cb, wa * wb
     end...)
+Base.:(*)(n, a::StatePolynomial{V,M,T}) where {V,M,T} = StatePolynomial(T(n) .* a.coeffs, a.state_words)
 Base.:(+)(a::StatePolynomial{V,M,T}, b::StatePolynomial{V,M,T}) where {V,M,T} = StatePolynomial([a.coeffs; b.coeffs], [a.state_words; b.state_words])
 
 # T: type of coefficient
