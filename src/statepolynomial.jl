@@ -1,50 +1,49 @@
 struct StateWord{V,M}
-    state_monos::Vector{Monomial{V,M}}
+    state_monos::MonomialVector{V,M}
+    function StateWord(monos::Vector{Monomial{V,M}}) where {V,M}
+        @assert !any(isconstant.(monos)) "State Word cannot contain constants"
+        new{V,M}(monomial_vector(sort!(monos)))
+    end
 end
 
-Base.show(io::IO, sw::StateWord) = print(io, join(map(x -> "⟨$(x)⟩", sw.state_monos), " "))
+DynamicPolynomials.variables(sw::StateWord) = union(variables.(sw.state_monos)...)
+Base.show(io::IO, sw::StateWord) = print(io, join(map(x -> "<$(x)>", sw.state_monos), " * "))
+Base.:(==)(a::StateWord, b::StateWord) = all(a.state_monos .== b.state_monos)
+Base.hash(a::StateWord) = hash(a.state_monos)
+Base.isless(a::StateWord, b::StateWord) = isless(a.state_monos, b.state_monos)
 
 struct StatePolynomial{V,M,T}
     coeffs::Vector{T}
-    state_word::Vector{StateWord{V,M}}
+    state_words::Vector{StateWord{V,M}}
+    function StatePolynomial(coeffs::Vector{T}, state_words::Vector{StateWord{V,M}}) where {V,M,T}
+        @assert length(coeffs) == length(state_words)
+        uniq_state_words = sorted_unique(state_words)
+        new{V,M,T}(map(x -> reduce(+, getindex.(Ref(coeffs), findall(==(x), state_words))), uniq_state_words), uniq_state_words)
+    end
 end
 
-Base.show(io::IO, sp::StatePolynomial) = print(io, join(map(x -> "$(x[1]) * $(x[2])", zip(sp.coeffs, sp.state_word)), " + "))
+DynamicPolynomials.variables(sp::StatePolynomial) = union(variables.(sp.state_words)...)
+Base.show(io::IO, sp::StatePolynomial) = print(io, join(map(x -> "$(x[1]) * $(x[2])", zip(sp.coeffs, sp.state_words)), " + "))
+Base.:(==)(a::StatePolynomial, b::StatePolynomial) = (length(a.coeffs) == length(b.coeffs)) && mapfoldl(x -> (isequal(x[1], x[3]) && (x[2] == x[4])), &, zip(a.coeffs, a.state_words, b.coeffs, b.state_words))
 
 # T: type of coefficient
 # V: whether the variabels is NonCommutative{CreationOrder} or Commutative{CreationOrder}
 # M: ordering of the monomials Graded{LexOrder} or else
 # FIXME: inheriting from AbstractPolynomial gives StackOverflowError when trying to print in REPL
-struct NCStatePolynomial{V,M,T}
+struct StatePolynomialOp{V,M,T}
     state_poly::Vector{StatePolynomial{V,M,T}}
     words::Vector{Monomial{V,M}}
 
     # TODO: get a more user friendly way of declaring StatePolynomial
-    function NCStatePolynomial(coeffs::Vector{Vector{T}}, formal_words::Vector{Vector{Vector{Monomial{V,M}}}}, words::Vector{Monomial{V,M}}) where {V,M,T}
-        @assert length(coeffs) == length(formal_words) == length(words) "Coefficients, formal words, and words must have the same length"
-        new{V,M,T}(coeffs, formal_words, words)
+    function StatePolynomialOp(state_polys::Vector{StatePolynomial{V,M,T}}, words::Vector{Monomial{V,M}}) where {V,M,T}
+        @assert length(state_polys) == length(words) "Coefficients, formal words, and words must have the same length"
+        new{V,M,T}(state_polys, words)
     end
 end
 
-function NCStatePolynomial(formal_part::Vector{Vector{Polynomial{V,M,T}}}, words::Vector{Monomial{V,M}}) where {V,M,T}
-    coeffs, formal_words = mapfoldl((args...) -> push!.(args...), formal_part, init=(Vector{T}[], Vector{Vector{Monomial{V,M}}}[])) do formal_poly_vec
-        terms_tuple_vec = reshape(collect(product(map(x -> terms(x), formal_poly_vec)...)), :)
-        coeff_vec, monovec = mapfoldl((args...) -> push!.(args...), terms_tuple_vec; init=(T[], Vector{Monomial{V,M}}[])) do terms_tuple
-            reduce(*, coefficient.(terms_tuple)), [monomial(t) for t in terms_tuple]
-        end
-        coeff_vec, monovec
-    end
-    @show coeffs formal_words words
-    @show length(coeffs) length(formal_words) length(words)
-    return StatePolynomial(coeffs, formal_words, words)
-end
+Base.show(io::IO, ncsp::StatePolynomialOp) = print(io, join(map(
+        x -> (isone(x[2]) ? "$(string(x[1]))" : "$(string(x[1])) ⋅ $(string(x[2]))"),
+        zip(ncsp.state_poly, ncsp.words)
+    ), " + "))
 
-Base.show(io::IO, sp::NCStatePolynomial) = print(io, join(map(zip(sp.coeffs, sp.formal_words, sp.words)) do (coeff, formal_word, word)
-        formal_word_str = "(" * join(map(zip(coeff, formal_word)) do (cc, ffs)
-                "$(cc) ⋅ " * join(map(x -> "⟨$(string(x))⟩", ffs), " ⋅ ")
-            end, " + ")
-        formal_word_str * ") ⋅ $(string(word))"
-    end, " + "))
-
-
-DynamicPolynomials.variables(sp::NCStatePolynomial) = sorted_union(variables.(sp.words)..., map(x -> union(map(y -> union(variables.(y)...), x)...), sp.formal_words)...)
+DynamicPolynomials.variables(ncsp::StatePolynomialOp) = sorted_union(variables.(ncsp.words)..., variables.(ncsp.state_poly)...)
