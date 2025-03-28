@@ -1,13 +1,21 @@
 using Test, NCTSSoS
+using NCTSSoS: StatePolynomial, StateWord
 using DynamicPolynomials
 using DynamicPolynomials: NonCommutative, CreationOrder
 
 @testset "StatePolyOpt Constructor" begin
     @testset "Example 7.2.1" begin
         @ncpolyvar x[1:2] y[1:2]
-        sp = StatePolynomial([[1.0 * x[1] * y[2] + x[2] * y[1], x[1] * y[2] + x[2] * y[1]], [x[1] * y[1] - x[2] * y[2], x[1] * y[1] - x[2] * y[2]]], [one(x[1]), one(x[1])])
+        sp1 = StatePolynomial([1.0, 1.0], StateWord.([[x[1] * y[2]], [y[2] * x[1]]]))
+        sp2 = StatePolynomial([1.0, -1.0], StateWord.([[x[1] * y[1]], [x[2] * y[2]]]))
+        words = [one(x[1]),one(x[1])]
+        sp = StatePolynomialOp([sp1 * sp1, sp2 * sp2], words)
+
+        sp1_sq = StatePolynomial([1.0,1.0,1.0,1.0],StateWord.([[x[1]*y[2],x[1]*y[2]],[y[2]*x[1],y[2]*x[1]],[x[1]*y[2],y[2]*x[1]],[y[2]*x[1],x[1]*y[2]]]))
+        sp2_sq = StatePolynomial([1.0,-1.0,-1.0,1.0],StateWord.([[x[1]*y[1],x[1]*y[1]],[x[1]*y[1],x[2]*y[2]],[x[2]*y[2],x[1]*y[1]],[x[2]*y[2],x[2]*y[2]]]))
+        true_obj = StatePolynomialOp([sp1_sq, sp2_sq], words)
         pop = StatePolyOpt(sp; is_unipotent=true, comm_gps=[x, y])
-        @test pop.objective == sp
+        @test pop.objective ==  true_obj
         @test pop.constraints == []
         @test pop.is_equality == Bool[]
         @test pop.is_unipotent == true 
@@ -16,10 +24,15 @@ using DynamicPolynomials: NonCommutative, CreationOrder
     end
     @testset "Example 7.2.2" begin
         @ncpolyvar x[1:3] y[1:3]
-        vvvp = [[1.0 * x[1] * (y[1] + y[2] + y[3]) - x[2] * (y[1] + y[2] - y[3]) + x[3] * (y[1] - y[2])], polynomial.([-1.0 * x[1], y[1] + y[2] + y[3]]), polynomial.([-1.0 * x[2], y[1] + y[2] - y[3]]), polynomial.([-1.0 * x[3], y[1] - y[2]])]
-        sp = StatePolynomial(vvvp, monomial.([one(x[1]), one(x[1]), one(x[1]), one(x[1])]))
+        twobody_poly = StatePolynomial([1.0,1.0,1.0,1.0,1.0,-1.0,1.0,-1.0],StateWord.([[x[1]*y[1]],[x[1]*y[2]],[x[1]*y[3]],[x[2]*y[1]],[x[2]*y[2]],[x[2]*y[3]],[x[3]*y[1]],[x[3]*y[2]]]))
+        onebody_poly = StatePolynomial([-1.0],[StateWord([x[1]])])* StatePolynomial([1.0,1.0,1.0],StateWord.([[y[1]],[y[2]],[y[3]]])) + 
+         StatePolynomial([-1.0],[StateWord([x[2]])]) * StatePolynomial([1.0,1.0,-1.0],StateWord.([[y[1]],[y[2]],[y[3]]])) +
+         StatePolynomial([-1.0],[StateWord([x[3]])]) * StatePolynomial([1.0,-1.0],StateWord.([[y[1]],[y[2]]]))
+
+        sp = StatePolynomialOp([twobody_poly + onebody_poly], [monomial(one(x[1]))])
         pop = StatePolyOpt(sp; is_unipotent=true,comm_gps= [x,y])
-        @test pop.objective == sp
+        true_obj = StatePolynomialOp([StatePolynomial([1.0,-1.0,1.0,-1.0,1.0,-1.0,1.0,-1.0,1.0,-1.0,-1.0,1.0,1.0,-1.0,-1.0,1.0], StateWord.([[x[1]*y[1]],[x[1],y[1]],[x[1]*y[2]],[x[1],y[2]],[x[1]*y[3]],[x[1],y[3]],[x[2]*y[1]],[x[2],y[1]],[x[2]*y[2]],[x[2],y[2]],[x[2]*y[3]],[x[2],y[3]],[x[3]*y[1]],[x[3],y[1]],[x[3]*y[2]],[x[3],y[2]]]))],[one(x[1])])
+        @test pop.objective == true_obj
         @test pop.constraints == []
         @test pop.is_unipotent == true
         @test pop.is_equality == Bool[]

@@ -30,8 +30,8 @@ function PolyOpt(objective::Polynomial{V,M,T}; constraints=Any[], is_equality=fi
 end
 
 struct StatePolyOpt{V,M,T} <: OptimizationProblem
-    objective::StatePolynomial{V,M,T}
-    constraints::Vector{StatePolynomial{V,M,T}}
+    objective::StatePolynomialOp{V,M,T}
+    constraints::Vector{StatePolynomialOp{V,M,T}}
     is_equality::Vector{Bool}
     variables::Vector{Variable{V,M}}
     comm_gps::Vector{Set{Variable{V,M}}} # Set of variables that commutes with variables not in the set
@@ -39,7 +39,7 @@ struct StatePolyOpt{V,M,T} <: OptimizationProblem
     is_projective::Bool # X^2 = X. Is projective.
 end
 
-function StatePolyOpt(objective::StatePolynomial{V,M,T}; constraints=Any[], is_equality=fill(false, length(constraints)), comm_gps=Vector{Variable{V,M}}[], is_unipotent::Bool=false, is_projective::Bool=false) where {V,M,T}
+function StatePolyOpt(objective::StatePolynomialOp{V,M,T}; constraints=Any[], is_equality=fill(false, length(constraints)), comm_gps=Vector{Variable{V,M}}[], is_unipotent::Bool=false, is_projective::Bool=false) where {V,M,T}
     cons = collect(StatePolynomial{V,M,T}, constraints)
     is_eq = collect(Bool, is_equality)
     @assert length(is_eq) == length(cons) "The number of constraints must be the same as the number of equality conditions."
@@ -49,4 +49,20 @@ function StatePolyOpt(objective::StatePolynomial{V,M,T}; constraints=Any[], is_e
     @assert sorted_union(comm_gps...) == sort(vars) "The commutative variables groups must be equivalent to all the variables"
     @assert !(is_unipotent && is_projective) "The problem cannot be both unipotent and projective."
     return StatePolyOpt{V,M,T}(objective, cons, is_eq, vars, Set.(comm_gps), is_unipotent, is_projective)
+end
+
+function Base.show(io::IO, spolyopt::StatePolyOpt)
+    cons_str = join(["$(string(con)) " * (iseq ? "= 0" : ">= 0") for (con, iseq) in zip(spolyopt.constraints, spolyopt.is_equality)], " \n")
+    res_str = """
+        obj: $(spolyopt.objective) \n
+        constraints: \n
+            $(cons_str) \n
+        variables:
+            $(join(string.(spolyopt.variables)," ")) \n
+        is_unipotent:
+            $(spolyopt.is_unipotent) \n
+        is_projective:
+            $(spolyopt.is_projective) \n
+    """
+    print(io, res_str)
 end

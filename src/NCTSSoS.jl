@@ -13,7 +13,7 @@ using Graphs
 using Base.Iterators: product, flatten
 
 export PolyOpt, StatePolyOpt
-export NCStatePolynomial
+export StatePolynomialOp
 export TRACE, EIGEN
 export SolverConfig
 export cs_nctssos, cs_nctssos_higher

@@ -1,16 +1,21 @@
 struct StateWord{V,M}
-    state_monos::MonomialVector{V,M}
+    state_monos::Vector{Monomial{V,M}}
     function StateWord(monos::Vector{Monomial{V,M}}) where {V,M}
         @assert !any(isconstant.(monos)) "State Word cannot contain constants"
-        new{V,M}(monomial_vector(sort!(monos)))
+        new{V,M}(sort!(monos))
     end
+end
+
+function StateWord(vars::Vector{Variable{V,M}}) where {V,M}
+    StateWord(monomial.(vars))
 end
 
 DynamicPolynomials.variables(sw::StateWord) = union(variables.(sw.state_monos)...)
 Base.show(io::IO, sw::StateWord) = print(io, join(map(x -> "<$(x)>", sw.state_monos), " * "))
-Base.:(==)(a::StateWord, b::StateWord) = all(a.state_monos .== b.state_monos)
+Base.:(==)(a::StateWord, b::StateWord) = all(a.state_monos .== b.state_monos) # NOTE: need to guarantee it is always sorted
 Base.hash(a::StateWord) = hash(a.state_monos)
 Base.isless(a::StateWord, b::StateWord) = isless(a.state_monos, b.state_monos)
+Base.:(*)(a::StateWord, b::StateWord) = StateWord([a.state_monos; b.state_monos])
 
 struct StatePolynomial{V,M,T}
     coeffs::Vector{T}
@@ -25,6 +30,11 @@ end
 DynamicPolynomials.variables(sp::StatePolynomial) = union(variables.(sp.state_words)...)
 Base.show(io::IO, sp::StatePolynomial) = print(io, join(map(x -> "$(x[1]) * $(x[2])", zip(sp.coeffs, sp.state_words)), " + "))
 Base.:(==)(a::StatePolynomial, b::StatePolynomial) = (length(a.coeffs) == length(b.coeffs)) && mapfoldl(x -> (isequal(x[1], x[3]) && (x[2] == x[4])), &, zip(a.coeffs, a.state_words, b.coeffs, b.state_words))
+Base.:(*)(a::StatePolynomial{V,M,T}, b::StatePolynomial{V,M,T}) where {V,M,T} =
+    StatePolynomial(mapfoldl((args...) -> push!.(args...), product(zip(a.coeffs, a.state_words), zip(b.coeffs, b.state_words)); init=(T[], StateWord{V,M}[])) do ((ca, wa), (cb, wb))
+        ca * cb, wa * wb
+    end...)
+Base.:(+)(a::StatePolynomial{V,M,T}, b::StatePolynomial{V,M,T}) where {V,M,T} = StatePolynomial([a.coeffs; b.coeffs], [a.state_words; b.state_words])
 
 # T: type of coefficient
 # V: whether the variabels is NonCommutative{CreationOrder} or Commutative{CreationOrder}
@@ -37,7 +47,8 @@ struct StatePolynomialOp{V,M,T}
     # TODO: get a more user friendly way of declaring StatePolynomial
     function StatePolynomialOp(state_polys::Vector{StatePolynomial{V,M,T}}, words::Vector{Monomial{V,M}}) where {V,M,T}
         @assert length(state_polys) == length(words) "Coefficients, formal words, and words must have the same length"
-        new{V,M,T}(state_polys, words)
+        uniq_words = sorted_unique(words)
+        new{V,M,T}(map(x -> reduce(+, getindex.(Ref(state_polys), findall(==(x), words))), uniq_words), uniq_words)
     end
 end
 
@@ -46,4 +57,5 @@ Base.show(io::IO, ncsp::StatePolynomialOp) = print(io, join(map(
         zip(ncsp.state_poly, ncsp.words)
     ), " + "))
 
+Base.:(==)(a::StatePolynomialOp, b::StatePolynomialOp) = (a.state_poly == b.state_poly) && (a.words == b.words) # by constructor I alwasy guarantee no duplicate words and sorted
 DynamicPolynomials.variables(ncsp::StatePolynomialOp) = sorted_union(variables.(ncsp.words)..., variables.(ncsp.state_poly)...)
