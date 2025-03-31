@@ -1,6 +1,7 @@
 using Test, NCTSSoS
 using NCTSSoS: StateWord, StatePolynomial, StatePolynomialOp
 using DynamicPolynomials
+using DynamicPolynomials: monomial
 
 @testset "NCStatePolynomial Components" begin
     @ncpolyvar x[1:2]
@@ -102,7 +103,17 @@ end
 end
 
 @testset "Utils" begin
-    @ncpolyvar x y z
+    @ncpolyvar x y 
 
-    NCTSSoS.get_state_basis([x, y, z], 3)
+    NCTSSoS.get_state_basis([x, y], 1)
+    c_words = [[one(x)], [y], [x], [one(x)], [one(x)]]
+    nc_words = [one(x), one(x), one(x),y,x]
+    @test sort(NCTSSoS.get_state_basis([x, y], 1)) == sort(map(x->(monomial.(x[1]),x[2]),zip(c_words,nc_words))) 
+    c_words = [[one(x)], [y], [x], [y * x], [y^2], [x * y], [x^2], [y, y], [y, x], [x, x], [one(x)],[y],[x],[one(x)],[y],[x],fill([one(x)],4)...]
+    nc_words = [fill(one(x),10);fill(y,3);fill(x,3);[y*x,y^2,x*y,x^2]]
+    @test sort(NCTSSoS.get_state_basis([x, y], 2)) == sort(map(x->(monomial.(x[1]),x[2]),zip(c_words,nc_words))) 
+
+    nc_words = [fill(one(x),7);fill(x,4);fill(x^2,2);[x^3]]
+    c_words = [[one(x)], [x], [x^2], [x^3], [x, x], [x, x^2], [x, x, x], [one(x)], [x], [x^2], [x, x], [one(x)], [x], [one(x)]]
+    @test sort(NCTSSoS.get_state_basis([x], 3)) == sort(map(x->(monomial.(x[1]),x[2]),zip(c_words,nc_words))) 
 end

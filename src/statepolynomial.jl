@@ -70,19 +70,34 @@ DynamicPolynomials.degree(ncsp::StatePolynomialOp) = mapreduce(x -> sum(degree.(
 
 
 function get_state_basis(variables::Vector{Variable{V,M}}, d::Int) where {V,M}
-    # first get the basis for nc variables
-    total_basis = Vector{Variable{V,M}}[]
-    for nc_deg in 0:d
-        # TODO: is it better to filter out equivalent basis here?
-        nc_basis = get_basis(variables, nc_deg)
-        comm_deg = d - nc_deg
-        for c_word in product(repeat([get_basis(variables, comm_deg)], comm_deg)...)
-            if sum(degree.(c_word)) <= comm_deg
-                @show filter(!isone, collect(c_word))
-            end
-        end
-        comm_basis = unique!([sort(filter(!isone, collect(c_word))) for c_word in product(repeat([get_basis(variables, comm_deg)], comm_deg)...) if (!isempty(c_word) && sum(degree.(c_word)) <= comm_deg)])
-        # map(x -> push!(total_basis, [x[1]; x[2]]), product(comm_basis, nc_basis))
+    return mapreduce(vcat, 0:d) do nc_deg
+        nc_basis = monomials(variables, nc_deg)
+        cw_deg = d - nc_deg
+        cw_basis = unique!([
+            begin
+                interm = sort(filter(!isone, collect(c_word)))
+                isempty(interm) ? [one(variables[1])] : interm
+            end for c_word in product(ntuple(_ -> monomials(variables, 0:cw_deg), cw_deg)..., [one(variables[1])]) if sum(degree.(c_word)) <= cw_deg
+        ])
+        reshape(collect(product(cw_basis, nc_basis)), :)
     end
-    return total_basis
 end
+
+# function get_state_basis(variables::Vector{Variable{V,M}}, d::Int) where {V,M}
+#     return unique!(mapreduce(vcat, 0:d; init=Tuple{Vector{Monomial{V,M}},Monomial{V,M}}[]) do nc_deg
+#         nc_basis = get_basis(variables, nc_deg)
+#         cw_deg = d - nc_deg
+#         cw_basis = Vector{Monomial{V,M}}[]
+#         for c_word in product(ntuple(_ -> monomials(variables, 0:cw_deg), cw_deg)...)
+#             if isempty(c_word)
+#                 push!(cw_basis, [one(variables[1])])
+#                 continue
+#             end
+#             if sum(degree.(c_word)) <= cw_deg
+#                 interm = sort(filter(!isone, collect(c_word)))
+#                 push!(cw_basis, isempty(interm) ? [one(variables[1])] : interm)
+#             end
+#         end
+#         reshape(collect(product(cw_basis, nc_basis)), :)
+#     end)
+# end
