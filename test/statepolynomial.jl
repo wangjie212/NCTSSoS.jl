@@ -1,5 +1,5 @@
 using Test, NCTSSoS
-using NCTSSoS: StateWord, StatePolynomial, StatePolynomialOp
+using NCTSSoS: StateWord, StatePolynomial, StatePolynomialOp, NCStateWord, expval, neat_dot
 using DynamicPolynomials
 using DynamicPolynomials: monomial
 
@@ -24,6 +24,34 @@ using DynamicPolynomials: monomial
         @test sw != sw_partial
 
         @test degree(sw) == 4
+
+        @test one(sw) == StateWord(monomial.([one(x[1])]))
+
+        sw_rep1s = StateWord(monomial.(fill(one(x[1]),3)))
+        @test sw_rep1s == StateWord([monomial(one(x[1]))])
+    end
+
+    @testset "NCStateWord" begin
+        sw1 = StateWord([x[1] * x[2], x[2]^2])
+        sw2 = StateWord([x[1]^2, x[1]^3])
+        ncsw1 = NCStateWord(sw1, x[1] * x[2])
+        ncsw2 = NCStateWord(sw2, x[1]^2)
+        @test ncsw1' == NCStateWord(sw1, x[2]*x[1])
+        @test ncsw1' * ncsw2 == NCStateWord(sw1 * sw2, x[2] * x[1] * x[1]^2)
+        @test neat_dot(ncsw1, ncsw2) == NCStateWord(sw1 * sw2, x[2] * x[1] * x[1]^2)
+
+        @test expval(ncsw1) == StateWord([x[1]*x[2],x[2]^2, x[1]*x[2]])
+
+
+        @ncpolyvar x[1:2]
+
+        basis = get_state_basis(x,1)
+        basis = map(x->NCStateWord(StateWord(x[1]),x[2]),basis)
+        total_basis = sort(unique([neat_dot(a,b) for a in basis for b in basis]))
+        c_words = map(x->StateWord(monomial.(x)),[[one(x[1])],[x[2]],[x[2],x[2]],[x[2],x[1]],[x[1]],[x[1],x[1]],[one(x[1])],[x[2]],[x[1]],[one(x[1])],[x[2]],[x[1]],[one(x[1])],[one(x[1])],[one(x[1])],[one(x[1])]])
+        nc_words = monomial.([fill(one(x[1]),6);fill(x[2],3);fill(x[1],3);[x[2]*x[1],x[2]^2,x[1]*x[2],x[1]^2]])
+        @test total_basis == map(x->NCStateWord(x[1],x[2]),zip(c_words,nc_words))
+        total_basis
     end
 
     @testset "StatePolynomial" begin
@@ -39,6 +67,12 @@ using DynamicPolynomials: monomial
         @test sp_diff != sp
 
         @test degree(sp) == 4
+
+        @test one(sp) == StatePolynomial([one(Float64)],[one(sw)])
+
+        sp
+
+        @test monomials(sp) == StateWord.([[x[2]^2, x[1] * x[2]], [x[1] * x[2]], [x[2]^3]])
     end
 end
 
@@ -64,6 +98,7 @@ end
         @test string(spop) == "3.0 * <x[2]^3> + 1.0 * <x[2]^2> * <x[1]*x[2]> ⋅ x[1] + 2.0 * <x[1]*x[2]> ⋅ x[2]^2"
 
         @test degree(spop) == 5
+        @test monomials(spop) == map(a->NCStateWord(StateWord(a[1]),monomial(a[2])),[([x[2]^3],one(x[1])),([x[2]^2,x[1]*x[2]],x[1]),([x[1]*x[2]],x[2]^2)])
     end
 
     @testset "State Polynomial Arithmetic" begin

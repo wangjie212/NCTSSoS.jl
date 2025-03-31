@@ -46,6 +46,10 @@ function neat_dot(x::Monomial{V,M}, y::Monomial{V,M}) where {V,M}
     return remove_zero_degree(star(x) * y)
 end
 
+function neat_dot(x::NCStateWord{V,M}, y::NCStateWord{V,M}) where {V,M}
+    return adjoint(x) * y
+end
+
 sorted_unique(xs) = sort(unique(xs))
 sorted_union(xs...) = sort(union(xs...))
 

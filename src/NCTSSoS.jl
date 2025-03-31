@@ -11,6 +11,7 @@ import CliqueTrees.cliquetree
 using ChordalGraph
 using Graphs
 using Base.Iterators: product, flatten
+using DynamicPolynomials.MP: compare
 
 export PolyOpt, StatePolyOpt
 export StatePolynomialOp
@@ -29,6 +30,8 @@ include("pop.jl")
 include("sparse.jl")
 
 include("moment_solver.jl")
+
+include("state_moment_solver.jl")
 
 include("sos_solver.jl")
 
