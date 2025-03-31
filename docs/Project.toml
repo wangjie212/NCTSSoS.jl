@@ -1,0 +1,6 @@
+[deps]
+Documenter = "e30172f5-a6a5-5a46-863b-614d45cd2de4"
+NCTSSoS = "bfd54a76-f566-4979-8478-f7e03b9d19fb"
+
+[compat]
+Documenter = "0.26"
