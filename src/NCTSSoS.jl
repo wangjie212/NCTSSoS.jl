@@ -2,7 +2,7 @@ module NCTSSoS
 
 using DynamicPolynomials
 using DynamicPolynomials:
-    AbstractVariable, variables, coefficient, monomial, terms, isconstant, AbstractPolynomial, NonCommutative, Monomial
+    AbstractVariable, variables, coefficient, monomial, terms, isconstant, AbstractPolynomial, NonCommutative, Monomial, degree
 using SparseArrays, LinearAlgebra
 using JuMP
 using CliqueTrees

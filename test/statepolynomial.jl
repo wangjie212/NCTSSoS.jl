@@ -21,6 +21,8 @@ using DynamicPolynomials
 
         sw_partial = StateWord([x[1]*x[2]])
         @test sw != sw_partial
+
+        @test degree(sw) == 4
     end
 
     @testset "StatePolynomial" begin
@@ -34,6 +36,8 @@ using DynamicPolynomials
         sws_diff= StateWord.([[x[1]*x[2],x[2]^2],[x[1]*x[2]],[x[2]^3, x[1]]])
         sp_diff = StatePolynomial([1.0,2.0,5.0],sws_diff)
         @test sp_diff != sp
+
+        @test degree(sp) == 4
     end
 end
 
@@ -57,6 +61,8 @@ end
         words = [x[1], x[2]*x[2], one(x[1])]
         spop = StatePolynomialOp(sps, words)
         @test string(spop) == "3.0 * <x[2]^3> + 1.0 * <x[2]^2> * <x[1]*x[2]> ⋅ x[1] + 2.0 * <x[1]*x[2]> ⋅ x[2]^2"
+
+        @test degree(spop) == 5
     end
 
     @testset "State Polynomial Arithmetic" begin
@@ -93,4 +99,10 @@ end
         spop_order2 = StatePolynomialOp(state_poly_order2, words_order2)
         @test spop_order1 == spop_order2
     end
+end
+
+@testset "Utils" begin
+    @ncpolyvar x y z
+
+    NCTSSoS.get_state_basis([x, y, z], 3)
 end
