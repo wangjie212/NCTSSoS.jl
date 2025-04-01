@@ -1,5 +1,5 @@
 using Test, NCTSSoS
-using NCTSSoS: StateWord, StatePolynomial, StatePolynomialOp, NCStateWord, expval, neat_dot, get_state_basis
+using NCTSSoS: StateWord, StateTerm, StatePolynomial, NCStateWord, NCStateTerm, StatePolynomialOp, expval, neat_dot, get_state_basis
 using DynamicPolynomials
 using DynamicPolynomials: monomial
 
@@ -29,7 +29,7 @@ using DynamicPolynomials: monomial
 
         sw_rep1s = StateWord(monomial.(fill(one(x[1]),3)))
         @test sw_rep1s == StateWord([monomial(one(x[1]))])
-        @test (4.0 * sw) isa StatePolynomial
+        @test (4.0 * sw) isa StateTerm 
     end
 
     @testset "NCStateWord" begin
@@ -43,39 +43,46 @@ using DynamicPolynomials: monomial
 
         @test expval(ncsw1) == StateWord([x[1]*x[2],x[2]^2, x[1]*x[2]])
 
-        @ncpolyvar x[1:2]
-
         basis = get_state_basis(x,1)
-        basis = map(x->NCStateWord(StateWord(x[1]),x[2]),basis)
         total_basis = sort(unique([neat_dot(a,b) for a in basis for b in basis]))
         c_words = map(x->StateWord(monomial.(x)),[[one(x[1])],[x[2]],[x[2],x[2]],[x[2],x[1]],[x[1]],[x[1],x[1]],[one(x[1])],[x[2]],[x[1]],[one(x[1])],[x[2]],[x[1]],[one(x[1])],[one(x[1])],[one(x[1])],[one(x[1])]])
         nc_words = monomial.([fill(one(x[1]),6);fill(x[2],3);fill(x[1],3);[x[2]*x[1],x[2]^2,x[1]*x[2],x[1]^2]])
         @test total_basis == map(x->NCStateWord(x[1],x[2]),zip(c_words,nc_words))
 
-        @test 2.0 * ncsw1 isa StatePolynomialOp
+        @test 2.0 * ncsw1 isa NCStateTerm
     end
 
     @testset "StatePolynomial" begin
         sws = StateWord.([[x[1]*x[2],x[2]^2],[x[1]*x[2]],[x[2]^3]])
-        sp = StatePolynomial([1.0,2.0,5.0],sws)
+        sts = StateTerm.([1.0, 2.0, 5.0], sws)
+        sp = StatePolynomial(sts)
         @test string(sp) == "1.0 * <x[2]^2> * <x[1]*x[2]> + 2.0 * <x[1]*x[2]> + 5.0 * <x[2]^3>"
         sws_rep = StateWord.([[x[1] * x[2], x[2]^2], [x[1] * x[2]], [x[2]^2, x[1] * x[2]], [x[2]^3]])
-        sp_rep = StatePolynomial([0.5, 2.0, 0.5, 5.0], sws_rep)
+        sts_rep = StateTerm.([0.5, 2.0, 0.5, 5.0], sws_rep)
+        sp_rep = StatePolynomial(sts_rep)
         @test sp == sp_rep
 
-        sws_diff= StateWord.([[x[1]*x[2],x[2]^2],[x[1]*x[2]],[x[2]^3, x[1]]])
-        sp_diff = StatePolynomial([1.0,2.0,5.0],sws_diff)
+        sws_diff = StateWord.([[x[1] * x[2], x[2]^2], [x[1] * x[2]], [x[2]^3, x[1]]])
+        sts_diff = StateTerm.([1.0,2.0,5.0],sws_diff)
+        sp_diff = StatePolynomial(sts_diff)
         @test sp_diff != sp
 
         @test degree(sp) == 4
 
-        @test one(sp) == StatePolynomial([one(Float64)],[one(sw)])
-
-        sp
+        @test one(sp) == StatePolynomial([StateTerm(1.0, one(sw))])
 
         @test monomials(sp) == StateWord.([[x[2]^2, x[1] * x[2]], [x[1] * x[2]], [x[2]^3]])
     end
+
+    @testset "StateTerm" begin
+        
+    end
+
+    @testset  "NCStateTerm" begin
+
+    end
 end
+
 
 @testset "State Polynomial" begin
 
