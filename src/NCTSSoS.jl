@@ -35,6 +35,8 @@ include("state_moment_solver.jl")
 
 include("sos_solver.jl")
 
+include("state_sos_solver.jl")
+
 include("solver_utils.jl")
 
 include("interface.jl")

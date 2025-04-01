@@ -1,6 +1,83 @@
 using Test, NCTSSoS
 using JuMP, DynamicPolynomials
 using NCTSSoS: get_state_basis, neat_dot, NCStateWord, StateWord, StatePolynomial, StatePolynomialOp, constrain_moment_matrix!, expval, substitute_variables
+using NCTSSoS: moment_relax
+using Clarabel
+using COSMO
+using MosekTools
+using NCTSSoS: sos_dualize
+
+@testset "State Polynomial Opt 7.2.0" begin
+    @ncpolyvar x[1:2] y[1:2]
+    sps = map(a -> StatePolynomial([a[1]], [a[2]]), zip([-1.0, -1.0, -1.0, 1.0], [x[1] * y[1], x[1] * y[2], x[2] * y[1], x[2] * y[2]]))
+    nc_words = fill(one(x[1]),4)
+    sp = StatePolynomialOp(sps, nc_words)
+
+    spop = StatePolyOpt(sp; is_unipotent=true, comm_gps=[x, y])
+
+    moment_problem = moment_relax(spop, 1)
+    sos_problem = sos_dualize(moment_problem)
+
+    set_optimizer(moment_problem.model, Clarabel.Optimizer)
+    optimize!(moment_problem.model)
+    @test isapprox(objective_value(moment_problem.model), -2.8284271321623202, atol=1e-5)
+    @test is_solved_and_feasible(moment_problem.model)
+
+    set_optimizer(sos_problem.model, Clarabel.Optimizer)
+    optimize!(sos_problem.model)
+    @test isapprox(objective_value(sos_problem.model), -2.8284271321623202, atol=1e-5)
+    @test is_solved_and_feasible(sos_problem.model)
+end
+
+@testset "State Polynomial Opt 7.2.1" begin
+    @ncpolyvar x[1:2] y[1:2]
+    sp1 = StatePolynomial([1.0, 1.0], StateWord.([[x[1] * y[2]], [x[2] * y[1]]]))
+    sp2 = StatePolynomial([1.0, -1.0], StateWord.([[x[1] * y[1]], [x[2] * y[2]]]))
+    words = [one(x[1]), one(x[1])]
+    sp = StatePolynomialOp([-1.0 * sp1 * sp1, -1.0 * sp2 * sp2], words)
+
+    spop = StatePolyOpt(sp; is_unipotent=true, comm_gps=[x, y])
+
+    d = 2
+    moment_problem = moment_relax(spop, d)
+
+    set_optimizer(moment_problem.model, COSMO.Optimizer)
+    optimize!(moment_problem.model)
+    # FIXME: this is reached at mom_order 3, but order 3 is too slow, fix this after sparsity is implemented
+    @test isapprox(objective_value(moment_problem.model), -4.0, atol=1e-5)
+    @test is_solved_and_feasible(moment_problem.model)
+
+    sos_problem = sos_dualize(moment_problem)
+    set_optimizer(sos_problem.model, COSMO.Optimizer)
+    optimize!(sos_problem.model)
+    @test isapprox(objective_value(sos_problem.model), -4.0, atol=1e-5)
+    @test is_solved_and_feasible(sos_problem.model)
+end
+
+@testset "State Polynomial Opt 7.2.2" begin
+    @ncpolyvar x[1:6] 
+    sps = StatePolynomial(Float64.([-1, 1, -1, 1, -1, 1, -1, 1, -1, 1, 1, -1, -1, 1, 1, -1]),
+        map(a->StateWord(monomial.(a)),[[x[1] * x[4]], [x[1], x[4]], [x[1] * x[5]], [x[1], x[5]], [x[1] * x[6]], [x[1], x[6]], [x[2] * x[4]], [x[2], x[4]], [x[2] * x[5]], [x[2], x[5]], [x[2] * x[6]], [x[2], x[6]], [x[3] * x[4]], [x[3], x[4]], [x[3] * x[5]], [x[3], x[5]]]))
+    sp = StatePolynomialOp([sps], [one(x[1])])
+
+    spop = StatePolyOpt(sp; is_unipotent=true, comm_gps=[x[1:3], x[4:6]])
+
+    d = 2
+    moment_problem = moment_relax(spop, d)
+
+    set_optimizer(moment_problem.model, COSMO.Optimizer)
+    optimize!(moment_problem.model)
+    @test isapprox(objective_value(moment_problem.model), -5.0, atol=1e-5)
+    @test is_solved_and_feasible(moment_problem.model)
+
+    sos_problem = sos_dualize(moment_problem)
+    set_optimizer(sos_problem.model, optimizer_with_attributes(COSMO.Optimizer,"eps_rel"=> 1e-8))
+    optimize!(sos_problem.model)
+    # FIXME: accuracy is too low
+    @test isapprox(objective_value(sos_problem.model), -5.0, atol=1e-2)
+end
+
+
 
 @testset "Constrain Moment matrix" begin
     @ncpolyvar x[1:2]

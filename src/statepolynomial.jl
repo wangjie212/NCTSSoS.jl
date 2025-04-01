@@ -67,6 +67,7 @@ Base.:(*)(a::StatePolynomial{V,M,T}, b::StatePolynomial{V,M,T}) where {V,M,T} =
 Base.:(*)(n, a::StatePolynomial{V,M,T}) where {V,M,T} = StatePolynomial(T(n) .* a.coeffs, a.state_words)
 Base.:(+)(a::StatePolynomial{V,M,T}, b::StatePolynomial{V,M,T}) where {V,M,T} = StatePolynomial([a.coeffs; b.coeffs], [a.state_words; b.state_words])
 Base.one(a::StatePolynomial{V,M,T}) where {V,M,T} = StatePolynomial([one(T)], [one(a.state_words[1])])
+Base.zero(a::StatePolynomial{V,M,T}) where {V,M,T} = StatePolynomial([zero(T)], [one(a.state_words[1])])
 
 
 
@@ -94,6 +95,7 @@ Base.show(io::IO, ncsp::StatePolynomialOp) = print(io, join(map(
 Base.:(==)(a::StatePolynomialOp, b::StatePolynomialOp) = (a.state_poly == b.state_poly) && (a.words == b.words) # by constructor I alwasy guarantee no duplicate words and sorted
 Base.:(+)(a::StatePolynomialOp, b::StatePolynomialOp) = StatePolynomialOp([a.state_poly; b.state_poly], [a.words; b.words])
 Base.one(a::StatePolynomialOp) = StatePolynomialOp([one(a.state_poly[1])], [one(a.words[1])])
+Base.zero(a::StatePolynomialOp) = StatePolynomialOp([zero(a.state_poly[1])], [one(a.words[1])])
 DynamicPolynomials.variables(ncsp::StatePolynomialOp) = sorted_union(variables.(ncsp.words)..., variables.(ncsp.state_poly)...)
 DynamicPolynomials.degree(ncsp::StatePolynomialOp) = mapreduce(x -> sum(degree.(x)), max, zip(ncsp.state_poly, ncsp.words))
 DynamicPolynomials.monomials(ncsp::StatePolynomialOp) =
@@ -108,7 +110,7 @@ function DynamicPolynomials.terms(ncsp::StatePolynomialOp)
 end
 
 function get_state_basis(variables::Vector{Variable{V,M}}, d::Int) where {V,M}
-    return mapreduce(vcat, 0:d) do nc_deg
+    return map(a -> NCStateWord(StateWord(a[1]), a[2]), mapreduce(vcat, 0:d) do nc_deg
         nc_basis = monomials(variables, nc_deg)
         cw_deg = d - nc_deg
         cw_basis = unique!([
@@ -118,5 +120,5 @@ function get_state_basis(variables::Vector{Variable{V,M}}, d::Int) where {V,M}
             end for c_word in product(ntuple(_ -> monomials(variables, 0:cw_deg), cw_deg)..., [one(variables[1])]) if sum(degree.(c_word)) <= cw_deg
         ])
         reshape(collect(product(cw_basis, nc_basis)), :)
-    end
+    end)
 end

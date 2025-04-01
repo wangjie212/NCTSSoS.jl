@@ -65,6 +65,7 @@ function _comm(mono::Monomial{V,M}, comm_gp::Set{Variable{V,M}}) where {V,M}
 end
 
 function _unipotent(mono::Monomial)
+    isconstant(mono) && return mono
     prev_mono = mono
     local cur_mono
     while true
@@ -77,14 +78,51 @@ function _unipotent(mono::Monomial)
     return cur_mono
 end
 
+function _unipotent(sw::StateWord)
+    StateWord(_unipotent.(sw.state_monos))
+end
+
+function _unipotent(ncsw::NCStateWord)
+    NCStateWord(_unipotent(ncsw.sw), _unipotent(ncsw.nc_word))
+end
+
 _projective(mono::Monomial) =
     prod(zip(mono.vars, mono.z)) do (var, expo)
         var^(iszero(expo) ? expo : one(expo))
     end
+
+_projective(sw::StateWord) =
+    StateWord(_projective.(sw.state_monos))
+
+_projective(ncsw::NCStateWord) =
+    NCStateWord(_projective(ncsw.sw), _projective(ncsw.nc_word))
 
 function reducer(pop::PolyOpt)
     function (x)
         cx = _comm(x, pop.comm_gp)
         return pop.is_unipotent ? _unipotent(cx) : (pop.is_projective ? _projective(cx) : cx)
     end
+end
+
+function reducer(spop::StatePolyOpt)
+    function (x)
+        cx = _comm(x, spop.comm_gps)
+        return spop.is_unipotent ? _unipotent(cx) : (spop.is_projective ? _projective(cx) : cx)
+    end
+end
+
+function _comm(mono::Monomial{V,M}, comm_gps::Vector{Set{Variable{V,M}}}) where {V,M}
+    prod(comm_gps) do vars
+        prod(zip(mono.vars, mono.z); init=first(vars)^0) do (var, expon)
+            var in vars ? var^expon : var^(zero(expon))
+        end
+    end
+end
+
+function _comm(sw::StateWord{V,M}, comm_gps::Vector{Set{Variable{V,M}}}) where {V,M}
+    StateWord(_comm.(sw.state_monos, Ref(comm_gps)))
+end
+
+function _comm(ncsw::NCStateWord{V,M}, comm_gps::Vector{Set{Variable{V,M}}}) where {V,M}
+    NCStateWord(_comm(ncsw.sw, comm_gps), _comm(ncsw.nc_word, comm_gps))
 end
