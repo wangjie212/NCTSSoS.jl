@@ -14,6 +14,7 @@ Base.:(==)(a::StateWord, b::StateWord) = length(a.state_monos) == length(b.state
 Base.hash(a::StateWord) = hash(a.state_monos)
 Base.isless(a::StateWord, b::StateWord) = isless(a.state_monos, b.state_monos)
 Base.:(*)(a::StateWord, b::StateWord) = StateWord([a.state_monos; b.state_monos])
+Base.:(*)(coef::T, a::StateWord{V,M}) where {V,M,T} = StatePolynomial([coef], [a])
 Base.one(a::StateWord) = StateWord([one(a.state_monos[1])])
 DynamicPolynomials.degree(sw::StateWord) = mapreduce(degree, +, sw.state_monos; init=zero(Int))
 
@@ -24,6 +25,7 @@ end
 
 Base.adjoint(a::NCStateWord{V,M}) where {V,M} = NCStateWord{V,M}(a.sw, star(a.nc_word))
 Base.:(*)(a::NCStateWord{V,M}, b::NCStateWord{V,M}) where {V,M} = NCStateWord{V,M}(a.sw * b.sw, a.nc_word * b.nc_word)
+Base.:(*)(coef::T, a::NCStateWord{V,M}) where {V,M,T} = StatePolynomialOp([coef * a.sw], [a.nc_word])
 Base.:(==)(a::NCStateWord{V,M}, b::NCStateWord{V,M}) where {V,M} = a.sw == b.sw && a.nc_word == b.nc_word
 Base.hash(a::NCStateWord) = hash((hash(a.sw), hash(a.nc_word)))
 
@@ -54,6 +56,8 @@ StatePolynomial(coeffs::Vector{T}, state_monos::Vector{Monomial{V,M}}) where {V,
 DynamicPolynomials.variables(sp::StatePolynomial) = union(variables.(sp.state_words)...)
 DynamicPolynomials.degree(sp::StatePolynomial) = mapreduce(degree, max, sp.state_words)
 DynamicPolynomials.monomials(sp::StatePolynomial) = sp.state_words
+DynamicPolynomials.terms(sp::StatePolynomial) = collect(zip(sp.coeffs, sp.state_words))
+
 Base.show(io::IO, sp::StatePolynomial) = print(io, join(map(x -> "$(x[1]) * $(x[2])", zip(sp.coeffs, sp.state_words)), " + "))
 Base.:(==)(a::StatePolynomial, b::StatePolynomial) = (length(a.coeffs) == length(b.coeffs)) && mapfoldl(x -> (isequal(x[1], x[3]) && (x[2] == x[4])), &, zip(a.coeffs, a.state_words, b.coeffs, b.state_words))
 Base.:(*)(a::StatePolynomial{V,M,T}, b::StatePolynomial{V,M,T}) where {V,M,T} =
@@ -63,6 +67,7 @@ Base.:(*)(a::StatePolynomial{V,M,T}, b::StatePolynomial{V,M,T}) where {V,M,T} =
 Base.:(*)(n, a::StatePolynomial{V,M,T}) where {V,M,T} = StatePolynomial(T(n) .* a.coeffs, a.state_words)
 Base.:(+)(a::StatePolynomial{V,M,T}, b::StatePolynomial{V,M,T}) where {V,M,T} = StatePolynomial([a.coeffs; b.coeffs], [a.state_words; b.state_words])
 Base.one(a::StatePolynomial{V,M,T}) where {V,M,T} = StatePolynomial([one(T)], [one(a.state_words[1])])
+
 
 
 # T: type of coefficient
@@ -87,6 +92,7 @@ Base.show(io::IO, ncsp::StatePolynomialOp) = print(io, join(map(
     ), " + "))
 
 Base.:(==)(a::StatePolynomialOp, b::StatePolynomialOp) = (a.state_poly == b.state_poly) && (a.words == b.words) # by constructor I alwasy guarantee no duplicate words and sorted
+Base.:(+)(a::StatePolynomialOp, b::StatePolynomialOp) = StatePolynomialOp([a.state_poly; b.state_poly], [a.words; b.words])
 Base.one(a::StatePolynomialOp) = StatePolynomialOp([one(a.state_poly[1])], [one(a.words[1])])
 DynamicPolynomials.variables(ncsp::StatePolynomialOp) = sorted_union(variables.(ncsp.words)..., variables.(ncsp.state_poly)...)
 DynamicPolynomials.degree(ncsp::StatePolynomialOp) = mapreduce(x -> sum(degree.(x)), max, zip(ncsp.state_poly, ncsp.words))
@@ -94,6 +100,12 @@ DynamicPolynomials.monomials(ncsp::StatePolynomialOp) =
     mapreduce(vcat, zip(ncsp.state_poly, ncsp.words)) do (sp, wd)
         [NCStateWord(c_word, wd) for c_word in monomials(sp)]
     end
+
+function DynamicPolynomials.terms(ncsp::StatePolynomialOp)
+    mapreduce(vcat, zip(ncsp.state_poly, ncsp.words)) do (sp, nc_word)
+        [(sp_term[1], NCStateWord(sp_term[2], nc_word)) for sp_term in terms(sp)]
+    end
+end
 
 function get_state_basis(variables::Vector{Variable{V,M}}, d::Int) where {V,M}
     return mapreduce(vcat, 0:d) do nc_deg

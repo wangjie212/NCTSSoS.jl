@@ -1,5 +1,5 @@
 using Test, NCTSSoS
-using NCTSSoS: StateWord, StatePolynomial, StatePolynomialOp, NCStateWord, expval, neat_dot
+using NCTSSoS: StateWord, StatePolynomial, StatePolynomialOp, NCStateWord, expval, neat_dot, get_state_basis
 using DynamicPolynomials
 using DynamicPolynomials: monomial
 
@@ -29,6 +29,7 @@ using DynamicPolynomials: monomial
 
         sw_rep1s = StateWord(monomial.(fill(one(x[1]),3)))
         @test sw_rep1s == StateWord([monomial(one(x[1]))])
+        @test (4.0 * sw) isa StatePolynomial
     end
 
     @testset "NCStateWord" begin
@@ -42,7 +43,6 @@ using DynamicPolynomials: monomial
 
         @test expval(ncsw1) == StateWord([x[1]*x[2],x[2]^2, x[1]*x[2]])
 
-
         @ncpolyvar x[1:2]
 
         basis = get_state_basis(x,1)
@@ -51,7 +51,8 @@ using DynamicPolynomials: monomial
         c_words = map(x->StateWord(monomial.(x)),[[one(x[1])],[x[2]],[x[2],x[2]],[x[2],x[1]],[x[1]],[x[1],x[1]],[one(x[1])],[x[2]],[x[1]],[one(x[1])],[x[2]],[x[1]],[one(x[1])],[one(x[1])],[one(x[1])],[one(x[1])]])
         nc_words = monomial.([fill(one(x[1]),6);fill(x[2],3);fill(x[1],3);[x[2]*x[1],x[2]^2,x[1]*x[2],x[1]^2]])
         @test total_basis == map(x->NCStateWord(x[1],x[2]),zip(c_words,nc_words))
-        total_basis
+
+        @test 2.0 * ncsw1 isa StatePolynomialOp
     end
 
     @testset "StatePolynomial" begin
