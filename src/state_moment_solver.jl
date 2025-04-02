@@ -9,7 +9,7 @@ struct StateMomentProblem{V,M,T,CR<:ConstraintRef} <: OptimizationProblem
     reduce_func::Function
 end
 function substitute_variables(poly::StatePolynomialOp{V,M,T}, wordmap::Dict{StateWord{V,M},GenericVariableRef{T}}) where {V,M,T}
-    mapreduce(x -> (x[1] * wordmap[expval(x[2])]), +, terms(poly))
+    mapreduce(x -> (x.coef * wordmap[expval(x.ncstate_word)]), +, terms(poly))
 end
 
 # cliques_cons: groups constraints according to cliques,
@@ -54,8 +54,12 @@ function constrain_moment_matrix!(
     reduce_func::Function
 ) where {V,M,T}
     moment_mtx = [
-        substitute_variables(sum([coef * reduce_func(neat_dot(row_idx, mono * col_idx)) for (coef, mono) in terms(poly)]), monomap) for
-        row_idx in local_basis, col_idx in local_basis
+        begin
+        interm = sum([poly_term.coef * reduce_func(neat_dot(row_idx, poly_term.ncstate_word * col_idx)) for poly_term in terms(poly)];init=zero(poly))
+        @show interm typeof(interm)
+        substitute_variables(sum([poly_term.coef * reduce_func(neat_dot(row_idx, poly_term.ncstate_word * col_idx)) for poly_term in terms(poly)];init=zero(poly)), monomap)
+        end
+        for row_idx in local_basis, col_idx in local_basis
     ]
     return @constraint(model, moment_mtx in cone)
 end

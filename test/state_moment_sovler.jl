@@ -1,6 +1,7 @@
 using Test, NCTSSoS
 using JuMP, DynamicPolynomials
 using NCTSSoS: get_state_basis, neat_dot, NCStateWord, StateWord, StatePolynomial, StatePolynomialOp, constrain_moment_matrix!, expval, substitute_variables
+using NCTSSoS: NCStateTerm, StateTerm
 using NCTSSoS: moment_relax
 using Clarabel
 using COSMO
@@ -9,10 +10,7 @@ using NCTSSoS: sos_dualize
 
 @testset "State Polynomial Opt 7.2.0" begin
     @ncpolyvar x[1:2] y[1:2]
-    sps = map(a -> StatePolynomial([a[1]], [a[2]]), zip([-1.0, -1.0, -1.0, 1.0], [x[1] * y[1], x[1] * y[2], x[2] * y[1], x[2] * y[2]]))
-    nc_words = fill(one(x[1]),4)
-    sp = StatePolynomialOp(sps, nc_words)
-
+    sp = StatePolynomialOp(map(a -> NCStateTerm(a[1],NCStateWord(StateWord([a[2]]),a[3])), zip([-1.0, -1.0, -1.0, 1.0], [x[1] * y[1], x[1] * y[2], x[2] * y[1], x[2] * y[2]],fill(one(x[1]),4))))
     spop = StatePolyOpt(sp; is_unipotent=true, comm_gps=[x, y])
 
     moment_problem = moment_relax(spop, 1)
@@ -83,11 +81,10 @@ end
     @ncpolyvar x[1:2]
 
     basis = get_state_basis(x,1)
-    basis = map(x->NCStateWord(StateWord(x[1]),x[2]),basis)
 
-    sp = map(a -> StatePolynomial([a[1]], [a[2]]), zip([1.0, 2.0, 3.0], StateWord.([[x[1], x[2]], [x[1]], [x[2]]])))
+    sp = StatePolynomial(map(a -> StateTerm(a[1], a[2]), zip([1.0, 2.0, 3.0], StateWord.(map(x -> monomial.(x), [[x[1], x[2]], [x[1]], [x[2]]])))))
     nc_words = monomial.([one(x[1]), x[1], x[2]])
-    ncsp = StatePolynomialOp(sp, nc_words)
+    ncsp = StatePolynomialOp(map(a -> NCStateTerm(a[1], NCStateWord(a[2],a[3])), zip([1.0, 2.0, 3.0], StateWord.(map(x -> monomial.(x), [[x[1], x[2]], [x[1]], [x[2]]])), nc_words)))
     poly = one(ncsp)
 
     total_basis = sort(unique([expval(neat_dot(a,b)) for a in basis for b in basis]))
@@ -96,8 +93,8 @@ end
     @variable(model, y[1:length(total_basis)])
     wordmap = Dict(zip(total_basis,y))
 
-    ncwords = map(a -> NCStateWord(terms(a[1])[1][2], a[2]), zip(sp, nc_words))
-    @test sort(terms(ncsp)) == sort(collect(zip([1.0, 2.0, 3.0], ncwords)))
+    ncterms = map(a -> NCStateTerm(a[1], NCStateWord(StateWord(monomial.(a[2])), a[3])), zip([1.0, 2.0, 3.0], [[x[1], x[2]], [x[1]], [x[2]]], nc_words))
+    @test terms(ncsp) == ncterms
 
     @test substitute_variables(ncsp, wordmap) == 1.0 * y[4] + 3.0 * y[3] + 2.0 * y[6]
 
