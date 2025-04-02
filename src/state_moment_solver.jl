@@ -40,7 +40,7 @@ function moment_relax(pop::StatePolyOpt{V,M,T}, mom_order::Int) where {V,M,T}
         constrain_moment_matrix!(model, cons, get_state_basis(pop.variables, mom_order - fld(degree(cons), 2)), monomap, iseq ? Zeros() : PSDCone(), reduce_func)
     end]
 
-    @objective(model, Min, substitute_variables(mapreduce(p -> p[1] * reduce_func(p[2]), +, terms(pop.objective); init=zero(pop.objective)), monomap))
+    @objective(model, Min, substitute_variables(mapreduce(p -> p.coef * reduce_func(p.ncstate_word), +, terms(pop.objective); init=zero(pop.objective)), monomap))
 
     return StateMomentProblem(model, constraint_matrices, monomap, reduce_func)
 end
@@ -54,12 +54,7 @@ function constrain_moment_matrix!(
     reduce_func::Function
 ) where {V,M,T}
     moment_mtx = [
-        begin
-        interm = sum([poly_term.coef * reduce_func(neat_dot(row_idx, poly_term.ncstate_word * col_idx)) for poly_term in terms(poly)];init=zero(poly))
-        @show interm typeof(interm)
-        substitute_variables(sum([poly_term.coef * reduce_func(neat_dot(row_idx, poly_term.ncstate_word * col_idx)) for poly_term in terms(poly)];init=zero(poly)), monomap)
-        end
-        for row_idx in local_basis, col_idx in local_basis
+        substitute_variables(sum([poly_term.coef * reduce_func(neat_dot(row_idx, poly_term.ncstate_word * col_idx)) for poly_term in terms(poly)];init=zero(poly)), monomap) for row_idx in local_basis, col_idx in local_basis
     ]
     return @constraint(model, moment_mtx in cone)
 end

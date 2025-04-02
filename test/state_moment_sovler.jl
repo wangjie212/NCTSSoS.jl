@@ -10,7 +10,7 @@ using NCTSSoS: sos_dualize
 
 @testset "State Polynomial Opt 7.2.0" begin
     @ncpolyvar x[1:2] y[1:2]
-    sp = StatePolynomialOp(map(a -> NCStateTerm(a[1],NCStateWord(StateWord([a[2]]),a[3])), zip([-1.0, -1.0, -1.0, 1.0], [x[1] * y[1], x[1] * y[2], x[2] * y[1], x[2] * y[2]],fill(one(x[1]),4))))
+    sp = StatePolynomialOp(map(a -> a[1]*StateWord([a[2]])*a[3], zip([-1.0, -1.0, -1.0, 1.0], [x[1] * y[1], x[1] * y[2], x[2] * y[1], x[2] * y[2]],fill(one(x[1]),4))))
     spop = StatePolyOpt(sp; is_unipotent=true, comm_gps=[x, y])
 
     moment_problem = moment_relax(spop, 1)
@@ -29,14 +29,14 @@ end
 
 @testset "State Polynomial Opt 7.2.1" begin
     @ncpolyvar x[1:2] y[1:2]
-    sp1 = StatePolynomial([1.0, 1.0], StateWord.([[x[1] * y[2]], [x[2] * y[1]]]))
-    sp2 = StatePolynomial([1.0, -1.0], StateWord.([[x[1] * y[1]], [x[2] * y[2]]]))
+    sp1 = StatePolynomial([coef*sw for (coef,sw) in zip([1.0,1.0],StateWord.([[x[1] * y[2]], [x[2] * y[1]]]))])
+    sp2 = StatePolynomial([coef*sw for (coef,sw) in zip([1.0, -1.0],StateWord.([[x[1] * y[1]], [x[2] * y[2]]]))])
     words = [one(x[1]), one(x[1])]
-    sp = StatePolynomialOp([-1.0 * sp1 * sp1, -1.0 * sp2 * sp2], words)
+    sp = -1.0 * sp1 * sp1 * one(x[1]) + (-1.0 * sp2 * sp2) * one(x[1])
 
     spop = StatePolyOpt(sp; is_unipotent=true, comm_gps=[x, y])
 
-    d = 2
+    d = 3
     moment_problem = moment_relax(spop, d)
 
     set_optimizer(moment_problem.model, COSMO.Optimizer)
@@ -54,9 +54,8 @@ end
 
 @testset "State Polynomial Opt 7.2.2" begin
     @ncpolyvar x[1:6] 
-    sps = StatePolynomial(Float64.([-1, 1, -1, 1, -1, 1, -1, 1, -1, 1, 1, -1, -1, 1, 1, -1]),
-        map(a->StateWord(monomial.(a)),[[x[1] * x[4]], [x[1], x[4]], [x[1] * x[5]], [x[1], x[5]], [x[1] * x[6]], [x[1], x[6]], [x[2] * x[4]], [x[2], x[4]], [x[2] * x[5]], [x[2], x[5]], [x[2] * x[6]], [x[2], x[6]], [x[3] * x[4]], [x[3], x[4]], [x[3] * x[5]], [x[3], x[5]]]))
-    sp = StatePolynomialOp([sps], [one(x[1])])
+    sps = StatePolynomial(map(a->a[1]*StateWord(monomial.(a[2])),zip(Float64.([-1, 1, -1, 1, -1, 1, -1, 1, -1, 1, 1, -1, -1, 1, 1, -1]),[[x[1] * x[4]], [x[1], x[4]], [x[1] * x[5]], [x[1], x[5]], [x[1] * x[6]], [x[1], x[6]], [x[2] * x[4]], [x[2], x[4]], [x[2] * x[5]], [x[2], x[5]], [x[2] * x[6]], [x[2], x[6]], [x[3] * x[4]], [x[3], x[4]], [x[3] * x[5]], [x[3], x[5]]])))
+    sp = sps * one(x[1])
 
     spop = StatePolyOpt(sp; is_unipotent=true, comm_gps=[x[1:3], x[4:6]])
 
@@ -76,15 +75,14 @@ end
 end
 
 
-
 @testset "Constrain Moment matrix" begin
     @ncpolyvar x[1:2]
 
     basis = get_state_basis(x,1)
 
-    sp = StatePolynomial(map(a -> StateTerm(a[1], a[2]), zip([1.0, 2.0, 3.0], StateWord.(map(x -> monomial.(x), [[x[1], x[2]], [x[1]], [x[2]]])))))
+    sp = StatePolynomial(map(a -> a[1]* a[2], zip([1.0, 2.0, 3.0], StateWord.(map(x -> monomial.(x), [[x[1], x[2]], [x[1]], [x[2]]])))))
     nc_words = monomial.([one(x[1]), x[1], x[2]])
-    ncsp = StatePolynomialOp(map(a -> NCStateTerm(a[1], NCStateWord(a[2],a[3])), zip([1.0, 2.0, 3.0], StateWord.(map(x -> monomial.(x), [[x[1], x[2]], [x[1]], [x[2]]])), nc_words)))
+    ncsp = StatePolynomialOp(map(a -> a[1] * a[2] * a[3], zip([1.0, 2.0, 3.0], StateWord.(map(x -> monomial.(x), [[x[1], x[2]], [x[1]], [x[2]]])), nc_words)))
     poly = one(ncsp)
 
     total_basis = sort(unique([expval(neat_dot(a,b)) for a in basis for b in basis]))
@@ -93,8 +91,8 @@ end
     @variable(model, y[1:length(total_basis)])
     wordmap = Dict(zip(total_basis,y))
 
-    ncterms = map(a -> NCStateTerm(a[1], NCStateWord(StateWord(monomial.(a[2])), a[3])), zip([1.0, 2.0, 3.0], [[x[1], x[2]], [x[1]], [x[2]]], nc_words))
-    @test terms(ncsp) == ncterms
+    ncterms = map(a -> a[1]* StateWord(monomial.(a[2]))* a[3], zip([1.0, 2.0, 3.0], [[x[1], x[2]], [x[1]], [x[2]]], nc_words))
+    @test sort(terms(ncsp)) == sort(ncterms)
 
     @test substitute_variables(ncsp, wordmap) == 1.0 * y[4] + 3.0 * y[3] + 2.0 * y[6]
 
