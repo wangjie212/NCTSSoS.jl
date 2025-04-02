@@ -58,6 +58,8 @@ Base.:(*)(a::StateTerm, b::StateTerm) = StateTerm(a.coef * b.coef, a.state_word 
 Base.:(*)(a::StateTerm{V,M,T},b::Monomial{V,M}) where {V,M,T} = NCStateTerm(a.coef, NCStateWord(a.state_word,b))
 Base.:(*)(n, a::StateTerm{V,M,T}) where {V,M,T} = StateTerm(T(n) * a.coef, a.state_word)
 Base.:(+)(a::StateTerm, b::StateTerm) = StatePolynomial([a, b])
+Base.:(-)(a::StateTerm, b::StateTerm) = StatePolynomial([a, -b])
+Base.:(-)(a::StateTerm) = StateTerm(-a.coef, a.state_word)
 Base.one(::Type{StateTerm{V,M,T}}) where {V,M,T} = StateTerm(one(T), one(StateWord{V,M}))
 Base.zero(::Type{StateTerm{V,M,T}}) where {V,M,T} = StateTerm(zero(T), one(StateWord{V,M}))
 
@@ -70,7 +72,10 @@ struct NCStateTerm{V,M,T}
 end
 
 Base.:(==)(a::NCStateTerm, b::NCStateTerm) = isequal(a.coef, b.coef) && (a.ncstate_word == b.ncstate_word)
-Base.:(+)(a::NCStateTerm, b::NCStateTerm) = StatePolynomialOp([a.coef, b.coef],[a.ncstate_word,b.ncstate_word])
+Base.:(+)(a::NCStateTerm, b::NCStateTerm) = StatePolynomialOp([a, b])
+Base.:(-)(a::NCStateTerm{V,M,T}, b::NCStateTerm{V,M,T}) where {V,M,T} = StatePolynomialOp([a, -b])
+Base.:(-)(a::NCStateTerm) = NCStateTerm(-a.coef, a.ncstate_word)
+Base.:(*)(n , a::NCStateTerm{V,M,T}) where {V,M,T} = NCStateTerm(n*a.coef, a.ncstate_word)
 Base.hash(a::NCStateTerm) = hash((hash(a.coef), hash(a.ncstate_word)))
 Base.show(io::IO, ncst::NCStateTerm) = print(io, string(ncst.coef) * " * " * string(ncst.ncstate_word))
 Base.one(::Type{NCStateTerm{V,M,T}}) where {V,M,T} = NCStateTerm(one(T), one(NCStateWord{V,M}))
@@ -102,6 +107,7 @@ Base.:(*)(a::StatePolynomial{V,M,T}, b::StatePolynomial{V,M,T}) where {V,M,T} = 
 Base.:(*)(a::StatePolynomial{V,M,T},b::Monomial{V,M}) where {V,M,T} = StatePolynomialOp([st * b for st in a.state_terms])
 Base.:(*)(n, a::StatePolynomial{V,M,T}) where {V,M,T} = StatePolynomial(T(n) .* a.state_terms)
 Base.:(+)(a::StatePolynomial{V,M,T}, b::StatePolynomial{V,M,T}) where {V,M,T} = StatePolynomial([a.state_terms; b.state_terms])
+Base.:(+)(a::StatePolynomial{V,M,T}, b::StateTerm{V,M,T}) where {V,M,T} = StatePolynomial([a.state_terms; b])
 Base.one(::StatePolynomial{V,M,T}) where {V,M,T} = StatePolynomial([one(StateTerm{V,M,T})])
 Base.zero(::StatePolynomial{V,M,T}) where {V,M,T} = StatePolynomial([zero(StateTerm{V,M,T})])
 
@@ -128,6 +134,7 @@ Base.:(==)(a::StatePolynomialOp, b::StatePolynomialOp) = all(a.nc_state_terms .=
 Base.hash(ncsp::StatePolynomialOp) = hash(hash.(ncsp.nc_state_terms))
 Base.:(+)(a::StatePolynomialOp, b::StatePolynomialOp) = StatePolynomialOp([a.nc_state_terms; b.nc_state_terms])
 Base.:(+)(a::StatePolynomialOp,b::NCStateTerm) = StatePolynomialOp([a.nc_state_terms; b])
+Base.:(-)(a::StatePolynomialOp{V,M,T},b::StatePolynomialOp{V,M,T}) where {V,M,T} = StatePolynomialOp([a.nc_state_terms; -one(T) .* b.nc_state_terms])
 Base.one(::StatePolynomialOp{V,M,T}) where {V,M,T} = StatePolynomialOp([one(NCStateTerm{V,M,T})])
 Base.zero(::StatePolynomialOp{V,M,T}) where {V,M,T} = StatePolynomialOp([zero(NCStateTerm{V,M,T})])
 Base.zero(::Type{StatePolynomialOp{V,M,T}}) where {V,M,T} = StatePolynomialOp([zero(NCStateTerm{V,M,T})])

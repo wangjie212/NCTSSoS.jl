@@ -3,9 +3,7 @@ using JuMP, DynamicPolynomials
 using NCTSSoS: get_state_basis, neat_dot, NCStateWord, StateWord, StatePolynomial, StatePolynomialOp, constrain_moment_matrix!, expval, substitute_variables
 using NCTSSoS: NCStateTerm, StateTerm
 using NCTSSoS: moment_relax
-using Clarabel
-using COSMO
-using MosekTools
+using Clarabel, COSMO
 using NCTSSoS: sos_dualize
 
 @testset "State Polynomial Opt 7.2.0" begin
@@ -53,7 +51,7 @@ end
 end
 
 @testset "State Polynomial Opt 7.2.2" begin
-    @ncpolyvar x[1:6] 
+    @ncpolyvar x[1:6]
     sps = StatePolynomial(map(a->a[1]*StateWord(monomial.(a[2])),zip(Float64.([-1, 1, -1, 1, -1, 1, -1, 1, -1, 1, 1, -1, -1, 1, 1, -1]),[[x[1] * x[4]], [x[1], x[4]], [x[1] * x[5]], [x[1], x[5]], [x[1] * x[6]], [x[1], x[6]], [x[2] * x[4]], [x[2], x[4]], [x[2] * x[5]], [x[2], x[5]], [x[2] * x[6]], [x[2], x[6]], [x[3] * x[4]], [x[3], x[4]], [x[3] * x[5]], [x[3], x[5]]])))
     sp = sps * one(x[1])
 
