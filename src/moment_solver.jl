@@ -61,7 +61,6 @@ function moment_relax(pop::PolyOpt{V,M,T}, cliques_cons::Vector{Vector{Int}}, gl
                     reduce_func
                 )
             end]
-    @show typeof(constraint_matrices)
 
     @objective(model, Min, substitute_variables(mapreduce(p -> coefficient(p) * reduce_func(monomial(p)), +, terms(symmetric_canonicalize(pop.objective)); init=zero(pop.objective)), monomap))
 

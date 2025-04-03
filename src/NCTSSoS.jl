@@ -29,6 +29,8 @@ include("pop.jl")
 
 include("sparse.jl")
 
+include("state_sparse.jl")
+
 include("moment_solver.jl")
 
 include("state_moment_solver.jl")

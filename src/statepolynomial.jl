@@ -6,6 +6,11 @@ struct StateWord{V,M}
     end
 end
 
+function symmetric_canonicalize(sw::StateWord)
+    StateWord(symmetric_canonicalize.(sw.state_monos))
+end
+
+DynamicPolynomials.effective_variables(sw::StateWord) = union(effective_variables.(sw.state_monos)...)
 DynamicPolynomials.variables(sw::StateWord) = union(variables.(sw.state_monos)...)
 DynamicPolynomials.degree(sw::StateWord) = mapreduce(degree, +, sw.state_monos; init=zero(Int))
 Base.show(io::IO, sw::StateWord) = print(io, join(map(x -> "<$(x)>", sw.state_monos), " * "))
@@ -13,7 +18,7 @@ Base.:(==)(a::StateWord, b::StateWord) = length(a.state_monos) == length(b.state
 Base.hash(a::StateWord) = hash(a.state_monos)
 Base.isless(a::StateWord, b::StateWord) = isless(a.state_monos, b.state_monos)
 Base.:(*)(a::StateWord, b::StateWord) = StateWord([a.state_monos; b.state_monos])
-Base.:(*)(a::StateWord{V,M}, b::Monomial{V,M}) where {V,M} = NCStateWord(a,b)
+Base.:(*)(a::StateWord{V,M}, b::Monomial{V,M}) where {V,M} = NCStateWord(a, b)
 Base.:(*)(coef::T, a::StateWord{V,M}) where {V,M,T} = StateTerm(coef, a)
 Base.one(a::StateWord) = StateWord([one(a.state_monos[1])])
 Base.one(::Type{StateWord{V,M}}) where {V,M} = StateWord([one(Monomial{V,M})])
@@ -23,6 +28,11 @@ struct NCStateWord{V,M}
     nc_word::Monomial{V,M}
 end
 
+function symmetric_canonicalize(sp::NCStateWord)
+    NCStateWord(symmetric_canonicalize(sp.sw), symmetric_canonicalize(sp.nc_word))
+end
+
+DynamicPolynomials.effective_variables(ncsw::NCStateWord) = union(effective_variables(ncsw.nc_word), effective_variables(ncsw.sw))
 DynamicPolynomials.degree(ncsw::NCStateWord) = degree(ncsw.nc_word) + degree(ncsw.sw)
 DynamicPolynomials.variables(ncsw::NCStateWord) = union(variables(ncsw.nc_word), variables(ncsw.sw))
 Base.adjoint(a::NCStateWord{V,M}) where {V,M} = NCStateWord{V,M}(a.sw, star(a.nc_word))
@@ -49,13 +59,17 @@ struct StateTerm{V,M,T}
     end
 end
 
+function symmetric_canonicalize(sp::StateTerm)
+    StateTerm(sp.coef, symmetric_canonicalize(sp.state_word))
+end
+
 DynamicPolynomials.variables(st::StateTerm) = variables(st.state_word)
 DynamicPolynomials.degree(st::StateTerm) = degree(st.state_word)
 Base.show(io::IO, st::StateTerm) = print(io, string(st.coef) * " * " * string(st.state_word))
 Base.:(==)(a::StateTerm, b::StateTerm) = isequal(a.coef, b.coef) && (a.state_word == b.state_word)
 Base.hash(a::StateTerm) = hash((hash(a.coef), hash(a.state_word)))
 Base.:(*)(a::StateTerm, b::StateTerm) = StateTerm(a.coef * b.coef, a.state_word * b.state_word)
-Base.:(*)(a::StateTerm{V,M,T},b::Monomial{V,M}) where {V,M,T} = NCStateTerm(a.coef, NCStateWord(a.state_word,b))
+Base.:(*)(a::StateTerm{V,M,T}, b::Monomial{V,M}) where {V,M,T} = NCStateTerm(a.coef, NCStateWord(a.state_word, b))
 Base.:(*)(n, a::StateTerm{V,M,T}) where {V,M,T} = StateTerm(T(n) * a.coef, a.state_word)
 Base.:(+)(a::StateTerm, b::StateTerm) = StatePolynomial([a, b])
 Base.:(-)(a::StateTerm, b::StateTerm) = StatePolynomial([a, -b])
@@ -71,11 +85,15 @@ struct NCStateTerm{V,M,T}
     end
 end
 
+function symmetric_canonicalize(sp::NCStateTerm)
+    NCStateTerm(sp.coef, symmetric_canonicalize(sp.ncstate_word))
+end
+
 Base.:(==)(a::NCStateTerm, b::NCStateTerm) = isequal(a.coef, b.coef) && (a.ncstate_word == b.ncstate_word)
 Base.:(+)(a::NCStateTerm, b::NCStateTerm) = StatePolynomialOp([a, b])
 Base.:(-)(a::NCStateTerm{V,M,T}, b::NCStateTerm{V,M,T}) where {V,M,T} = StatePolynomialOp([a, -b])
 Base.:(-)(a::NCStateTerm) = NCStateTerm(-a.coef, a.ncstate_word)
-Base.:(*)(n , a::NCStateTerm{V,M,T}) where {V,M,T} = NCStateTerm(n*a.coef, a.ncstate_word)
+Base.:(*)(n, a::NCStateTerm{V,M,T}) where {V,M,T} = NCStateTerm(n * a.coef, a.ncstate_word)
 Base.hash(a::NCStateTerm) = hash((hash(a.coef), hash(a.ncstate_word)))
 Base.show(io::IO, ncst::NCStateTerm) = print(io, string(ncst.coef) * " * " * string(ncst.ncstate_word))
 Base.one(::Type{NCStateTerm{V,M,T}}) where {V,M,T} = NCStateTerm(one(T), one(NCStateWord{V,M}))
@@ -95,6 +113,10 @@ struct StatePolynomial{V,M,T}
     end
 end
 
+function symmetric_canonicalize(sp::StatePolynomial)
+    StatePolynomial(symmetric_canonicalize.(sp.state_terms))
+end
+
 DynamicPolynomials.variables(sp::StatePolynomial) = union(variables.(sp.state_terms)...)
 DynamicPolynomials.degree(sp::StatePolynomial) = mapreduce(degree, max, sp.state_terms)
 DynamicPolynomials.monomials(sp::StatePolynomial) = [st.state_word for st in sp.state_terms]
@@ -104,7 +126,7 @@ Base.show(io::IO, sp::StatePolynomial) = print(io, join(string.(sp.state_terms),
 Base.:(==)(a::StatePolynomial, b::StatePolynomial) = all(a.state_terms .== b.state_terms)
 Base.hash(a::StatePolynomial) = hash(hash.(a.state_terms))
 Base.:(*)(a::StatePolynomial{V,M,T}, b::StatePolynomial{V,M,T}) where {V,M,T} = StatePolynomial(vec(map(x -> x[1] * x[2], product(a.state_terms, b.state_terms))))
-Base.:(*)(a::StatePolynomial{V,M,T},b::Monomial{V,M}) where {V,M,T} = StatePolynomialOp([st * b for st in a.state_terms])
+Base.:(*)(a::StatePolynomial{V,M,T}, b::Monomial{V,M}) where {V,M,T} = StatePolynomialOp([st * b for st in a.state_terms])
 Base.:(*)(n, a::StatePolynomial{V,M,T}) where {V,M,T} = StatePolynomial(T(n) .* a.state_terms)
 Base.:(+)(a::StatePolynomial{V,M,T}, b::StatePolynomial{V,M,T}) where {V,M,T} = StatePolynomial([a.state_terms; b.state_terms])
 Base.:(+)(a::StatePolynomial{V,M,T}, b::StateTerm{V,M,T}) where {V,M,T} = StatePolynomial([a.state_terms; b])
@@ -128,13 +150,16 @@ struct StatePolynomialOp{V,M,T}
     end
 end
 
+function symmetric_canonicalize(spo::StatePolynomialOp)
+    StatePolynomialOp(symmetric_canonicalize.(spo.nc_state_terms))
+end
 Base.show(io::IO, ncsp::StatePolynomialOp) = print(io, join(string.(ncsp.nc_state_terms), " + "))
 
 Base.:(==)(a::StatePolynomialOp, b::StatePolynomialOp) = all(a.nc_state_terms .== b.nc_state_terms) # by constructor I alwasy guarantee no duplicate words and sorted
 Base.hash(ncsp::StatePolynomialOp) = hash(hash.(ncsp.nc_state_terms))
 Base.:(+)(a::StatePolynomialOp, b::StatePolynomialOp) = StatePolynomialOp([a.nc_state_terms; b.nc_state_terms])
-Base.:(+)(a::StatePolynomialOp,b::NCStateTerm) = StatePolynomialOp([a.nc_state_terms; b])
-Base.:(-)(a::StatePolynomialOp{V,M,T},b::StatePolynomialOp{V,M,T}) where {V,M,T} = StatePolynomialOp([a.nc_state_terms; -one(T) .* b.nc_state_terms])
+Base.:(+)(a::StatePolynomialOp, b::NCStateTerm) = StatePolynomialOp([a.nc_state_terms; b])
+Base.:(-)(a::StatePolynomialOp{V,M,T}, b::StatePolynomialOp{V,M,T}) where {V,M,T} = StatePolynomialOp([a.nc_state_terms; -one(T) .* b.nc_state_terms])
 Base.one(::StatePolynomialOp{V,M,T}) where {V,M,T} = StatePolynomialOp([one(NCStateTerm{V,M,T})])
 Base.zero(::StatePolynomialOp{V,M,T}) where {V,M,T} = StatePolynomialOp([zero(NCStateTerm{V,M,T})])
 Base.zero(::Type{StatePolynomialOp{V,M,T}}) where {V,M,T} = StatePolynomialOp([zero(NCStateTerm{V,M,T})])
