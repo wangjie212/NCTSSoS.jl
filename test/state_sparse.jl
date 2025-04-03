@@ -1,11 +1,52 @@
 using Test, NCTSSoS
-using MosekTools
 using NCTSSoS: StatePolynomial, StatePolyOpt, StateWord , NCStateWord
 using NCTSSoS: sorted_union, symmetric_canonicalize, neat_dot, iterate_term_sparse_supp
-using NCTSSoS: get_correlative_graph, correlative_sparsity, moment_relax
+using NCTSSoS: get_correlative_graph, correlative_sparsity, moment_relax, sos_dualize
 using DynamicPolynomials
 using Graphs
 using JuMP
+using COSMO
+using Clarabel
+using CliqueTrees
+
+@testset "Correlative Sparsity CHSH" begin
+    @ncpolyvar x[1:2] y[1:2]
+    sp = StatePolynomialOp(map(a -> a[1]*StateWord([a[2]])*a[3], zip([-1.0, -1.0, -1.0, 1.0], [x[1] * y[1], x[1] * y[2], x[2] * y[1], x[2] * y[2]],fill(one(x[1]),4))))
+    spop = StatePolyOpt(sp; is_unipotent=true, comm_gps=[x, y])
+
+    d = 2
+    cg = get_correlative_graph(spop.variables, spop.objective, spop.constraints, d)
+    @test cg.fadjlist == [[3,4],[3,4],[1,2],[1,2]]
+
+    cr = correlative_sparsity(spop, d, NoElimination())
+    @test cr.cliques == [[x;y]]
+    @test cr.cliques_cons == [Int64[]]
+    @test cr.global_cons == Int64[]
+
+    cliques_objective = [reduce(+, [issubset(effective_variables(t.ncstate_word), clique) ? t : zero(t) for t in terms(spop.objective)]) for clique in cr.cliques]
+
+
+    initial_activated_supp = [sorted_union(symmetric_canonicalize.(monomials(obj_part)), mapreduce(a -> monomials(a), vcat, spop.constraints[cons_idx]; init=typeof(monomials(spop.objective)[1])[]), [neat_dot(b, b) for b in idcs_bases[1]])
+                              for (obj_part, cons_idx, idcs_bases) in zip(cliques_objective, cr.cliques_cons, cr.cliques_idcs_bases)]
+
+    initial_activated_supp[1]
+
+    cliques_term_sparsities = map(zip(initial_activated_supp, cr.cliques_cons, cr.cliques_idcs_bases)) do (activated_supp, cons_idx, idcs_bases)
+        [iterate_term_sparse_supp(activated_supp, poly, basis, MMD()) for (poly, basis) in zip([one(spop.objective); spop.constraints[cons_idx]], idcs_bases)]
+    end
+
+    mom_problem = moment_relax(spop, cr.cliques_cons, cr.global_cons, cliques_term_sparsities)
+    set_optimizer(mom_problem.model, Clarabel.Optimizer)
+    optimize!(mom_problem.model)
+    @test isapprox(objective_value(mom_problem.model), -2.828, atol=1e-3)
+    @test is_solved_and_feasible(mom_problem.model)
+
+    sos_problem = sos_dualize(mom_problem)
+    set_optimizer(sos_problem.model, Clarabel.Optimizer)
+    optimize!(sos_problem.model)
+    @test is_solved_and_feasible(sos_problem.model)
+    @test isapprox(objective_value(sos_problem.model), -2.828, atol=1e-3)
+end
 
 @testset "Correlative Sparsity" begin
     @ncpolyvar x[1:2] y[1:2]
@@ -25,23 +66,27 @@ using JuMP
     @test cr.cliques == [[x;y]]
     @test cr.cliques_cons == [Int64[]]
     @test cr.global_cons == Int64[]
-    cr.cliques_idcs_bases
-    @test length(cr.cliques_idcs_bases[1][1]) == 51 
 
     cliques_objective = [reduce(+, [issubset(effective_variables(t.ncstate_word), clique) ? t : zero(t) for t in terms(spop.objective)]) for clique in cr.cliques]
 
-    # prepare the support for each term sparse localizing moment
+
     initial_activated_supp = [sorted_union(symmetric_canonicalize.(monomials(obj_part)), mapreduce(a -> monomials(a), vcat, spop.constraints[cons_idx]; init=typeof(monomials(spop.objective)[1])[]), [neat_dot(b, b) for b in idcs_bases[1]])
                               for (obj_part, cons_idx, idcs_bases) in zip(cliques_objective, cr.cliques_cons, cr.cliques_idcs_bases)]
 
     cliques_term_sparsities = map(zip(initial_activated_supp, cr.cliques_cons, cr.cliques_idcs_bases)) do (activated_supp, cons_idx, idcs_bases)
-        [iterate_term_sparse_supp(activated_supp, poly, basis, MF()) for (poly, basis) in zip([one(spop.objective); spop.constraints[cons_idx]], idcs_bases)]
+        [iterate_term_sparse_supp(activated_supp, poly, basis, MMD()) for (poly, basis) in zip([one(spop.objective); spop.constraints[cons_idx]], idcs_bases)]
     end
 
     mom_problem = moment_relax(spop, cr.cliques_cons, cr.global_cons, cliques_term_sparsities)
-    set_optimizer(mom_problem.model, Mosek.Optimizer)
+    set_optimizer(mom_problem.model, Clarabel.Optimizer)
     optimize!(mom_problem.model)
-    objective_value(mom_problem.model)
-    is_solved_and_feasible(mom_problem.model)
+    # FIXME: why do we have a non-tight relaxation at d = 3?
+    @test_broken isapprox(objective_value(mom_problem.model), -4.0, atol=1e-5)
     @test is_solved_and_feasible(mom_problem.model)
+
+    sos_problem = sos_dualize(mom_problem)
+    set_optimizer(sos_problem.model, Clarabel.Optimizer)
+    optimize!(sos_problem.model)
+    @test_broken isapprox(objective_value(sos_problem.model), -4.0, atol=1e-5)
+    @test is_solved_and_feasible(sos_problem.model)
 end

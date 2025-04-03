@@ -84,19 +84,23 @@ end
 function get_term_sparsity_graph(cons_support::Vector{NCStateWord{V,M}}, activated_supp::Vector{NCStateWord{V,M}}, basis::Vector{NCStateWord{V,M}}) where {V,M}
     nterms = length(basis)
     G = SimpleGraph(nterms)
+    as = expval.(activated_supp)
     for i in 1:nterms, j in i+1:nterms
         for supp in cons_support
-            if symmetric_canonicalize(neat_dot(basis[i], supp * basis[j])) in activated_supp
+            interm = symmetric_canonicalize(neat_dot(basis[i], supp * basis[j]))
+            if expval(interm) in as || interm in activated_supp
                 add_edge!(G, i, j)
                 continue
             end
         end
     end
+    @show G
     return G
 end
 
 # returns: F (the chordal graph), blocks in basis
 function iterate_term_sparse_supp(activated_supp::Vector{NCStateWord{V,M}}, poly::StatePolynomialOp, basis::Vector{NCStateWord{V,M}}, elim_algo::EliminationAlgorithm) where {V,M}
+    @info "hello"
     F = get_term_sparsity_graph(collect(monomials(poly)), activated_supp, basis)
     blocks = clique_decomp(F, elim_algo)
     map(block -> add_clique!(F, block), blocks)

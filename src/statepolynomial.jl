@@ -17,6 +17,7 @@ Base.show(io::IO, sw::StateWord) = print(io, join(map(x -> "<$(x)>", sw.state_mo
 Base.:(==)(a::StateWord, b::StateWord) = length(a.state_monos) == length(b.state_monos) && all(a.state_monos .== b.state_monos) # NOTE: need to guarantee it is always sorted
 Base.hash(a::StateWord) = hash(a.state_monos)
 Base.isless(a::StateWord, b::StateWord) = isless(a.state_monos, b.state_monos)
+# TODO: consider replace this with convert and promote_rule
 Base.:(*)(a::StateWord, b::StateWord) = StateWord([a.state_monos; b.state_monos])
 Base.:(*)(a::StateWord{V,M}, b::Monomial{V,M}) where {V,M} = NCStateWord(a, b)
 Base.:(*)(coef::T, a::StateWord{V,M}) where {V,M,T} = StateTerm(coef, a)
