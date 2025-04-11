@@ -14,14 +14,37 @@ using Base.Iterators: product, flatten
 using DynamicPolynomials.MP: compare
 
 export PolyOpt, StatePolyOpt
-export StatePolynomialOp
+export StatePolynomialOp, ς
 export TRACE, EIGEN
 export SolverConfig
 export cs_nctssos, cs_nctssos_higher
 
 # TODO: include other methods in docs
-export MF, MMD, NoElimination
+export MF, MMD, NoElimination, MinimalChordal
 export @ncpolyvar, @polyvar
+
+# Export interfaces
+export AbstractPolynomialWord, AbstractPolynomialTerm
+export PolynomialWordTrait, PolynomialTermTrait
+export CanonicalizeOperation, SymmetricCanonicalize, CyclicCanonicalize
+
+# Export polynomial types
+export StateWord, NCStateWord, StateTerm, NCStateTerm
+export StatePolynomial, StatePolynomialOp
+export PolyOpt, StatePolyOpt
+
+# Export sparsity types
+export CorrelativeSparsity, StateCorrelativeSparsity
+export TermSparsity, StateTermSparsity
+
+# Export solver types
+export MomentProblem, StateMomentProblem
+export SOSProblem, PolyOptResult
+
+# Export operations
+export symmetric_canonicalize, cyclic_canonicalize
+export neat_dot, get_basis, support
+export reducer, expval
 
 include("statepolynomial.jl")
 

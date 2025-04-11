@@ -4,10 +4,12 @@ using DynamicPolynomials
 using DynamicPolynomials: monomial
 
 @testset "NCStatePolynomial Components" begin
-    @ncpolyvar x[1:2]
+    @ncpolyvar x[1:2] y[1:2]
 
     @testset "StateWord" begin
         sw = StateWord([x[1] * x[2], x[2]^2])
+        sw2 = ς(x[1]*x[2]) * ς(x[2]^2)
+        @test sw == sw2
         @test string(sw) == "<x[2]^2> * <x[1]*x[2]>"
         @test sort(variables(sw)) == sort(x)
 
@@ -43,7 +45,7 @@ using DynamicPolynomials: monomial
 
         @test expval(ncsw1) == StateWord([x[1]*x[2],x[2]^2, x[1]*x[2]])
 
-        basis = get_state_basis(x,1)
+        basis = get_state_basis(x,1, identity)
         total_basis = sort(unique([neat_dot(a,b) for a in basis for b in basis]))
         c_words = map(x->StateWord(monomial.(x)),[[one(x[1])],[x[2]],[x[2],x[2]],[x[2],x[1]],[x[1]],[x[1],x[1]],[one(x[1])],[x[2]],[x[1]],[one(x[1])],[x[2]],[x[1]],[one(x[1])],[one(x[1])],[one(x[1])],[one(x[1])]])
         nc_words = monomial.([fill(one(x[1]),6);fill(x[2],3);fill(x[1],3);[x[2]*x[1],x[2]^2,x[1]*x[2],x[1]^2]])
@@ -72,25 +74,26 @@ using DynamicPolynomials: monomial
         @test one(sp) == StatePolynomial([StateTerm(1.0, one(sws[1]))])
 
         @test monomials(sp) == StateWord.([[x[2]^2, x[1] * x[2]], [x[1] * x[2]], [x[2]^3]])
+
+        sp_ez = -1.0 *  ς(x[1]*y[1]) * one(x[1]) - 1.0 * ς(x[1]*y[2]) * one(x[1]) - (1.0 * ς(x[2]*y[1]) * one(x[1]) ) + 1.0 * ς(x[2]*y[2]) * one(x[1])
+        sp_hard = StatePolynomialOp(map(a -> a[1]*StateWord([a[2]])*a[3], zip([-1.0, -1.0, -1.0, 1.0], [x[1] * y[1], x[1] * y[2], x[2] * y[1], x[2] * y[2]],fill(one(x[1]),4))))
+        @test sp_ez == sp_hard
     end
 
     @testset "StateTerm" begin
-        # TODO: add test if necessary
-        
+        # TODO: add test if API persists
     end
 
     @testset  "NCStateTerm" begin
-        # TODO: add test if necessary
-
+        # TODO: add test if API persists 
     end
 end
 
 
 @testset "State Polynomial" begin
-
     @testset "free state polynomial" begin
         @ncpolyvar x[1:2]
-        sws = [StateWord(wd) for wd in [[x[1]*x[2],x[2]^2],[x[2]*x[1],x[1]^2],[x[1]*x[2]],[x[2]^3]]]
+        sws = [prod(ς.(wd)) for wd in [[x[1]*x[2],x[2]^2],[x[2]*x[1],x[1]^2],[x[1]*x[2]],[x[2]^3]]]
         ncsws = [NCStateWord(sw,monomial(one(x[1]))) for sw in sws]
         spop = StatePolynomialOp([NCStateTerm(coef, ncsw) for (coef, ncsw) in zip([1.0, 0.5, 2.0, 3.0], ncsws)])
         string(spop)
@@ -99,13 +102,13 @@ end
 
     @testset "nc state polynomial" begin
         @ncpolyvar x[1:2]
-        formal_words = [StateWord(wd) for wd in  [[x[1]*x[2],x[2]^2],[x[1]*x[2]],[x[2]^3]]]
-        ncsws = [NCStateWord(sw, ncw) for (sw, ncw) in zip(formal_words, [x[1], x[2]^2, one(x[1])])]
-        spop = StatePolynomialOp([NCStateTerm(coef, ncsw) for (coef, ncsw) in zip([1.0, 2.0, 3.0], ncsws)])
+        formal_words = [prod(ς.(wd)) for wd in  [[x[1]*x[2],x[2]^2],[x[1]*x[2]],[x[2]^3]]]
+        ncsws = [sw*ncw for (sw, ncw) in zip(formal_words, [x[1], x[2]^2, one(x[1])])]
+        spop = StatePolynomialOp([coef * ncsw for (coef, ncsw) in zip([1.0, 2.0, 3.0], ncsws)])
         @test string(spop) == "3.0 * <x[2]^3> ⋅ 1 + 1.0 * <x[2]^2> * <x[1]*x[2]> ⋅ x[1] + 2.0 * <x[1]*x[2]> ⋅ x[2]^2"
 
         @test degree(spop) == 5
-        @test monomials(spop) == map(a->NCStateWord(StateWord(a[1]),monomial(a[2])),[([x[2]^3],one(x[1])),([x[2]^2,x[1]*x[2]],x[1]),([x[1]*x[2]],x[2]^2)])
+        @test monomials(spop) == map(a -> prod(ς.(a[1])) * monomial(a[2]), [([x[2]^3], one(x[1])), ([x[2]^2, x[1] * x[2]], x[1]), ([x[1] * x[2]], x[2]^2)])
     end
 
     @testset "State Polynomial Arithmetic" begin
@@ -149,15 +152,15 @@ end
 @testset "Utils" begin
     @ncpolyvar x y 
 
-    get_state_basis([x, y], 1)
+    get_state_basis([x, y], 1, identity)
     c_words = [[one(x)], [y], [x], [one(x)], [one(x)]]
-    nc_words = [one(x), one(x), one(x),y,x]
-    @test sort(get_state_basis([x, y], 1)) == sort(map(x->NCStateWord(StateWord(x[1]),x[2]),zip(c_words,nc_words))) 
-    c_words = [[one(x)], [y], [x], [y * x], [y^2], [x * y], [x^2], [y, y], [y, x], [x, x], [one(x)],[y],[x],[one(x)],[y],[x],fill([one(x)],4)...]
-    nc_words = [fill(one(x),10);fill(y,3);fill(x,3);[y*x,y^2,x*y,x^2]]
-    @test sort(get_state_basis([x, y], 2)) == sort(map(x->NCStateWord(StateWord(x[1]),x[2]),zip(c_words,nc_words))) 
+    nc_words = [one(x), one(x), one(x), y, x]
+    @test sort(get_state_basis([x, y], 1, identity)) == sort(map(x -> StateWord(x[1]) * x[2], zip(c_words, nc_words)))
+    c_words = [[one(x)], [y], [x], [y * x], [y^2], [x^2], [y, y], [y, x], [x, x], [one(x)], [y], [x], [one(x)], [y], [x], fill([one(x)], 4)...]
+    nc_words = [fill(one(x), 9); fill(y, 3); fill(x, 3); [y * x, y^2, x * y, x^2]]
+    @test sort(get_state_basis([x, y], 2, identity)) == sort(map(x -> StateWord(x[1]) * x[2], zip(c_words, nc_words)))
 
     nc_words = [fill(one(x),7);fill(x,4);fill(x^2,2);[x^3]]
     c_words = [[one(x)], [x], [x^2], [x^3], [x, x], [x, x^2], [x, x, x], [one(x)], [x], [x^2], [x, x], [one(x)], [x], [one(x)]]
-    @test sort(get_state_basis([x], 3)) == sort(map(x->NCStateWord(StateWord(x[1]),x[2]),zip(c_words,nc_words))) 
+    @test sort(get_state_basis([x], 3, identity)) == sort(map(x->StateWord(x[1])*x[2],zip(c_words,nc_words))) 
 end

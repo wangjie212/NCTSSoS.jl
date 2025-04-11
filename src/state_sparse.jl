@@ -94,8 +94,6 @@ function get_term_sparsity_graph(cons_support::Vector{NCStateWord{V,M}}, activat
             end
         end
     end
-    @info ne(G)
-    @info nv(G)
     return G
 end
 

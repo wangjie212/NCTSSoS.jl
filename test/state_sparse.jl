@@ -7,14 +7,14 @@ using Graphs
 using JuMP
 using COSMO
 using Clarabel
-using CliqueTrees
+using MosekTools
 
 @testset "Correlative Sparsity CHSH" begin
     @ncpolyvar x[1:2] y[1:2]
-    sp = StatePolynomialOp(map(a -> a[1]*StateWord([a[2]])*a[3], zip([-1.0, -1.0, -1.0, 1.0], [x[1] * y[1], x[1] * y[2], x[2] * y[1], x[2] * y[2]],fill(one(x[1]),4))))
+    sp1 = -1.0 *  ς(x[1]*y[1]) * one(x[1]) - 1.0 * ς(x[1]*y[2]) * one(x[1]) - (1.0 * ς(x[2]*y[1]) * one(x[1]) ) + 1.0 * ς(x[2]*y[2]) * one(x[1])
     spop = StatePolyOpt(sp; is_unipotent=true, comm_gps=[x, y])
 
-    d = 2
+    d = 3
     cg = get_correlative_graph(spop.variables, spop.objective, spop.constraints, d)
     @test cg.fadjlist == [[3,4],[3,4],[1,2],[1,2]]
 
@@ -25,14 +25,11 @@ using CliqueTrees
 
     cliques_objective = [reduce(+, [issubset(effective_variables(t.ncstate_word), clique) ? t : zero(t) for t in terms(spop.objective)]) for clique in cr.cliques]
 
-
     initial_activated_supp = [sorted_union(symmetric_canonicalize.(monomials(obj_part)), mapreduce(a -> monomials(a), vcat, spop.constraints[cons_idx]; init=typeof(monomials(spop.objective)[1])[]), [neat_dot(b, b) for b in idcs_bases[1]])
                               for (obj_part, cons_idx, idcs_bases) in zip(cliques_objective, cr.cliques_cons, cr.cliques_idcs_bases)]
 
-    initial_activated_supp[1]
-
     cliques_term_sparsities = map(zip(initial_activated_supp, cr.cliques_cons, cr.cliques_idcs_bases)) do (activated_supp, cons_idx, idcs_bases)
-        [iterate_term_sparse_supp(activated_supp, poly, basis, MMD()) for (poly, basis) in zip([one(spop.objective); spop.constraints[cons_idx]], idcs_bases)]
+        [iterate_term_sparse_supp(activated_supp, poly, basis, MinimalChordal()) for (poly, basis) in zip([one(spop.objective); spop.constraints[cons_idx]], idcs_bases)]
     end
 
     mom_problem = moment_relax(spop, cr.cliques_cons, cr.global_cons, cliques_term_sparsities)
@@ -74,12 +71,13 @@ end
                               for (obj_part, cons_idx, idcs_bases) in zip(cliques_objective, cr.cliques_cons, cr.cliques_idcs_bases)]
 
     cliques_term_sparsities = map(zip(initial_activated_supp, cr.cliques_cons, cr.cliques_idcs_bases)) do (activated_supp, cons_idx, idcs_bases)
-        [iterate_term_sparse_supp(activated_supp, poly, basis, MMD()) for (poly, basis) in zip([one(spop.objective); spop.constraints[cons_idx]], idcs_bases)]
+        [iterate_term_sparse_supp(activated_supp, poly, basis, NoElimination()) for (poly, basis) in zip([one(spop.objective); spop.constraints[cons_idx]], idcs_bases)]
     end
 
     mom_problem = moment_relax(spop, cr.cliques_cons, cr.global_cons, cliques_term_sparsities)
-    set_optimizer(mom_problem.model, Clarabel.Optimizer)
+    set_optimizer(mom_problem.model, Mosek.Optimizer)
     optimize!(mom_problem.model)
+    objective_value(mom_problem.model)
     # FIXME: why do we have a non-tight relaxation at d = 3?
     @test_broken isapprox(objective_value(mom_problem.model), -4.0, atol=1e-5)
     @test is_solved_and_feasible(mom_problem.model)
