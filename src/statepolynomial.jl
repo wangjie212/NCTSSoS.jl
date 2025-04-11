@@ -157,6 +157,7 @@ function get_state_basis(variables::Vector{Variable{V,M}}, d::Int, reducer) wher
 end
 
 for symb in [:symmetric_canonicalize, :cyclic_canonicalize]
+    take_adj = (symb == :symmetric_canonicalize ? :adjoint : :identity)
     eval(quote
         function $(symb)(sw::StateWord)
             StateWord($(symb).(sw.state_monos))
@@ -167,11 +168,11 @@ for symb in [:symmetric_canonicalize, :cyclic_canonicalize]
         end
 
         function $(symb)(st::StateTerm)
-            StateTerm(symb == :symmetric_canonicalize ? sp.coef' : sp.coef, $(symb)(sp.state_word))
+            StateTerm($(take_adj)(st.coef), $(symb)(st.state_word))
         end
 
         function $(symb)(ncst::NCStateTerm)
-            NCStateTerm(symb == :symmetric_canonicalize ? sp.coef' : sp.coef, $(symb)(sp.ncstate_word))
+            NCStateTerm($(take_adj)(ncst.coef), $(symb)(ncst.ncstate_word))
         end
 
         function $(symb)(sp::StatePolynomial)

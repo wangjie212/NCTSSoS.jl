@@ -14,7 +14,6 @@ function cliquetree(graph, alg::NoElimination, snd::SupernodeType)
     return cliquetree(complete_graph(nv(graph)), BFS(), snd)
 end
 
-
 """
     SolverConfig(; optimizer, mom_order, cs_algo=NoElimination(), ts_algo=NoElimination())
 

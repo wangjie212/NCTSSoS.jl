@@ -9,6 +9,7 @@ struct StateMomentProblem{V,M,T,CR<:ConstraintRef} <: OptimizationProblem
     monomap::Dict{StateWord{V,M},GenericVariableRef{T}}  # TODO: maybe refactor.
     reduce_func::Function
 end
+
 function substitute_variables(poly::StatePolynomialOp{V,M,T}, wordmap::Dict{StateWord{V,M},GenericVariableRef{T}}) where {V,M,T}
     mapreduce(x -> (x.coef * wordmap[expval(x.ncstate_word)]), +, terms(poly))
 end
@@ -34,13 +35,10 @@ function moment_relax(pop::StatePolyOpt{V,M,T}, cliques_cons::Vector{Vector{Int}
         ])))
     end...)
 
-    @show total_basis
-
     # # map the monomials to JuMP variables, the first variable must be 1
     @variable(model, y[1:length(total_basis)])
     @constraint(model, first(y) == 1)
     monomap = Dict(zip(total_basis, y))
-
 
     constraint_matrices =
         [mapreduce(vcat, zip(cliques_term_sparsities, cliques_cons)) do (term_sparsities, cons_idx)

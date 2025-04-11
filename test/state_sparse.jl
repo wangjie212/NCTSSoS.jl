@@ -4,14 +4,13 @@ using NCTSSoS: sorted_union, symmetric_canonicalize, neat_dot, iterate_term_spar
 using NCTSSoS: get_correlative_graph, correlative_sparsity, moment_relax, sos_dualize
 using DynamicPolynomials
 using Graphs
-using JuMP
 using COSMO
 using Clarabel
 using MosekTools
 
 @testset "Correlative Sparsity CHSH" begin
     @ncpolyvar x[1:2] y[1:2]
-    sp1 = -1.0 *  ς(x[1]*y[1]) * one(x[1]) - 1.0 * ς(x[1]*y[2]) * one(x[1]) - (1.0 * ς(x[2]*y[1]) * one(x[1]) ) + 1.0 * ς(x[2]*y[2]) * one(x[1])
+    sp = -1.0 *  ς(x[1]*y[1]) * one(x[1]) - 1.0 * ς(x[1]*y[2]) * one(x[1]) - (1.0 * ς(x[2]*y[1]) * one(x[1]) ) + 1.0 * ς(x[2]*y[2]) * one(x[1])
     spop = StatePolyOpt(sp; is_unipotent=true, comm_gps=[x, y])
 
     d = 3
