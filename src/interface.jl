@@ -1,3 +1,4 @@
+# TODO: PolyOptResult should include JuMP result for easier user inspection
 struct PolyOptResult{V,M,T}
     objective::T # support for high precision solution
     corr_sparsity::CorrelativeSparsity{V,M}

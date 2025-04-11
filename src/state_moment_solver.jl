@@ -66,12 +66,7 @@ function moment_relax(pop::StatePolyOpt{V,M,T}, cliques_cons::Vector{Vector{Int}
                 )
             end]
 
-    # constraint_matrices = [mapreduce(vcat, zip([false; pop.is_equality], [one(pop.objective); pop.constraints])) do (iseq, cons)
-    #     constrain_moment_matrix!(model, cons, get_state_basis(pop.variables, mom_order - fld(degree(cons), 2)), monomap, iseq ? Zeros() : PSDCone(), reduce_func)
-    # end]
-
     @objective(model, Min, substitute_variables(mapreduce(p -> p.coef * reduce_func(p.ncstate_word), +, terms(symmetric_canonicalize(pop.objective)); init=zero(pop.objective)), monomap))
-
 
     return StateMomentProblem(model, constraint_matrices, monomap, reduce_func)
 end

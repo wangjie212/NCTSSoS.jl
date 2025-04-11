@@ -64,7 +64,7 @@ function correlative_sparsity(pop::StatePolyOpt{V,M,T}, order::Int, elim_algo::E
     # depending on the clique's varaibles each is slightly different
     cliques_idx_basis = map(zip(cliques, cliques_cons)) do (clique, clique_cons)
         # get the basis of the moment matrix in a clique, then sort it
-        [[sorted_unique(reduce_func.(get_state_basis(sort(clique, rev=true), order)))]; map(b -> sorted_unique(reduce_func.(b)), get_state_basis.(Ref(sort(clique, rev=true)), order .- ceil.(Int, maxdegree.(pop.constraints[clique_cons]) / 2)))]
+        [[sorted_unique(reduce_func.(get_state_basis(sort(clique, rev=true), order, reduce_func)))]; map(b -> sorted_unique(reduce_func.(b)), get_state_basis.(Ref(sort(clique, rev=true)), order .- ceil.(Int, maxdegree.(pop.constraints[clique_cons]) / 2)), Ref(reduce_func))]
     end
 
     return StateCorrelativeSparsity{V,M}(cliques, cliques_cons, global_cons, cliques_idx_basis)
@@ -88,19 +88,19 @@ function get_term_sparsity_graph(cons_support::Vector{NCStateWord{V,M}}, activat
     for i in 1:nterms, j in i+1:nterms
         for supp in cons_support
             interm = symmetric_canonicalize(neat_dot(basis[i], supp * basis[j]))
-            if expval(interm) in as || interm in activated_supp
+            if expval(interm) in as
                 add_edge!(G, i, j)
                 continue
             end
         end
     end
-    @show G
+    @info ne(G)
+    @info nv(G)
     return G
 end
 
 # returns: F (the chordal graph), blocks in basis
 function iterate_term_sparse_supp(activated_supp::Vector{NCStateWord{V,M}}, poly::StatePolynomialOp, basis::Vector{NCStateWord{V,M}}, elim_algo::EliminationAlgorithm) where {V,M}
-    @info "hello"
     F = get_term_sparsity_graph(collect(monomials(poly)), activated_supp, basis)
     blocks = clique_decomp(F, elim_algo)
     map(block -> add_clique!(F, block), blocks)

@@ -10,6 +10,10 @@ function symmetric_canonicalize(sw::StateWord)
     StateWord(symmetric_canonicalize.(sw.state_monos))
 end
 
+function cyclic_canonicalize(sw::StateWord)
+    StateWord(cyclic_canonicalize.(sw.state_monos))
+end
+
 DynamicPolynomials.effective_variables(sw::StateWord) = union(effective_variables.(sw.state_monos)...)
 DynamicPolynomials.variables(sw::StateWord) = union(variables.(sw.state_monos)...)
 DynamicPolynomials.degree(sw::StateWord) = mapreduce(degree, +, sw.state_monos; init=zero(Int))
@@ -31,6 +35,10 @@ end
 
 function symmetric_canonicalize(sp::NCStateWord)
     NCStateWord(symmetric_canonicalize(sp.sw), symmetric_canonicalize(sp.nc_word))
+end
+
+function cyclic_canonicalize(ncsw::NCStateWord)
+    NCStateWord(cyclic_canonicalize(ncsw.sw), cyclic_canonicalize(ncsw.nc_word))
 end
 
 DynamicPolynomials.effective_variables(ncsw::NCStateWord) = union(effective_variables(ncsw.nc_word), effective_variables(ncsw.sw))
@@ -64,6 +72,10 @@ function symmetric_canonicalize(sp::StateTerm)
     StateTerm(sp.coef, symmetric_canonicalize(sp.state_word))
 end
 
+function cyclic_canonicalize(sp::StateTerm)
+    StateTerm(sp.coef, cyclic_canonicalize(sp.state_word))
+end
+
 DynamicPolynomials.variables(st::StateTerm) = variables(st.state_word)
 DynamicPolynomials.degree(st::StateTerm) = degree(st.state_word)
 Base.show(io::IO, st::StateTerm) = print(io, string(st.coef) * " * " * string(st.state_word))
@@ -88,6 +100,10 @@ end
 
 function symmetric_canonicalize(sp::NCStateTerm)
     NCStateTerm(sp.coef, symmetric_canonicalize(sp.ncstate_word))
+end
+
+function cyclic_canonicalize(sp::NCStateTerm)
+    NCStateTerm(sp.coef, cyclic_canonicalize(sp.ncstate_word))
 end
 
 Base.:(==)(a::NCStateTerm, b::NCStateTerm) = isequal(a.coef, b.coef) && (a.ncstate_word == b.ncstate_word)
@@ -116,6 +132,10 @@ end
 
 function symmetric_canonicalize(sp::StatePolynomial)
     StatePolynomial(symmetric_canonicalize.(sp.state_terms))
+end
+
+function cyclic_canonicalize(sp::StatePolynomial)
+    StatePolynomial(cyclic_canonicalize.(sp.state_terms))
 end
 
 DynamicPolynomials.variables(sp::StatePolynomial) = union(variables.(sp.state_terms)...)
@@ -154,6 +174,11 @@ end
 function symmetric_canonicalize(spo::StatePolynomialOp)
     StatePolynomialOp(symmetric_canonicalize.(spo.nc_state_terms))
 end
+
+function cyclic_canonicalize(spo::StatePolynomialOp)
+    StatePolynomialOp(cyclic_canonicalize.(spo.nc_state_terms))
+end
+
 Base.show(io::IO, ncsp::StatePolynomialOp) = print(io, join(string.(ncsp.nc_state_terms), " + "))
 
 Base.:(==)(a::StatePolynomialOp, b::StatePolynomialOp) = all(a.nc_state_terms .== b.nc_state_terms) # by constructor I alwasy guarantee no duplicate words and sorted
@@ -169,15 +194,15 @@ DynamicPolynomials.degree(ncsp::StatePolynomialOp) = reduce(max, degree.(ncsp.nc
 DynamicPolynomials.monomials(ncsp::StatePolynomialOp) = monomial.(ncsp.nc_state_terms)
 DynamicPolynomials.terms(ncsp::StatePolynomialOp) = ncsp.nc_state_terms
 
-function get_state_basis(variables::Vector{Variable{V,M}}, d::Int) where {V,M}
+function get_state_basis(variables::Vector{Variable{V,M}}, d::Int, reducer) where {V,M}
     return map(a -> NCStateWord(StateWord(a[1]), a[2]), mapreduce(vcat, 0:d) do nc_deg
-        nc_basis = monomials(variables, nc_deg)
+        nc_basis = reducer.(monomials(variables, nc_deg))
         cw_deg = d - nc_deg
         cw_basis = unique!([
             begin
                 interm = sort(filter(!isone, collect(c_word)))
                 isempty(interm) ? [one(variables[1])] : interm
-            end for c_word in product(ntuple(_ -> monomials(variables, 0:cw_deg), cw_deg)..., [one(variables[1])]) if sum(degree.(c_word)) <= cw_deg
+            end for c_word in product(ntuple(_ -> unique!((reducer.(monomials(variables, 0:cw_deg)))), cw_deg)..., [one(variables[1])]) if sum(degree.(c_word)) <= cw_deg
         ])
         reshape(collect(product(cw_basis, nc_basis)), :)
     end)
