@@ -5,6 +5,7 @@ using NCTSSoS: get_correlative_graph, correlative_sparsity, moment_relax, sos_du
 using DynamicPolynomials
 using Graphs
 using COSMO
+using JuMP
 using Clarabel
 using MosekTools
 

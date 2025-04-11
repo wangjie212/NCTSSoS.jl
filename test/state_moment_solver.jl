@@ -5,19 +5,33 @@ using NCTSSoS: NCStateTerm, StateTerm
 using NCTSSoS: moment_relax
 using Clarabel, COSMO
 using NCTSSoS: sos_dualize
+using NCTSSoS: correlative_sparsity, iterate_term_sparse_supp, sorted_union, MinimalChordal, NoElimination
 
 @testset "State Polynomial Opt 7.2.0" begin
     @ncpolyvar x[1:2] y[1:2]
     sp = StatePolynomialOp(map(a -> a[1]*StateWord([a[2]])*a[3], zip([-1.0, -1.0, -1.0, 1.0], [x[1] * y[1], x[1] * y[2], x[2] * y[1], x[2] * y[2]],fill(one(x[1]),4))))
     spop = StatePolyOpt(sp; is_unipotent=true, comm_gps=[x, y])
 
-    moment_problem = moment_relax(spop, 1)
-    sos_problem = sos_dualize(moment_problem)
+    d = 1
+    cr = correlative_sparsity(spop, d, NoElimination())
 
-    set_optimizer(moment_problem.model, Clarabel.Optimizer)
-    optimize!(moment_problem.model)
-    @test isapprox(objective_value(moment_problem.model), -2.8284271321623202, atol=1e-5)
-    @test is_solved_and_feasible(moment_problem.model)
+    cliques_objective = [reduce(+, [issubset(effective_variables(t.ncstate_word), clique) ? t : zero(t) for t in terms(spop.objective)]) for clique in cr.cliques]
+
+    initial_activated_supp = [sorted_union(symmetric_canonicalize.(monomials(obj_part)), mapreduce(a -> monomials(a), vcat, spop.constraints[cons_idx]; init=typeof(monomials(spop.objective)[1])[]), [neat_dot(b, b) for b in idcs_bases[1]])
+                              for (obj_part, cons_idx, idcs_bases) in zip(cliques_objective, cr.cliques_cons, cr.cliques_idcs_bases)]
+
+    cliques_term_sparsities = map(zip(initial_activated_supp, cr.cliques_cons, cr.cliques_idcs_bases)) do (activated_supp, cons_idx, idcs_bases)
+        [iterate_term_sparse_supp(activated_supp, poly, basis, NoElimination()) for (poly, basis) in zip([one(spop.objective); spop.constraints[cons_idx]], idcs_bases)]
+    end
+
+    mom_problem = moment_relax(spop, cr.cliques_cons, cr.global_cons, cliques_term_sparsities)
+
+    sos_problem = sos_dualize(mom_problem)
+
+    set_optimizer(mom_problem.model, Clarabel.Optimizer)
+    optimize!(mom_problem.model)
+    @test isapprox(objective_value(mom_problem.model), -2.8284271321623202, atol=1e-5)
+    @test is_solved_and_feasible(mom_problem.model)
 
     set_optimizer(sos_problem.model, Clarabel.Optimizer)
     optimize!(sos_problem.model)
@@ -35,16 +49,26 @@ end
     spop = StatePolyOpt(sp; is_unipotent=true, comm_gps=[x, y])
 
     d = 3
-    moment_problem = moment_relax(spop, d)
+    cr = correlative_sparsity(spop, d, NoElimination())
 
-    set_optimizer(moment_problem.model, COSMO.Optimizer)
-    optimize!(moment_problem.model)
-    # FIXME: this is reached at mom_order 3, but order 3 is too slow, fix this after sparsity is implemented
-    @test isapprox(objective_value(moment_problem.model), -4.0, atol=1e-5)
-    @test is_solved_and_feasible(moment_problem.model)
+    cliques_objective = [reduce(+, [issubset(effective_variables(t.ncstate_word), clique) ? t : zero(t) for t in terms(spop.objective)]) for clique in cr.cliques]
 
-    sos_problem = sos_dualize(moment_problem)
-    set_optimizer(sos_problem.model, COSMO.Optimizer)
+    initial_activated_supp = [sorted_union(symmetric_canonicalize.(monomials(obj_part)), mapreduce(a -> monomials(a), vcat, spop.constraints[cons_idx]; init=typeof(monomials(spop.objective)[1])[]), [neat_dot(b, b) for b in idcs_bases[1]])
+                              for (obj_part, cons_idx, idcs_bases) in zip(cliques_objective, cr.cliques_cons, cr.cliques_idcs_bases)]
+
+    cliques_term_sparsities = map(zip(initial_activated_supp, cr.cliques_cons, cr.cliques_idcs_bases)) do (activated_supp, cons_idx, idcs_bases)
+        [iterate_term_sparse_supp(activated_supp, poly, basis, NoElimination()) for (poly, basis) in zip([one(spop.objective); spop.constraints[cons_idx]], idcs_bases)]
+    end
+
+    mom_problem = moment_relax(spop, cr.cliques_cons, cr.global_cons, cliques_term_sparsities)
+
+    set_optimizer(mom_problem.model, Clarabel.Optimizer)
+    optimize!(mom_problem.model)
+    @test isapprox(objective_value(mom_problem.model), -4.0, atol=1e-5)
+    @test is_solved_and_feasible(mom_problem.model)
+
+    sos_problem = sos_dualize(mom_problem)
+    set_optimizer(sos_problem.model, Clarabel.Optimizer)
     optimize!(sos_problem.model)
     @test isapprox(objective_value(sos_problem.model), -4.0, atol=1e-5)
     @test is_solved_and_feasible(sos_problem.model)
@@ -58,14 +82,20 @@ end
     spop = StatePolyOpt(sp; is_unipotent=true, comm_gps=[x[1:3], x[4:6]])
 
     d = 2
-    moment_problem = moment_relax(spop, d)
+    cr = correlative_sparsity(spop, d, NoElimination())
 
-    set_optimizer(moment_problem.model, COSMO.Optimizer)
-    optimize!(moment_problem.model)
-    @test isapprox(objective_value(moment_problem.model), -5.0, atol=1e-5)
-    @test is_solved_and_feasible(moment_problem.model)
+    cliques_objective = [reduce(+, [issubset(effective_variables(t.ncstate_word), clique) ? t : zero(t) for t in terms(spop.objective)]) for clique in cr.cliques]
 
-    sos_problem = sos_dualize(moment_problem)
+    initial_activated_supp = [sorted_union(symmetric_canonicalize.(monomials(obj_part)), mapreduce(a -> monomials(a), vcat, spop.constraints[cons_idx]; init=typeof(monomials(spop.objective)[1])[]), [neat_dot(b, b) for b in idcs_bases[1]])
+                              for (obj_part, cons_idx, idcs_bases) in zip(cliques_objective, cr.cliques_cons, cr.cliques_idcs_bases)]
+
+    cliques_term_sparsities = map(zip(initial_activated_supp, cr.cliques_cons, cr.cliques_idcs_bases)) do (activated_supp, cons_idx, idcs_bases)
+        [iterate_term_sparse_supp(activated_supp, poly, basis, NoElimination()) for (poly, basis) in zip([one(spop.objective); spop.constraints[cons_idx]], idcs_bases)]
+    end
+
+    mom_problem = moment_relax(spop, cr.cliques_cons, cr.global_cons, cliques_term_sparsities)
+    
+    sos_problem = sos_dualize(mom_problem)
     set_optimizer(sos_problem.model, optimizer_with_attributes(COSMO.Optimizer,"eps_rel"=> 1e-8))
     optimize!(sos_problem.model)
     # FIXME: accuracy is too low
@@ -76,7 +106,7 @@ end
 @testset "Constrain Moment matrix" begin
     @ncpolyvar x[1:2]
 
-    basis = get_state_basis(x,1)
+    basis = get_state_basis(x,1,identity)
 
     sp = StatePolynomial(map(a -> a[1]* a[2], zip([1.0, 2.0, 3.0], StateWord.(map(x -> monomial.(x), [[x[1], x[2]], [x[1]], [x[2]]])))))
     nc_words = monomial.([one(x[1]), x[1], x[2]])
