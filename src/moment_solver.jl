@@ -62,8 +62,14 @@ function moment_relax(pop::PolyOpt{V,M,T}, cliques_cons::Vector{Vector{Int}}, gl
                 )
             end]
 
-    mom_cons = constraint_object(constraint_matrices[1])
-    @objective(model, Min, tr(reshape(mom_cons.func, get_dim(mom_cons), get_dim(mom_cons))))
+
+    mom_idcs = ones(Int, length(cliques_cons))
+    for i in 2:length(cliques_cons)
+        mom_idcs[i] = length(constraint_matrices[i - 1]) + mom_idcs[i-1]
+    end
+
+    mom_cons = constraint_object.(constraint_matrices[mom_idcs])
+    @objective(model, Min, mapreduce(mom_con -> tr(reshape(mom_con.func, get_dim(mom_con), get_dim(mom_con))), +, mom_cons))
 
     # @objective(model, Min, substitute_variables(mapreduce(p -> coefficient(p) * reduce_func(monomial(p)), +, terms(symmetric_canonicalize(pop.objective)); init=zero(pop.objective)), monomap))
 

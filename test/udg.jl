@@ -3,7 +3,7 @@ using DynamicPolynomials
 using MosekTools
 using JuMP
 
-n = 18
+n = 20 
 L = 5.0
 cutoff= 1.0
 order = 2
@@ -36,7 +36,7 @@ cons = [
 pop = PolyOpt(f; constraints=cons, is_equality=[false for _ in cons])
 
 cs_algo = NoElimination() 
-ts_algo = MMD()
+ts_algo = MinimalChordal()
 
 using NCTSSoS: correlative_sparsity, iterate_term_sparse_supp, sorted_union, symmetric_canonicalize, neat_dot, moment_relax, sos_dualize
 corr_sparsity = correlative_sparsity(pop, order, cs_algo)
