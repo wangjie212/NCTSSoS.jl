@@ -83,6 +83,9 @@ end
 # basis: basis used to index the moment matrix
 function get_term_sparsity_graph(cons_support::Vector{NCStateWord{V,M}}, activated_supp::Vector{NCStateWord{V,M}}, basis::Vector{NCStateWord{V,M}}) where {V,M}
     nterms = length(basis)
+    for b in basis
+        @info b
+    end
     G = SimpleGraph(nterms)
     as = expval.(activated_supp)
     for i in 1:nterms, j in i+1:nterms

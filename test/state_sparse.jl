@@ -70,8 +70,9 @@ end
     initial_activated_supp = [sorted_union(symmetric_canonicalize.(monomials(obj_part)), mapreduce(a -> monomials(a), vcat, spop.constraints[cons_idx]; init=typeof(monomials(spop.objective)[1])[]), [neat_dot(b, b) for b in idcs_bases[1]])
                               for (obj_part, cons_idx, idcs_bases) in zip(cliques_objective, cr.cliques_cons, cr.cliques_idcs_bases)]
 
+    # state basis is incorrect! printout and check what's wrong
     cliques_term_sparsities = map(zip(initial_activated_supp, cr.cliques_cons, cr.cliques_idcs_bases)) do (activated_supp, cons_idx, idcs_bases)
-        [iterate_term_sparse_supp(activated_supp, poly, basis, NoElimination()) for (poly, basis) in zip([one(spop.objective); spop.constraints[cons_idx]], idcs_bases)]
+        [iterate_term_sparse_supp(activated_supp, poly, basis, MinimalChordal()) for (poly, basis) in zip([one(spop.objective); spop.constraints[cons_idx]], idcs_bases)]
     end
 
     mom_problem = moment_relax(spop, cr.cliques_cons, cr.global_cons, cliques_term_sparsities)

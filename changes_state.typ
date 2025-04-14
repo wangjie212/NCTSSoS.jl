@@ -65,3 +65,7 @@
 	edge((-0.1,0.55),(0.2,0.50), "->"),
 	node((0.45,0.5), [`StateWord`: \ `state_monos::Vector{Monomial}`: \ [$x y$, $y^2$, $x^2$] ], inset:10pt),
 )
+
+== Basis Problem
+`NCTSSOS.jl` appear to have implemented the basis for state words as `tr`
+instead of expectation value of the operator
