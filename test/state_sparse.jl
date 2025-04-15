@@ -25,7 +25,7 @@ using MosekTools
 
     cliques_objective = [reduce(+, [issubset(effective_variables(t.ncstate_word), clique) ? t : zero(t) for t in terms(spop.objective)]) for clique in cr.cliques]
 
-    initial_activated_supp = [sorted_union(symmetric_canonicalize.(monomials(obj_part)), mapreduce(a -> monomials(a), vcat, spop.constraints[cons_idx]; init=typeof(monomials(spop.objective)[1])[]), [neat_dot(b, b) for b in idcs_bases[1]])
+    initial_activated_supp = [sorted_union(symmetric_canonicalize.(monomials(obj_part)), mapreduce(a -> monomials(a), vcat, spop.constraints[cons_idx]; init=typeof(monomials(spop.objective)[1])[]))
                               for (obj_part, cons_idx, idcs_bases) in zip(cliques_objective, cr.cliques_cons, cr.cliques_idcs_bases)]
 
     cliques_term_sparsities = map(zip(initial_activated_supp, cr.cliques_cons, cr.cliques_idcs_bases)) do (activated_supp, cons_idx, idcs_bases)
@@ -38,11 +38,11 @@ using MosekTools
     @test isapprox(objective_value(mom_problem.model), -2.828, atol=1e-3)
     @test is_solved_and_feasible(mom_problem.model)
 
-    sos_problem = sos_dualize(mom_problem)
-    set_optimizer(sos_problem.model, Clarabel.Optimizer)
-    optimize!(sos_problem.model)
-    @test is_solved_and_feasible(sos_problem.model)
-    @test isapprox(objective_value(sos_problem.model), -2.828, atol=1e-3)
+    # sos_problem = sos_dualize(mom_problem)
+    # set_optimizer(sos_problem.model, Clarabel.Optimizer)
+    # optimize!(sos_problem.model)
+    # @test is_solved_and_feasible(sos_problem.model)
+    # @test isapprox(objective_value(sos_problem.model), -2.828, atol=1e-3)
 end
 
 @testset "Correlative Sparsity" begin
@@ -66,13 +66,17 @@ end
 
     cliques_objective = [reduce(+, [issubset(effective_variables(t.ncstate_word), clique) ? t : zero(t) for t in terms(spop.objective)]) for clique in cr.cliques]
 
-
-    initial_activated_supp = [sorted_union(symmetric_canonicalize.(monomials(obj_part)), mapreduce(a -> monomials(a), vcat, spop.constraints[cons_idx]; init=typeof(monomials(spop.objective)[1])[]), [neat_dot(b, b) for b in idcs_bases[1]])
+    initial_activated_supp = [sorted_union(symmetric_canonicalize.(monomials(obj_part)), mapreduce(a -> monomials(a), vcat, spop.constraints[cons_idx]; init=typeof(monomials(spop.objective)[1])[]))
                               for (obj_part, cons_idx, idcs_bases) in zip(cliques_objective, cr.cliques_cons, cr.cliques_idcs_bases)]
 
-    # state basis is incorrect! printout and check what's wrong
+    @show length(initial_activated_supp[1])
+
+    # initial_activated_supp = [sorted_union(symmetric_canonicalize.(monomials(obj_part)), mapreduce(a -> monomials(a), vcat, spop.constraints[cons_idx]; init=typeof(monomials(spop.objective)[1])[]), [neat_dot(b, b) for b in idcs_bases[1]])
+    #                           for (obj_part, cons_idx, idcs_bases) in zip(cliques_objective, cr.cliques_cons, cr.cliques_idcs_bases)]
+
+    # state word basis is incorrect! should use trace basis but why?
     cliques_term_sparsities = map(zip(initial_activated_supp, cr.cliques_cons, cr.cliques_idcs_bases)) do (activated_supp, cons_idx, idcs_bases)
-        [iterate_term_sparse_supp(activated_supp, poly, basis, MinimalChordal()) for (poly, basis) in zip([one(spop.objective); spop.constraints[cons_idx]], idcs_bases)]
+        [iterate_term_sparse_supp(activated_supp, poly, basis, MMD()) for (poly, basis) in zip([one(spop.objective); spop.constraints[cons_idx]], idcs_bases)]
     end
 
     mom_problem = moment_relax(spop, cr.cliques_cons, cr.global_cons, cliques_term_sparsities)

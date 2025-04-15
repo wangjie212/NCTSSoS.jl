@@ -86,6 +86,7 @@ function get_term_sparsity_graph(cons_support::Vector{NCStateWord{V,M}}, activat
     for b in basis
         @info b
     end
+    @info length(basis)
     G = SimpleGraph(nterms)
     as = expval.(activated_supp)
     for i in 1:nterms, j in i+1:nterms
@@ -97,6 +98,7 @@ function get_term_sparsity_graph(cons_support::Vector{NCStateWord{V,M}}, activat
             end
         end
     end
+    @info ne(G)
     return G
 end
 
