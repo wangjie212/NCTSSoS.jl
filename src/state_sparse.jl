@@ -83,30 +83,30 @@ end
 # basis: basis used to index the moment matrix
 function get_term_sparsity_graph(cons_support::Vector{NCStateWord{V,M}}, activated_supp::Vector{NCStateWord{V,M}}, basis::Vector{NCStateWord{V,M}}) where {V,M}
     nterms = length(basis)
-    for b in basis
-        @info b
-    end
-    @info length(basis)
     G = SimpleGraph(nterms)
     as = expval.(activated_supp)
     for i in 1:nterms, j in i+1:nterms
         for supp in cons_support
-            interm = symmetric_canonicalize(neat_dot(basis[i], supp * basis[j]))
-            if expval(interm) in as
+            # interm = symmetric_canonicalize(neat_dot(basis[i], supp * basis[j]))
+            interm = neat_dot(basis[i], supp*basis[j])
+            if cyclic_canonicalize(expval(interm)) in as
                 add_edge!(G, i, j)
                 continue
             end
         end
     end
-    @info ne(G)
     return G
 end
 
 # returns: F (the chordal graph), blocks in basis
 function iterate_term_sparse_supp(activated_supp::Vector{NCStateWord{V,M}}, poly::StatePolynomialOp, basis::Vector{NCStateWord{V,M}}, elim_algo::EliminationAlgorithm) where {V,M}
     F = get_term_sparsity_graph(collect(monomials(poly)), activated_supp, basis)
-    blocks = clique_decomp(F, elim_algo)
-    map(block -> add_clique!(F, block), blocks)
+    if !(elim_algo isa AsIsElimination)
+        blocks = clique_decomp(F, elim_algo)
+        map(block -> add_clique!(F, block), blocks)
+    else
+        blocks = connected_components(F)
+    end
     return StateTermSparsity(term_sparsity_graph_supp(F, basis, poly), map(x -> basis[x], blocks))
 end
 

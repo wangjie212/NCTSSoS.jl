@@ -1,5 +1,6 @@
 using Test, NCTSSoS
 using NCTSSoS: StatePolynomial, StatePolyOpt, StateWord , NCStateWord
+using NCTSSoS: AsIsElimination
 using NCTSSoS: sorted_union, symmetric_canonicalize, neat_dot, iterate_term_sparse_supp
 using NCTSSoS: get_correlative_graph, correlative_sparsity, moment_relax, sos_dualize
 using DynamicPolynomials
@@ -69,14 +70,9 @@ end
     initial_activated_supp = [sorted_union(symmetric_canonicalize.(monomials(obj_part)), mapreduce(a -> monomials(a), vcat, spop.constraints[cons_idx]; init=typeof(monomials(spop.objective)[1])[]))
                               for (obj_part, cons_idx, idcs_bases) in zip(cliques_objective, cr.cliques_cons, cr.cliques_idcs_bases)]
 
-    @show length(initial_activated_supp[1])
-
-    # initial_activated_supp = [sorted_union(symmetric_canonicalize.(monomials(obj_part)), mapreduce(a -> monomials(a), vcat, spop.constraints[cons_idx]; init=typeof(monomials(spop.objective)[1])[]), [neat_dot(b, b) for b in idcs_bases[1]])
-    #                           for (obj_part, cons_idx, idcs_bases) in zip(cliques_objective, cr.cliques_cons, cr.cliques_idcs_bases)]
-
     # state word basis is incorrect! should use trace basis but why?
     cliques_term_sparsities = map(zip(initial_activated_supp, cr.cliques_cons, cr.cliques_idcs_bases)) do (activated_supp, cons_idx, idcs_bases)
-        [iterate_term_sparse_supp(activated_supp, poly, basis, MMD()) for (poly, basis) in zip([one(spop.objective); spop.constraints[cons_idx]], idcs_bases)]
+        [iterate_term_sparse_supp(activated_supp, poly, basis, AsIsElimination()) for (poly, basis) in zip([one(spop.objective); spop.constraints[cons_idx]], idcs_bases)]
     end
 
     mom_problem = moment_relax(spop, cr.cliques_cons, cr.global_cons, cliques_term_sparsities)
