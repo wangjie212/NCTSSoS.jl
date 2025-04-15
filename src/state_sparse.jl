@@ -87,9 +87,8 @@ function get_term_sparsity_graph(cons_support::Vector{NCStateWord{V,M}}, activat
     as = expval.(activated_supp)
     for i in 1:nterms, j in i+1:nterms
         for supp in cons_support
-            # interm = symmetric_canonicalize(neat_dot(basis[i], supp * basis[j]))
-            interm = neat_dot(basis[i], supp*basis[j])
-            if cyclic_canonicalize(expval(interm)) in as
+            interm = symmetric_canonicalize(neat_dot(basis[i], supp * basis[j]))
+            if expval(interm) in as
                 add_edge!(G, i, j)
                 continue
             end

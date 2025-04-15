@@ -152,7 +152,7 @@ function get_state_basis(variables::Vector{Variable{V,M}}, d::Int, reducer) wher
                 isempty(interm) ? [one(variables[1])] : interm
 
                 # if it is cyclic_canonicalize.(reducer.) the state basis matches why ?
-            end for c_word in product(ntuple(_ -> unique!(cyclic_canonicalize.(reducer.(monomials(variables, 0:cw_deg)))), cw_deg)..., [one(variables[1])]) if sum(degree.(c_word)) <= cw_deg
+            end for c_word in product(ntuple(_ -> unique!(symmetric_canonicalize.(reducer.(monomials(variables, 0:cw_deg)))), cw_deg)..., [one(variables[1])]) if sum(degree.(c_word)) <= cw_deg
         ])
         reshape(collect(product(cw_basis, nc_basis)), :)
     end)
