@@ -35,6 +35,13 @@
 
 #components.adaptive-columns(outline(title: none, indent: 1em))
 
+== Issues
+- State Polynomial Implemented and tested, Jie Wang's verision has bugs. Need a look at `statepolynomial.jl`
+- Unit Disk Graph feedback from Jie Wang?  
+- Tried to use TDVP with $10 times 10$ using `MPSKit.jl` with square lattice Heisenberg Model, any more specific model?
+- 
+- Website is updated, needs feedback
+
 == Non-commuting State Polynomial Implementation
 #fletcher-diagram(
   node-stroke: .1em,
@@ -69,6 +76,8 @@
 == Problems
 - `NCTSSOS.jl` appear to have implemented the basis for state words as `tr`
 instead of expectation value of the operator
-- Term Sparsity seems to not require squared terms, why is that? Any reference to theory of term sparsity?
+- Term Sparsity seems to not require squared terms, why is that? Any reference
+to term sparsity for State Polynomial? Squared Terms are not required in the
+activated basis like usual Polynomial Optimization?
 
 

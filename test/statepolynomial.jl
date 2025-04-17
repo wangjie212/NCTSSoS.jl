@@ -1,5 +1,5 @@
 using Test, NCTSSoS
-using NCTSSoS: StateWord, StateTerm, StatePolynomial, NCStateWord, NCStateTerm, StatePolynomialOp, expval, neat_dot, get_state_basis
+using NCTSSoS: StateWord, StateTerm, StatePolynomial, NCStateWord, NCStateTerm, StatePolynomialOp, expval, neat_dot, get_state_basis, degree
 using DynamicPolynomials
 using DynamicPolynomials: monomial
 

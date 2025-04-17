@@ -30,7 +30,7 @@ using MosekTools
                               for (obj_part, cons_idx, idcs_bases) in zip(cliques_objective, cr.cliques_cons, cr.cliques_idcs_bases)]
 
     cliques_term_sparsities = map(zip(initial_activated_supp, cr.cliques_cons, cr.cliques_idcs_bases)) do (activated_supp, cons_idx, idcs_bases)
-        [iterate_term_sparse_supp(activated_supp, poly, basis, MinimalChordal()) for (poly, basis) in zip([one(spop.objective); spop.constraints[cons_idx]], idcs_bases)]
+        [iterate_term_sparse_supp(activated_supp, poly, basis, AsIsElimination()) for (poly, basis) in zip([one(spop.objective); spop.constraints[cons_idx]], idcs_bases)]
     end
 
     mom_problem = moment_relax(spop, cr.cliques_cons, cr.global_cons, cliques_term_sparsities)
@@ -39,11 +39,11 @@ using MosekTools
     @test isapprox(objective_value(mom_problem.model), -2.828, atol=1e-3)
     @test is_solved_and_feasible(mom_problem.model)
 
-    # sos_problem = sos_dualize(mom_problem)
-    # set_optimizer(sos_problem.model, Clarabel.Optimizer)
-    # optimize!(sos_problem.model)
-    # @test is_solved_and_feasible(sos_problem.model)
-    # @test isapprox(objective_value(sos_problem.model), -2.828, atol=1e-3)
+    sos_problem = sos_dualize(mom_problem)
+    set_optimizer(sos_problem.model, Clarabel.Optimizer)
+    optimize!(sos_problem.model)
+    @test is_solved_and_feasible(sos_problem.model)
+    @test isapprox(objective_value(sos_problem.model), -2.828, atol=1e-3)
 end
 
 @testset "Correlative Sparsity" begin
@@ -76,16 +76,15 @@ end
     end
 
     mom_problem = moment_relax(spop, cr.cliques_cons, cr.global_cons, cliques_term_sparsities)
-    set_optimizer(mom_problem.model, Mosek.Optimizer)
+    set_optimizer(mom_problem.model, COSMO.Optimizer)
     optimize!(mom_problem.model)
     objective_value(mom_problem.model)
-    # FIXME: why do we have a non-tight relaxation at d = 3?
-    @test_broken isapprox(objective_value(mom_problem.model), -4.0, atol=1e-5)
+    @test isapprox(objective_value(mom_problem.model), -4.0, atol=1e-4)
     @test is_solved_and_feasible(mom_problem.model)
 
     sos_problem = sos_dualize(mom_problem)
-    set_optimizer(sos_problem.model, Clarabel.Optimizer)
+    set_optimizer(sos_problem.model, COSMO.Optimizer)
     optimize!(sos_problem.model)
-    @test_broken isapprox(objective_value(sos_problem.model), -4.0, atol=1e-5)
+    @test isapprox(objective_value(sos_problem.model), -4.0, atol=1e-4)
     @test is_solved_and_feasible(sos_problem.model)
 end

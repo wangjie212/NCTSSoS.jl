@@ -1,5 +1,5 @@
 using Test, NCTSSoS
-using NCTSSoS: StatePolynomial, StateWord
+using NCTSSoS: StatePolynomial, StateWord, coefficient
 using DynamicPolynomials
 using DynamicPolynomials: NonCommutative, CreationOrder
 
