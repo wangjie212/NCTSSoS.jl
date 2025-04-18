@@ -6,7 +6,7 @@ struct StateWord{V,M}
     end
 end
 
-ς(m) = StateWord([monomial(m)])
+ς(m::Union{Monomial,Variable}) = StateWord([monomial(m)])
 
 DynamicPolynomials.effective_variables(sw::StateWord) = union(effective_variables.(sw.state_monos)...)
 DynamicPolynomials.variables(sw::StateWord) = union(variables.(sw.state_monos)...)
@@ -53,7 +53,10 @@ end
 
 DynamicPolynomials.variables(st::StateTerm) = variables(st.state_word)
 DynamicPolynomials.degree(st::StateTerm) = degree(st.state_word)
-Base.show(io::IO, st::StateTerm) = print(io, string(st.coef) * " * " * string(st.state_word))
+function Base.show(io::IO, st::StateTerm)
+    printstyled(io, st.coef; color = :yellow)
+    print(io, " * " * string(st.state_word))
+end
 Base.:(==)(a::StateTerm, b::StateTerm) = isequal(a.coef, b.coef) && (a.state_word == b.state_word)
 Base.hash(a::StateTerm) = hash((hash(a.coef), hash(a.state_word)))
 Base.:(*)(a::StateTerm, b::StateTerm) = StateTerm(a.coef * b.coef, a.state_word * b.state_word)
