@@ -35,6 +35,11 @@
 
 #components.adaptive-columns(outline(title: none, indent: 1em))
 
+== Topic
+1. Hastings Paper
+2. Unit Disk Graph new understanding
+3. Implementation of State Polynomial Optimization
+
 == Issues
 - State Polynomial Implemented and tested, Jie Wang's verision has bugs. Need a look at `statepolynomial.jl`
 - Unit Disk Graph feedback from Jie Wang?  
