@@ -18,7 +18,7 @@ Base.adjoint(a::NCStateWord{V,M}) where {V,M} = NCStateWord(star.(a.sw), star(a.
 Base.:(*)(a::NCStateWord{V,M}, b::NCStateWord{V,M}) where {V,M} = NCStateWord([a.sw; b.sw], a.nc_word * b.nc_word)
 Base.:(*)(a::NCStateWord{V,M}, b::Monomial{V,M}) where {V,M} = NCStateWord(a.sw, a.nc_word * b)
 Base.:(*)(coef::T, a::NCStateWord{V,M}) where {V,M,T} = NCStateTerm(coef, a)
-Base.:(==)(a::NCStateWord{V,M}, b::NCStateWord{V,M}) where {V,M} = all(a.sw .== b.sw) && a.nc_word == b.nc_word
+Base.:(==)(a::NCStateWord{V,M}, b::NCStateWord{V,M}) where {V,M} = (a.sw == b.sw) && a.nc_word == b.nc_word
 Base.hash(a::NCStateWord) = hash((hash(a.sw), hash(a.nc_word)))
 Base.one(::Type{NCStateWord{V,M}}) where {V,M} = NCStateWord([one(Monomial{V,M})], one(Monomial{V,M}))
 Base.one(ncsw::NCStateWord) = NCStateWord([one(ncsw.sw[1])], one(ncsw.nc_word))
@@ -72,6 +72,7 @@ Base.show(io::IO, ncsp::NCStatePolynomial) = print(io, join(string.(ncsp.nc_stat
 Base.:(==)(a::NCStatePolynomial, b::NCStatePolynomial) = all(a.nc_state_terms .== b.nc_state_terms) # by constructor I alwasy guarantee no duplicate words and sorted
 Base.hash(ncsp::NCStatePolynomial) = hash(hash.(ncsp.nc_state_terms))
 Base.:(*)(a::NCStatePolynomial, b::NCStatePolynomial) = NCStatePolynomial(vec(map(x -> x[1] * x[2], product(a.nc_state_terms, b.nc_state_terms))))
+Base.:(*)(n, a::NCStatePolynomial{V,M,T}) where {V,M,T} = NCStatePolynomial(T(n) .* a.nc_state_terms)
 Base.:(+)(a::NCStatePolynomial, b::NCStatePolynomial) = NCStatePolynomial([a.nc_state_terms; b.nc_state_terms])
 Base.:(+)(a::NCStatePolynomial, b::NCStateTerm) = NCStatePolynomial([a.nc_state_terms; b])
 Base.:(-)(a::NCStatePolynomial{V,M,T}, b::NCStatePolynomial{V,M,T}) where {V,M,T} = NCStatePolynomial([a.nc_state_terms; -one(T) .* b.nc_state_terms])
@@ -105,7 +106,7 @@ for symb in [:symmetric_canonicalize, :cyclic_canonicalize]
     take_adj = (symb == :symmetric_canonicalize ? :adjoint : :identity)
     eval(quote
         function $(symb)(ncsw::NCStateWord)
-            NCStateWord($(symb)(ncsw.sw), $(symb)(ncsw.nc_word))
+            NCStateWord($(symb).(ncsw.sw), $(symb)(ncsw.nc_word))
         end
 
         function $(symb)(ncst::NCStateTerm)
@@ -113,7 +114,7 @@ for symb in [:symmetric_canonicalize, :cyclic_canonicalize]
         end
 
         function $(symb)(spo::NCStatePolynomial)
-            StatePolynomialOp($(symb).(spo.nc_state_terms))
+            NCStatePolynomial($(symb).(spo.nc_state_terms))
         end
     end)
 end

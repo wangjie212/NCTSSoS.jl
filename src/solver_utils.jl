@@ -56,10 +56,10 @@ sorted_union(xs...) = sort(union(xs...))
 get_dim(cons::VectorConstraint) = cons.set isa MOI.PositiveSemidefiniteConeSquare ? JuMP.shape(cons).side_dimension : JuMP.shape(cons).dims[1]
 
 function _comm(mono::Monomial{V,M}, comm_gp::Set{Variable{V,M}}) where {V,M}
-    return prod(zip(mono.vars, mono.z)) do (var, expo)
+    return prod(zip(mono.vars, mono.z);init=one(mono)) do (var, expo)
         var in comm_gp ? var^expo : var^(zero(expo))
     end *
-           prod(zip(mono.vars, mono.z)) do (var, expo)
+           prod(zip(mono.vars, mono.z);init=one(mono)) do (var, expo)
         !(var in comm_gp) ? var^expo : var^(zero(expo))
     end
 end
@@ -113,5 +113,5 @@ end
 
 
 function _comm(ncsw::NCStateWord{V,M}, comm_gps::Vector{Set{Variable{V,M}}}) where {V,M}
-    NCStateWord(_comm.(ncsw.sw, comm_gps), _comm(ncsw.nc_word, comm_gps))
+    NCStateWord(_comm.(ncsw.sw, Ref(comm_gps)), _comm(ncsw.nc_word, comm_gps))
 end
