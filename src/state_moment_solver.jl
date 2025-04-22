@@ -6,11 +6,11 @@
 struct StateMomentProblem{V,M,T,CR<:ConstraintRef} <: OptimizationProblem
     model::GenericModel{T}
     constraints::Vector{CR}
-    monomap::Dict{StateWord{V,M},GenericVariableRef{T}}  # TODO: maybe refactor.
+    monomap::Dict{NCStateWord{V,M},GenericVariableRef{T}}  # TODO: maybe refactor.
     reduce_func::Function
 end
 
-function substitute_variables(poly::StatePolynomialOp{V,M,T}, wordmap::Dict{StateWord{V,M},GenericVariableRef{T}}) where {V,M,T}
+function substitute_variables(poly::NCStatePolynomial{V,M,T}, wordmap::Dict{NCStateWord{V,M},GenericVariableRef{T}}) where {V,M,T}
     mapreduce(x -> (x.coef * wordmap[expval(x.ncstate_word)]), +, terms(poly))
 end
 
@@ -71,9 +71,9 @@ end
 
 function constrain_moment_matrix!(
     model::GenericModel{T},
-    poly::StatePolynomialOp{V,M,T},
+    poly::NCStatePolynomial{V,M,T},
     local_basis::Vector{NCStateWord{V,M}},
-    monomap::Dict{StateWord{V,M},GenericVariableRef{T}},
+    monomap::Dict{NCStateWord{V,M},GenericVariableRef{T}},
     cone, # FIXME: which type should I use?
     reduce_func::Function
 ) where {V,M,T}

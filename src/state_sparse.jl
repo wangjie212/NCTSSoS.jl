@@ -16,7 +16,7 @@ end
 # polys: objective + constraints, order is important
 # order: order of the moment problem
 # TODO: this can also be merged with get_correlative_graph
-function get_correlative_graph(ordered_vars::Vector{Variable{V,M}}, obj::StatePolynomialOp{V,M,T}, cons::Vector{StatePolynomialOp{V,M,T}}, order::Int) where {V,M,T}
+function get_correlative_graph(ordered_vars::Vector{Variable{V,M}}, obj::NCStatePolynomial{V,M,T}, cons::Vector{NCStatePolynomial{V,M,T}}, order::Int) where {V,M,T}
     # NOTE: code will be buggy is ordered_vars is not the same as the one reference in other functions
     # @assert issorted(ordered_vars, rev=true) "Variables must be sorted"
 
@@ -42,7 +42,7 @@ function get_correlative_graph(ordered_vars::Vector{Variable{V,M}}, obj::StatePo
     return G
 end
 
-function assign_constraint(cliques::Vector{Vector{Variable{V,M}}}, cons::Vector{StatePolynomialOp{V,M,T}}) where {V,M,T}
+function assign_constraint(cliques::Vector{Vector{Variable{V,M}}}, cons::Vector{NCStatePolynomial{V,M,T}}) where {V,M,T}
     # assign each constraint to a clique
     # there might be constraints that are not captured by any single clique,
     # NOTE: we ignore this constraint. This should only occur at lower order of relaxation.
@@ -98,7 +98,7 @@ function get_term_sparsity_graph(cons_support::Vector{NCStateWord{V,M}}, activat
 end
 
 # returns: F (the chordal graph), blocks in basis
-function iterate_term_sparse_supp(activated_supp::Vector{NCStateWord{V,M}}, poly::StatePolynomialOp, basis::Vector{NCStateWord{V,M}}, elim_algo::EliminationAlgorithm) where {V,M}
+function iterate_term_sparse_supp(activated_supp::Vector{NCStateWord{V,M}}, poly::NCStatePolynomial, basis::Vector{NCStateWord{V,M}}, elim_algo::EliminationAlgorithm) where {V,M}
     F = get_term_sparsity_graph(collect(monomials(poly)), activated_supp, basis)
     if !(elim_algo isa AsIsElimination)
         blocks = clique_decomp(F, elim_algo)
@@ -111,7 +111,7 @@ end
 
 # supp(G,g): monomials that are either v^† g_supp v where v is a vertex in G, or β^† g_supp γ where {β,γ} is an edge in G following (10,4)
 # given term sparsity graph G, which terms needs to be considered as a variable for describing the localizing/moment matrix with respect to g
-function term_sparsity_graph_supp(G::SimpleGraph, basis::Vector{NCStateWord{V,M}}, g::StatePolynomialOp) where {V,M}
+function term_sparsity_graph_supp(G::SimpleGraph, basis::Vector{NCStateWord{V,M}}, g::NCStatePolynomial) where {V,M}
     # following (10.4) in Sparse Polynomial Optimization: Theory and Practise
     # NOTE: Do I need to symmetric canonicalize it?
     # TODO: add reduce! here

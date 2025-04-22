@@ -14,7 +14,7 @@ using Base.Iterators: product, flatten
 using DynamicPolynomials.MP: compare
 
 export PolyOpt, StatePolyOpt
-export StatePolynomialOp, ς
+export NCStatePolynomial, ς
 export TRACE, EIGEN
 export SolverConfig
 export cs_nctssos, cs_nctssos_higher
@@ -23,14 +23,9 @@ export cs_nctssos, cs_nctssos_higher
 export MF, MMD, NoElimination, MinimalChordal
 export @ncpolyvar, @polyvar
 
-# Export interfaces
-export AbstractPolynomialWord, AbstractPolynomialTerm
-export PolynomialWordTrait, PolynomialTermTrait
-export CanonicalizeOperation, SymmetricCanonicalize, CyclicCanonicalize
-
 # Export polynomial types
-export StateWord, NCStateWord, StateTerm, NCStateTerm
-export StatePolynomial, StatePolynomialOp
+export NCStateWord, NCStateTerm
+export StatePolynomial, NCStatePolynomial
 export PolyOpt, StatePolyOpt
 
 # Export sparsity types

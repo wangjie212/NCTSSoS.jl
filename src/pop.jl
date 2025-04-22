@@ -30,8 +30,8 @@ function PolyOpt(objective::Polynomial{V,M,T}; constraints=Any[], is_equality=fi
 end
 
 struct StatePolyOpt{V,M,T} <: OptimizationProblem
-    objective::StatePolynomialOp{V,M,T}
-    constraints::Vector{StatePolynomialOp{V,M,T}}
+    objective::NCStatePolynomial{V,M,T}
+    constraints::Vector{NCStatePolynomial{V,M,T}}
     is_equality::Vector{Bool}
     variables::Vector{Variable{V,M}}
     comm_gps::Vector{Set{Variable{V,M}}} # Set of variables that commutes with variables not in the set
@@ -39,8 +39,8 @@ struct StatePolyOpt{V,M,T} <: OptimizationProblem
     is_projective::Bool # X^2 = X. Is projective.
 end
 
-function StatePolyOpt(objective::StatePolynomialOp{V,M,T}; constraints=Any[], is_equality=fill(false, length(constraints)), comm_gps=Vector{Variable{V,M}}[], is_unipotent::Bool=false, is_projective::Bool=false) where {V,M,T}
-    cons = collect(StatePolynomial{V,M,T}, constraints)
+function StatePolyOpt(objective::NCStatePolynomial{V,M,T}; constraints=Any[], is_equality=fill(false, length(constraints)), comm_gps=Vector{Variable{V,M}}[], is_unipotent::Bool=false, is_projective::Bool=false) where {V,M,T}
+    cons = collect(NCStatePolynomial{V,M,T}, constraints)
     is_eq = collect(Bool, is_equality)
     @assert length(is_eq) == length(cons) "The number of constraints must be the same as the number of equality conditions."
     vars = sorted_union(variables(objective), [variables(c) for c in cons]...)

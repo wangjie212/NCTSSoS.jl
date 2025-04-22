@@ -78,24 +78,16 @@ function _unipotent(mono::Monomial)
     return cur_mono
 end
 
-function _unipotent(sw::StateWord)
-    StateWord(_unipotent.(sw.state_monos))
-end
-
 function _unipotent(ncsw::NCStateWord)
-    NCStateWord(_unipotent(ncsw.sw), _unipotent(ncsw.nc_word))
+    NCStateWord(_unipotent.(ncsw.sw), _unipotent(ncsw.nc_word))
 end
 
 _projective(mono::Monomial) =
     prod(zip(mono.vars, mono.z)) do (var, expo)
         var^(iszero(expo) ? expo : one(expo))
     end
-
-_projective(sw::StateWord) =
-    StateWord(_projective.(sw.state_monos))
-
 _projective(ncsw::NCStateWord) =
-    NCStateWord(_projective(ncsw.sw), _projective(ncsw.nc_word))
+    NCStateWord(_projective.(ncsw.sw), _projective(ncsw.nc_word))
 
 function reducer(pop::PolyOpt)
     function (x)
@@ -119,10 +111,7 @@ function _comm(mono::Monomial{V,M}, comm_gps::Vector{Set{Variable{V,M}}}) where 
     end
 end
 
-function _comm(sw::StateWord{V,M}, comm_gps::Vector{Set{Variable{V,M}}}) where {V,M}
-    StateWord(_comm.(sw.state_monos, Ref(comm_gps)))
-end
 
 function _comm(ncsw::NCStateWord{V,M}, comm_gps::Vector{Set{Variable{V,M}}}) where {V,M}
-    NCStateWord(_comm(ncsw.sw, comm_gps), _comm(ncsw.nc_word, comm_gps))
+    NCStateWord(_comm.(ncsw.sw, comm_gps), _comm(ncsw.nc_word, comm_gps))
 end
