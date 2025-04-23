@@ -8,7 +8,7 @@ end
 
 # implement NoElimination on clique_decomp
 struct NoElimination <: EliminationAlgorithm end
-struct AsIsElimination <:EliminationAlgorithm end
+struct AsIsElimination <: EliminationAlgorithm end
 
 # FIXME: how do I properly create a CliqueTree for complete graph?
 function cliquetree(graph, alg::NoElimination, snd::SupernodeType)

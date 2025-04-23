@@ -56,10 +56,10 @@ sorted_union(xs...) = sort(union(xs...))
 get_dim(cons::VectorConstraint) = cons.set isa MOI.PositiveSemidefiniteConeSquare ? JuMP.shape(cons).side_dimension : JuMP.shape(cons).dims[1]
 
 function _comm(mono::Monomial{V,M}, comm_gp::Set{Variable{V,M}}) where {V,M}
-    return prod(zip(mono.vars, mono.z);init=one(mono)) do (var, expo)
+    return prod(zip(mono.vars, mono.z); init=one(mono)) do (var, expo)
         var in comm_gp ? var^expo : var^(zero(expo))
     end *
-           prod(zip(mono.vars, mono.z);init=one(mono)) do (var, expo)
+           prod(zip(mono.vars, mono.z); init=one(mono)) do (var, expo)
         !(var in comm_gp) ? var^expo : var^(zero(expo))
     end
 end
@@ -114,4 +114,17 @@ end
 
 function _comm(ncsw::NCStateWord{V,M}, comm_gps::Vector{Set{Variable{V,M}}}) where {V,M}
     NCStateWord(_comm.(ncsw.sw, Ref(comm_gps)), _comm(ncsw.nc_word, comm_gps))
+end
+
+
+function get_mom_matrix(mom_problem::MomentProblem)
+    _, mom_loc = findmax(get_dim, constraint_object.(mom_problem.constraints))
+    return value.(mom_problem.constraints[mom_loc])
+end
+
+function get_mom_matrix(sos_problem::SOSProblem)
+end
+
+function minimizer_extraction(M::Matrix)
+
 end
