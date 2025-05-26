@@ -31,9 +31,9 @@
 
 #title-slide()
 
-// == Outline <touying:hidden>
+== Outline <touying:hidden>
 
-// #components.adaptive-columns(outline(title: none, indent: 1em))
+#components.adaptive-columns(outline(title: none, indent: 1em))
 
 == Topic
 1. Performance benchmark
@@ -60,6 +60,7 @@
     end
 ```
 == NCTSSOS `cs_nctssos_first` 
+#set text(18pt)
 ```text
 BenchmarkTools.Trial: 21 samples with 1 evaluation per sample.
  Range (min … max):  237.811 ms … 264.973 ms  ┊ GC (min … max): 0.00% … 6.52%
@@ -73,6 +74,7 @@ BenchmarkTools.Trial: 21 samples with 1 evaluation per sample.
  Memory estimate: 31.34 MiB, allocs estimate: 746096.
 ```
 == NCTSSOS `cs_nctssos_higher!` 
+#set text(18pt)
 ```text
 BenchmarkTools.Trial: 1 sample with 1 evaluation per sample.
  Single result which took 14.974 s (0.18% GC) to evaluate,
@@ -80,6 +82,7 @@ BenchmarkTools.Trial: 1 sample with 1 evaluation per sample.
 ```
 
 == NCTSSoS.jl `cs_nctssos` 
+#set text(18pt)
 ```text
 BenchmarkTools.Trial: 2 samples with 1 evaluation per sample.
  Range (min … max):  4.868 s …   4.911 s  ┊ GC (min … max): 29.25% … 28.52%
@@ -94,13 +97,19 @@ BenchmarkTools.Trial: 2 samples with 1 evaluation per sample.
  ```
 
  == NCTSSoS.jl `cs_nctssos_higher`
+#set text(18pt)
  ```text
 BenchmarkTools.Trial: 1 sample with 1 evaluation per sample.
  Single result which took 20.239 s (20.70% GC) to evaluate,
  with a memory estimate of 27.77 GiB, over 539154277 allocations.
  ```
+==  Most Costly Part
+```julia
+    cliques_term_sparsities = map(zip(initial_activated_supp, corr_sparsity.cliques_cons, corr_sparsity.cliques_idcs_bases)) do (activated_supp, cons_idx, idcs_bases)
+        [iterate_term_sparse_supp(activated_supp, poly, basis, solver_config.ts_algo) for (poly, basis) in zip([one(pop.objective); pop.constraints[cons_idx]], idcs_bases)]
+    end
+```
 
- == `correlative_sparsity`
 
 == Issues
 - State Polynomial Implemented and tested, Jie Wang's verision has bugs. Need a look at `statepolynomial.jl`
