@@ -31,15 +31,16 @@
 
 #title-slide()
 
-== Outline <touying:hidden>
+// == Outline <touying:hidden>
 
-#components.adaptive-columns(outline(title: none, indent: 1em))
+// #components.adaptive-columns(outline(title: none, indent: 1em))
 
 == Topic
 1. Performance benchmark
 2. Implementation of State Polynomial Optimization
 
 == Performance Testcase 
+#set text(18pt)
 ```julia
     n = 5
     @ncpolyvar x[1:n]
@@ -77,10 +78,6 @@ BenchmarkTools.Trial: 1 sample with 1 evaluation per sample.
  Single result which took 14.974 s (0.18% GC) to evaluate,
  with a memory estimate of 100.44 MiB, over 2239590 allocations.
 ```
-
-
-
-
 
 == NCTSSoS.jl `cs_nctssos` 
 ```text
