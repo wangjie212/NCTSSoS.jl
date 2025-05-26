@@ -1,8 +1,8 @@
 using BenchmarkTools
 using MosekTools, NCTSSoS
 
-@testset "Bryoden Banded Polynomial" begin
-    n = 10
+@testset "Documentation Example" begin
+    n = 5
     @ncpolyvar x[1:n]
     f = 0.0
     for i = 1:n
@@ -15,13 +15,19 @@ using MosekTools, NCTSSoS
 
 	cons = typeof(f)[]
     for i = 1:n
-        push!(pop, 1 - x[i]^2)
-        push!(pop, x[i] - 1 / 3)
+        push!(cons, 1 - x[i]^2)
+        push!(cons, x[i] - 1 / 3)
     end
 
-    pop =  PolyOpt(f);
+    pop =  PolyOpt(f; constraints = cons);
+    solver_config = SolverConfig(optimizer=Mosek.Optimizer; mom_order=3, cs_algo=MF(), ts_algo=MMD())
 
-    result_cs_ts = cs_nctssos(pop, SolverConfig(optimizer=Mosek.Optimizer; cs_algo=MF(), ts_algo=MMD()))
+    @benchmark result_cs_ts = cs_nctssos($pop, $solver_config)
+    result_cs_ts = cs_nctssos(pop, solver_config)
 
-    result_cs_ts_higher = cs_nctssos_higher(pop, result_cs_ts, SolverConfig(optimizer=Clarabel.Optimizer; cs_algo=MF(), ts_algo=MMD()))
+    @benchmark result_cs_ts_higher = cs_nctssos_higher($pop, $result_cs_ts, $solver_config)
+end
+
+@testset "Components" begin
+
 end

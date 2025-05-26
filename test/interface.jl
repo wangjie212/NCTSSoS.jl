@@ -1,7 +1,6 @@
 using Test, NCTSSoS
 using Clarabel
 
-
 @testset "Majumdar Gosh Model" begin
     num_sites = 12 
     J1_interactions = unique!([tuple(sort([i, mod1(i + 1, num_sites)])...) for i in 1:num_sites])
