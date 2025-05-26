@@ -100,6 +100,8 @@ BenchmarkTools.Trial: 1 sample with 1 evaluation per sample.
  with a memory estimate of 27.77 GiB, over 539154277 allocations.
  ```
 
+ == `correlative_sparsity`
+
 == Issues
 - State Polynomial Implemented and tested, Jie Wang's verision has bugs. Need a look at `statepolynomial.jl`
 
