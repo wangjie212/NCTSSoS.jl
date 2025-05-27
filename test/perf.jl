@@ -70,11 +70,13 @@ end
 
     using NCTSSoS: iterate_term_sparse_supp
 
-    activate_supp, cons_idx, idcs_bases = initial_activate_supp[1],corr_sparsity.cliques_cons[1], corr_sparsity.cliques_idcs_bases[1]
+    activated_supp, cons_idx, idcs_bases = initial_activated_supp[1],corr_sparsity.cliques_cons[1], corr_sparsity.cliques_idcs_bases[1]
+
+    @benchmark iterate_term_sparse_supp($activated_supp, $pop.constraints[cons_idx][1], $idcs_bases[2], $solver_config.ts_algo)
 
     ## Most Costly part
     # 4.211 s (118776605 allocations: 8.11 GiB)
-    cliques_term_sparsities = map(zip(initial_activated_supp, corr_sparsity.cliques_cons, corr_sparsity.cliques_idcs_bases)) do (activated_supp, cons_idx, idcs_bases)
+    cliques_term_sparsities = map(zip(initial_activated_supp, corr_sparsity.cliques_cons, corr_sparsity.cliques_idcs_bases)) do (activated_supp, cons_idx, idcs_bases, solver_config.ts_algo)
         [iterate_term_sparse_supp(activated_supp, poly, basis, solver_config.ts_algo) for (poly, basis) in zip([one(pop.objective); pop.constraints[cons_idx]], idcs_bases)]
     end
 

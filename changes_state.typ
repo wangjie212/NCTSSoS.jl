@@ -119,10 +119,28 @@ BenchmarkTools.Trial: 1 sample with 1 evaluation per sample.
         [iterate_term_sparse_supp(activated_supp, poly, basis, solver_config.ts_algo) for (poly, basis) in zip([one(pop.objective); pop.constraints[cons_idx]], idcs_bases)]
     end
 ```
+- `iterate_term_sparse_supp` is the main culprit 
+```text
+BenchmarkTools.Trial: 77 samples with 1 evaluation per sample.
+ Range (min … max):  63.343 ms … 71.434 ms  ┊ GC (min … max): 10.31% … 14.84%
+ Time  (median):     64.949 ms              ┊ GC (median):    10.87%
+ Time  (mean ± σ):   65.305 ms ±  1.339 ms  ┊ GC (mean ± σ):  11.03% ±  1.04%
+
+            ▃▃ █   ▁▆       ▁      ▃           ▁               
+  ▇▄▁▄▄▄▄▄▄▇██▄█▇▄▇██▇▇▁▇▄▇▄█▇▇▁▇▇▁█▄▄▄▁▁▁▄▁▁▄▁█▁▁▁▄▁▁▁▁▄▁▁▁▇ ▁
+  63.3 ms         Histogram: frequency by time        68.4 ms <
+
+ Memory estimate: 328.74 MiB, allocs estimate: 4885431.
+```
+
 
 
 == Issues
-- State Polynomial Implemented and tested, Jie Wang's verision has bugs. Need a look at `statepolynomial.jl`
+- State Polynomial Implemented and tested
+- Why is basis in state polynomial the same as tracial? #link("https://github.com/wangjie212/NCTSSOS/blob/23fb8410ef4e646a6488e62bc9b03948cfce984d/src/trace.jl#L101")[code location]
+- #image("statepolytracediff.png")
+- See reference to "State polynomials: positivity, optimization and nonlinear Bell inequalities"
+
 
 == Non-commuting State Polynomial Implementation
 #fletcher-diagram(
