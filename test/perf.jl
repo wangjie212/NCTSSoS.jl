@@ -54,7 +54,7 @@ end
     mom_order = iszero(solver_config.mom_order) ? maximum([ceil(Int, maxdegree(poly) / 2) for poly in [pop.objective; pop.constraints]]) : solver_config.mom_order
 
     using NCTSSoS: correlative_sparsity
-    @benchmark corr_sparsity = correlative_sparsity($pop, $mom_order, $cs_algo)
+    # @benchmark corr_sparsity = correlative_sparsity($pop, $mom_order, $cs_algo)
     corr_sparsity = correlative_sparsity(pop, mom_order, solver_config.cs_algo)
 
     using DynamicPolynomials: coefficients, monomials, effective_variables
@@ -69,6 +69,9 @@ end
                               for (obj_part, cons_idx, idcs_bases) in zip(cliques_objective, corr_sparsity.cliques_cons, corr_sparsity.cliques_idcs_bases)]
 
     using NCTSSoS: iterate_term_sparse_supp
+
+    activate_supp, cons_idx, idcs_bases = initial_activate_supp[1],corr_sparsity.cliques_cons[1], corr_sparsity.cliques_idcs_bases[1]
+
     ## Most Costly part
     # 4.211 s (118776605 allocations: 8.11 GiB)
     cliques_term_sparsities = map(zip(initial_activated_supp, corr_sparsity.cliques_cons, corr_sparsity.cliques_idcs_bases)) do (activated_supp, cons_idx, idcs_bases)
