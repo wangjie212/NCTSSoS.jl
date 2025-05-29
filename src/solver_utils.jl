@@ -56,12 +56,12 @@ sorted_union(xs...) = sort(union(xs...))
 get_dim(cons::VectorConstraint) = cons.set isa MOI.PositiveSemidefiniteConeSquare ? JuMP.shape(cons).side_dimension : JuMP.shape(cons).dims[1]
 
 function _comm(mono::Monomial{V,M}, comm_gp::Set{Variable{V,M}}) where {V,M}
-    return prod(zip(mono.vars, mono.z); init=one(mono)) do (var, expo)
-        var in comm_gp ? var^expo : var^(zero(expo))
-    end *
-           prod(zip(mono.vars, mono.z); init=one(mono)) do (var, expo)
-        !(var in comm_gp) ? var^expo : var^(zero(expo))
-    end
+    return [prod(zip(mono.vars, mono.z); init=one(mono)) do (var, expo)
+            var in comm_gp ? var^expo : var^(zero(expo))
+        end,
+        prod(zip(mono.vars, mono.z); init=one(mono)) do (var, expo)
+            !(var in comm_gp) ? var^expo : var^(zero(expo))
+        end]
 end
 
 function _unipotent(mono::Monomial)
@@ -91,20 +91,20 @@ _projective(ncsw::NCStateWord) =
 
 function reducer(pop::PolyOpt)
     function (x)
-        cx = _comm(x, pop.comm_gp)
-        return pop.is_unipotent ? _unipotent(cx) : (pop.is_projective ? _projective(cx) : cx)
+        cxs = _comm(x, pop.comm_gp)
+        return pop.is_unipotent ? _unipotent.(cxs) : (pop.is_projective ? _projective.(cxs) : cxs)
     end
 end
 
 function reducer(spop::StatePolyOpt)
     function (x)
-        cx = _comm(x, spop.comm_gps)
-        return spop.is_unipotent ? _unipotent(cx) : (spop.is_projective ? _projective(cx) : cx)
+        cxs = _comm(x, spop.comm_gps)
+        return spop.is_unipotent ? _unipotent.(cxs) : (spop.is_projective ? _projective.(cxs) : cxs)
     end
 end
 
 function _comm(mono::Monomial{V,M}, comm_gps::Vector{Set{Variable{V,M}}}) where {V,M}
-    prod(comm_gps) do vars
+    map(comm_gps) do vars
         prod(zip(mono.vars, mono.z); init=first(vars)^0) do (var, expon)
             var in vars ? var^expon : var^(zero(expon))
         end
@@ -113,7 +113,7 @@ end
 
 
 function _comm(ncsw::NCStateWord{V,M}, comm_gps::Vector{Set{Variable{V,M}}}) where {V,M}
-    NCStateWord(_comm.(ncsw.sw, Ref(comm_gps)), _comm(ncsw.nc_word, comm_gps))
+    [NCStateWord(prod.(_comm.(ncsw.sw, Ref(comm_gps))), prod(_comm(ncsw.nc_word, comm_gps)))]
 end
 
 

@@ -29,7 +29,7 @@ function moment_relax(pop::StatePolyOpt{V,M,T}, cliques_cons::Vector{Vector{Int}
     total_basis = sorted_union(map(zip(cliques_cons, cliques_term_sparsities)) do (cons_idx, term_sparsities)
         union(vec(reduce(vcat, [
             map(monomials(poly)) do m
-                expval(reduce_func(neat_dot(rol_idx, m * col_idx)))
+                expval(prod(reduce_func(neat_dot(rol_idx, m * col_idx))))
             end
             for (poly, term_sparsity) in zip([one(pop.objective); pop.constraints[cons_idx]], term_sparsities) for basis in term_sparsity.block_bases for rol_idx in basis for col_idx in basis
         ])))
@@ -49,7 +49,7 @@ function moment_relax(pop::StatePolyOpt{V,M,T}, cliques_cons::Vector{Vector{Int}
                             poly,
                             ts_sub_basis,
                             monomap,
-                            is_eq ? Zeros() : PSDCone(), reduce_func)
+                            is_eq ? Zeros() : PSDCone(), prod ∘ reduce_func)
                     end
                 end
             end
@@ -64,7 +64,7 @@ function moment_relax(pop::StatePolyOpt{V,M,T}, cliques_cons::Vector{Vector{Int}
                 )
             end]
 
-    @objective(model, Min, substitute_variables(mapreduce(p -> p.coef * reduce_func(p.ncstate_word), +, terms(symmetric_canonicalize(pop.objective)); init=zero(pop.objective)), monomap))
+    @objective(model, Min, substitute_variables(mapreduce(p -> p.coef * prod(reduce_func(p.ncstate_word)), +, terms(symmetric_canonicalize(pop.objective)); init=zero(pop.objective)), monomap))
 
     return StateMomentProblem(model, constraint_matrices, monomap, reduce_func)
 end

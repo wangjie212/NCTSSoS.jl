@@ -58,16 +58,15 @@ end
 
     using DynamicPolynomials: degree
     using NCTSSoS: symmetric_canonicalize, monomials
-    cur_reducer = reducer(spop; canonicalize=true)
-    nc_basis = cur_reducer.(monomials([x; y], 3))
-    nc_basis = monomials([x; y], 3)
-
-    nc_basis = filter(m -> degree(m) == 3, cur_reducer.(monomials([x; y], 3)))
+    cur_reducer = reducer(spop)
+    nc_basis = filter(a -> degree(a) == 3, unique!(map(a -> prod(symmetric_canonicalize.(a)), (cur_reducer.(monomials([x; y], 3))))))
+    nc_basis = filter(a -> degree(a) == 3, unique!(cur_reducer.(monomials([x; y], 3))))
 
     d = 3
 
     cg = get_correlative_graph(spop.variables, spop.objective, spop.constraints, d)
     @test cg.fadjlist == [[2,3,4],[1,3,4],[1,2,4],[1,2,3]]
+
 
     cr = correlative_sparsity(spop, d, NoElimination())
     @test cr.cliques == [[x;y]]
