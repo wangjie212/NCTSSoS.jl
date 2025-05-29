@@ -88,8 +88,10 @@ end
 function get_term_sparsity_graph(cons_support::Vector{Monomial{V,M}}, activated_supp::Vector{Monomial{V,M}}, basis::Vector{Monomial{V,M}}) where {V,M}
     nterms = length(basis)
     G = SimpleGraph(nterms)
+    # @show activated_supp
     for i in 1:nterms, j in i+1:nterms
         for supp in cons_support
+            # @show symmetric_canonicalize(neat_dot(basis[i], supp * basis[j]))
             if symmetric_canonicalize(neat_dot(basis[i], supp * basis[j])) in activated_supp
                 add_edge!(G, i, j)
                 continue

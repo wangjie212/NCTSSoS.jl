@@ -128,3 +128,7 @@ end
 function minimizer_extraction(M::Matrix)
 
 end
+
+# first do _comm and separate into different monomials
+# then simplify with projective unipotent
+# then do canonicalization

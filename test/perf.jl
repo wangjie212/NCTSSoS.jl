@@ -1,5 +1,6 @@
 using BenchmarkTools
 using MosekTools, NCTSSoS
+using Profile 
 
 @testset "Documentation Example" begin
     n = 5
@@ -22,10 +23,22 @@ using MosekTools, NCTSSoS
     pop =  PolyOpt(f; constraints = cons);
     solver_config = SolverConfig(optimizer=Mosek.Optimizer; mom_order=3, cs_algo=MF(), ts_algo=MMD())
 
+    result_cs_ts = cs_nctssos(pop, solver_config)
+    Profile.clear()
+    @profile result_cs_ts = cs_nctssos(pop, solver_config)
+    Profile.print(mincount=100, format=:tree)
+
     @benchmark result_cs_ts = cs_nctssos($pop, $solver_config)
     result_cs_ts = cs_nctssos(pop, solver_config)
 
     @benchmark result_cs_ts_higher = cs_nctssos_higher($pop, $result_cs_ts, $solver_config)
+
+    @ncpolyvar x[1:5]
+    
+    mono1 = x[2]*x[1]*x[5]^2*x[1]^2
+    mono2 = x[2]*x[1]*x[5]^2*x[1]^2 
+
+    @btime mono1 == mono2
 end
 
 @testset "Components" begin
