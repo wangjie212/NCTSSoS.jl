@@ -57,10 +57,12 @@ function cs_nctssos(pop::PolyOpt{V,M,T}, solver_config::SolverConfig) where {V,M
     initial_activated_supp = [sorted_union(symmetric_canonicalize.(monomials(obj_part)), mapreduce(a -> monomials(a), vcat, pop.constraints[cons_idx]; init=Monomial{V,M}[]), [neat_dot(b, b) for b in idcs_bases[1]])
                               for (obj_part, cons_idx, idcs_bases) in zip(cliques_objective, corr_sparsity.cliques_cons, corr_sparsity.cliques_idcs_bases)]
 
+    # TODO: check here 2.6s
     cliques_term_sparsities = map(zip(initial_activated_supp, corr_sparsity.cliques_cons, corr_sparsity.cliques_idcs_bases)) do (activated_supp, cons_idx, idcs_bases)
         [iterate_term_sparse_supp(activated_supp, poly, basis, solver_config.ts_algo) for (poly, basis) in zip([one(pop.objective); pop.constraints[cons_idx]], idcs_bases)]
     end
 
+    # TODO: improve 1.5s
     moment_problem = moment_relax(pop, corr_sparsity.cliques_cons, corr_sparsity.global_cons, cliques_term_sparsities)
     sos_problem = sos_dualize(moment_problem)
     set_optimizer(sos_problem.model, solver_config.optimizer)
