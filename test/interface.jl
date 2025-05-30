@@ -9,12 +9,7 @@ using Clarabel
     J1 = 2.0
     J2 = 1.0
 
-    # make_ham(num_sites) = sum([sum([J1 / 4 * ft_op[1] * kron(num_sites, i => ft_op[2], j => ft_op[2]) for ft_op in zip([1.0, 1.0, 1.0, -1.0], [X, Y, Z, I2])]) for (i, j) in J1_interactions]) +
-    #                       sum([sum([J2 / 4 * ft_op[1] * kron(num_sites, i => ft_op[2], j => ft_op[2]) for ft_op in zip([1.0, 1.0, 1.0, -1.0], [X, Y, Z, I2])]) for (i, j) in J2_interactions])
-
-    # myham = make_ham(num_sites)
-    true_ans = -num_sites / 4 * 6 # I guess?
-    # eigvals(Matrix(myham))[1]
+    true_ans = -num_sites / 4 * 6 
 
     ij2idx_dict = Dict(zip([(i,j) for i in 1:num_sites, j in 1:num_sites if j > i], 1:(num_sites*(num_sites-1)÷2)))
     @ncpolyvar hij[1:(num_sites*(num_sites-1)÷2)]

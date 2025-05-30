@@ -146,9 +146,9 @@ using NCTSSoS: remove_zero_degree, star, symmetric_canonicalize, get_basis, supp
         @ncpolyvar b[1:3]
 
         mono = a[1]^2*b[2]^2*a[2]*b[1]^3
-        @test _comm(mono,Set(a)) == a[1]^2*a[2]*b[2]^2*b[1]^3
+        @test prod(_comm(mono,Set(a))) == a[1]^2*a[2]*b[2]^2*b[1]^3
         mono = a[1]^3*a[3]
-        @test _comm(mono,Set(a)) == a[1]^3*a[3]
+        @test prod(_comm(mono,Set(a))) == a[1]^3*a[3]
     end
 
     @testset "_projective" begin
@@ -169,20 +169,20 @@ using NCTSSoS: remove_zero_degree, star, symmetric_canonicalize, get_basis, supp
 
         pop= PolyOpt(obj; is_unipotent=true)
         reducer_func = reducer(pop)
-        @test reducer_func(y*x^2*y) == one(x)
+        @test prod(reducer_func(y*x^2*y)) == one(x)
 
         pop = PolyOpt(obj; is_projective=true)
         reducer_func = reducer(pop)
-        @test reducer_func(y*x^2*y) == y*x*y
+        @test prod(reducer_func(y*x^2*y)) == y*x*y
 
         pop = PolyOpt(obj; comm_gp = Set([x]), is_unipotent=true)
         reducer_func = reducer(pop)
-        @test reducer_func(y*x^2*y) == one(y)
-        @test sorted_unique(reducer_func.(basis)) == sort([one(x*y),z,y,x,z*y,x*y,y*z,x*z,x*z*y,z*y*z,y*z*y,x*y*z])
+        @test prod(reducer_func(y*x^2*y)) == one(y)
+        @test sorted_unique(map(prod, reducer_func.(basis))) == sort([one(x * y), z, y, x, z * y, x * y, y * z, x * z, x * z * y, z * y * z, y * z * y, x * y * z])
 
         pop = PolyOpt(obj; comm_gp = Set([x]), is_projective=true)
         reducer_func = reducer(pop)
-        @test reducer_func(y*x^2*y) == x*y
-        @test sorted_unique(reducer_func.(basis)) == sort([one(x*y*z),z,y,x,z*y,x*z,x*y,y*z,x*z*y,z*y*z,x*y*z,y*z*y])
+        @test prod(reducer_func(y*x^2*y)) == x*y
+        @test sorted_unique(map(prod, reducer_func.(basis))) == sort([one(x * y * z), z, y, x, z * y, x * z, x * y, y * z, x * z * y, z * y * z, x * y * z, y * z * y])
     end
 end

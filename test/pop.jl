@@ -6,14 +6,16 @@ using DynamicPolynomials: NonCommutative, CreationOrder
 @testset "StatePolyOpt Constructor" begin
     @testset "Example 7.2.1" begin
         @ncpolyvar x[1:2] y[1:2]
-        sp1 = sum([1.0, 1.0] .* StateWord.([[x[1] * y[2]], [y[2] * x[1]]]))
-        sp2 = sum([1.0, -1.0] .* StateWord.([[x[1] * y[1]], [x[2] * y[2]]]))
+        sp1 = sum([1.0, 1.0] .* map(a -> prod(ς.(a)), [[x[1] * y[2]], [y[2] * x[1]]]))
+        sp2 = sum([1.0, -1.0] .* map(a -> prod(ς.(a)), [[x[1] * y[1]], [x[2] * y[2]]]))
         words = [one(x[1]),one(x[1])]
         sp = sum([sp1 * sp1, sp2 * sp2] .* words)
 
-        sp1_sq = sum([1.0,1.0,1.0,1.0] .* StateWord.([[x[1]*y[2],x[1]*y[2]],[y[2]*x[1],y[2]*x[1]],[x[1]*y[2],y[2]*x[1]],[y[2]*x[1],x[1]*y[2]]]))
-        sp2_sq = sum([1.0,-1.0,-1.0,1.0].*StateWord.([[x[1]*y[1],x[1]*y[1]],[x[1]*y[1],x[2]*y[2]],[x[2]*y[2],x[1]*y[1]],[x[2]*y[2],x[2]*y[2]]]))
+        sp1_sq = sum([1.0, 1.0, 1.0, 1.0] .* map(a -> prod(ς.(a)), [[x[1] * y[2], x[1] * y[2]], [y[2] * x[1], y[2] * x[1]], [x[1] * y[2], y[2] * x[1]], [y[2] * x[1], x[1] * y[2]]]))
+        sp2_sq = sum([1.0, -1.0, -1.0, 1.0] .* map(a -> prod(ς.(a)), [[x[1] * y[1], x[1] * y[1]], [x[1] * y[1], x[2] * y[2]], [x[2] * y[2], x[1] * y[1]], [x[2] * y[2], x[2] * y[2]]]))
         true_obj = sum([sp1_sq, sp2_sq] .* words)
+
+        typeof(sp)
         pop = StatePolyOpt(sp; is_unipotent=true, comm_gps=[x, y])
         @test pop.objective ==  true_obj
         @test pop.constraints == []

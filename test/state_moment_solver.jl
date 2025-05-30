@@ -24,6 +24,7 @@ using NCTSSoS: correlative_sparsity, iterate_term_sparse_supp, sorted_union, Min
 
     mom_problem = moment_relax(spop, cr.cliques_cons, cr.global_cons, cliques_term_sparsities)
 
+    # FIXME: cannot find some key
     sos_problem = sos_dualize(mom_problem)
 
     set_optimizer(mom_problem.model, Clarabel.Optimizer)
@@ -125,3 +126,5 @@ end
     mom_mtx = constraint_object(mom_mtx_cons)
     @test reshape(mom_mtx.func, 5, 5) == AffExpr[y[1] y[2] y[5] y[2] y[5]; y[2] y[3] y[4] y[3] y[4]; y[5] y[4] y[6] y[4] y[6]; y[2] y[3] y[4] y[8] y[7]; y[5] y[4] y[6] y[9] y[10]]
 end
+
+

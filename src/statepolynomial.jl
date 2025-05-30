@@ -88,15 +88,13 @@ DynamicPolynomials.terms(ncsp::NCStatePolynomial) = ncsp.nc_state_terms
 
 function get_state_basis(variables::Vector{Variable{V,M}}, d::Int, reducer) where {V,M}
     return map(a -> NCStateWord(a[1], a[2]), mapreduce(vcat, 0:d) do nc_deg
-        nc_basis = unique(filter(m -> degree(m) == nc_deg, symmetric_canonicalize.(reducer.(monomials(variables, nc_deg)))))
-        @show nc_basis
+        nc_basis = unique(filter(m -> degree(m) == nc_deg, reducer.(monomials(variables, nc_deg))))
         cw_deg = d - nc_deg
         cw_basis = unique!([
             begin
                 interm = sort(filter(!isone, collect(c_word)))
                 isempty(interm) ? [one(variables[1])] : interm
 
-                # if it is cyclic_canonicalize.(reducer.) the state basis matches why ?
             end for c_word in product(ntuple(_ -> unique!(symmetric_canonicalize.(reducer.(monomials(variables, 0:cw_deg)))), cw_deg)..., [one(variables[1])]) if sum(degree.(c_word)) <= cw_deg
         ])
         reshape(collect(product(cw_basis, nc_basis)), :)

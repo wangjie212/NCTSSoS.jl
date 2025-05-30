@@ -4,7 +4,7 @@ using SparseArrays
 using JuMP
 using Graphs
 using CliqueTrees
-using DynamicPolynomials: NonCommutative, CreationOrder, Graded, LexOrder
+using DynamicPolynomials: NonCommutative, CreationOrder, Graded, LexOrder, Monomial
 using NCTSSoS: get_Cαj, clique_decomp, correlative_sparsity, sorted_union, neat_dot, iterate_term_sparse_supp, symmetric_canonicalize, TermSparsity, moment_relax, sos_dualize
 
 # NOTE: sos_dualize has performance issue have verified locally it's correct
