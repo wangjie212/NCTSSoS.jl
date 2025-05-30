@@ -27,7 +27,7 @@ function moment_relax(pop::PolyOpt{V,M,T}, cliques_cons::Vector{Vector{Int}}, gl
     total_basis = sorted_union(map(zip(cliques_cons, cliques_term_sparsities)) do (cons_idx, term_sparsities)
         union(vec(reduce(vcat, [
             map(monomials(poly)) do m
-                reduce_func(neat_dot(rol_idx, m * col_idx))
+                prod(reduce_func(neat_dot(rol_idx, m * col_idx)))
             end
             for (poly, term_sparsity) in zip([one(pop.objective); pop.constraints[cons_idx]], term_sparsities) for basis in term_sparsity.block_bases for rol_idx in basis for col_idx in basis
         ])))
@@ -47,7 +47,7 @@ function moment_relax(pop::PolyOpt{V,M,T}, cliques_cons::Vector{Vector{Int}}, gl
                             poly,
                             ts_sub_basis,
                             monomap,
-                            is_eq ? Zeros() : PSDCone(), reduce_func)
+                            is_eq ? Zeros() : PSDCone(), prod ∘ reduce_func)
                     end
                 end
             end
@@ -58,11 +58,11 @@ function moment_relax(pop::PolyOpt{V,M,T}, cliques_cons::Vector{Vector{Int}}, gl
                     [one(pop.objective)],
                     monomap,
                     pop.is_equality[global_con] ? Zeros() : PSDCone(),
-                    reduce_func
+                    prod ∘ reduce_func
                 )
             end]
 
-    @objective(model, Min, substitute_variables(mapreduce(p -> coefficient(p) * reduce_func(monomial(p)), +, terms(symmetric_canonicalize(pop.objective)); init=zero(pop.objective)), monomap))
+    @objective(model, Min, substitute_variables(mapreduce(p -> coefficient(p) * prod(reduce_func(monomial(p))), +, terms(symmetric_canonicalize(pop.objective)); init=zero(pop.objective)), monomap))
 
     return MomentProblem(model, constraint_matrices, monomap, reduce_func)
 end

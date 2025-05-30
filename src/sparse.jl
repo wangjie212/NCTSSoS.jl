@@ -62,7 +62,7 @@ function correlative_sparsity(pop::PolyOpt{V,M,T}, order::Int, elim_algo::Elimin
 
     cliques_cons, global_cons = assign_constraint(cliques, pop.constraints)
 
-    reduce_func = reducer(pop)
+    reduce_func = prod ∘ reducer(pop)
     # get the operators needed to index columns of moment/localizing mtx in each clique
     # depending on the clique's varaibles each is slightly different
     cliques_idx_basis = map(zip(cliques, cliques_cons)) do (clique, clique_cons)

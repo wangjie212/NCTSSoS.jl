@@ -122,6 +122,21 @@ function get_mom_matrix(mom_problem::MomentProblem)
     return value.(mom_problem.constraints[mom_loc])
 end
 
+function binary_search(a::T, b::Vector{T}) where T
+    left, right = 1, length(b)
+    while left <= right
+        mid = div(left + right, 2)
+        if b[mid] < a
+            left = mid + 1
+        elseif b[mid] > a
+            right = mid - 1
+        else
+            return mid
+        end
+    end
+    return 0
+end
+
 function get_mom_matrix(sos_problem::SOSProblem)
 end
 

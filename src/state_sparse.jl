@@ -85,10 +85,11 @@ function get_term_sparsity_graph(cons_support::Vector{NCStateWord{V,M}}, activat
     nterms = length(basis)
     G = SimpleGraph(nterms)
     as = expval.(activated_supp)
+    as = sort!(as)
     for i in 1:nterms, j in i+1:nterms
         for supp in cons_support
             interm = symmetric_canonicalize(neat_dot(basis[i], supp * basis[j]))
-            if expval(interm) in as
+            if !iszero(binary_search(interm, as))
                 add_edge!(G, i, j)
                 continue
             end

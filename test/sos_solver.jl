@@ -10,7 +10,7 @@ using NCTSSoS: get_Cαj, clique_decomp, correlative_sparsity, sorted_union, neat
 # NOTE: sos_dualize has performance issue have verified locally it's correct
 @testset "CS TS Example" begin
     order = 3
-    n = 10
+    n = 10 
     @ncpolyvar x[1:n]
     f = 0.0
     for i = 1:n
