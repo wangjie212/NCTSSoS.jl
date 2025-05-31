@@ -60,7 +60,7 @@ function moment_relax(pop::StatePolyOpt{V,M,T}, cliques_cons::Vector{Vector{Int}
                     [one(pop.objective)],
                     monomap,
                     pop.is_equality[global_con] ? Zeros() : PSDCone(),
-                    reduce_func
+                    prod ∘ reduce_func
                 )
             end]
 

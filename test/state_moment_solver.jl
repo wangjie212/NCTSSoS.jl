@@ -66,11 +66,11 @@ end
     @test isapprox(objective_value(mom_problem.model), -4.0, atol=1e-5)
     @test is_solved_and_feasible(mom_problem.model)
 
-    # sos_problem = sos_dualize(mom_problem)
-    # set_optimizer(sos_problem.model, COSMO.Optimizer)
-    # optimize!(sos_problem.model)
-    # @test isapprox(objective_value(sos_problem.model), -4.0, atol=1e-5)
-    # @test is_solved_and_feasible(sos_problem.model)
+    sos_problem = sos_dualize(mom_problem)
+    set_optimizer(sos_problem.model, COSMO.Optimizer)
+    optimize!(sos_problem.model)
+    @test isapprox(objective_value(sos_problem.model), -4.0, atol=1e-5)
+    @test is_solved_and_feasible(sos_problem.model)
 end
 
 @testset "State Polynomial Opt 7.2.2" begin
