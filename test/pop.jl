@@ -8,14 +8,12 @@ using DynamicPolynomials: NonCommutative, CreationOrder
         @ncpolyvar x[1:2] y[1:2]
         sp1 = sum([1.0, 1.0] .* map(a -> prod(ς.(a)), [[x[1] * y[2]], [y[2] * x[1]]]))
         sp2 = sum([1.0, -1.0] .* map(a -> prod(ς.(a)), [[x[1] * y[1]], [x[2] * y[2]]]))
-        words = [one(x[1]),one(x[1])]
-        sp = sum([sp1 * sp1, sp2 * sp2] .* words)
+        sp = sum([sp1 * sp1, sp2 * sp2])
 
         sp1_sq = sum([1.0, 1.0, 1.0, 1.0] .* map(a -> prod(ς.(a)), [[x[1] * y[2], x[1] * y[2]], [y[2] * x[1], y[2] * x[1]], [x[1] * y[2], y[2] * x[1]], [y[2] * x[1], x[1] * y[2]]]))
         sp2_sq = sum([1.0, -1.0, -1.0, 1.0] .* map(a -> prod(ς.(a)), [[x[1] * y[1], x[1] * y[1]], [x[1] * y[1], x[2] * y[2]], [x[2] * y[2], x[1] * y[1]], [x[2] * y[2], x[2] * y[2]]]))
-        true_obj = sum([sp1_sq, sp2_sq] .* words)
+        true_obj = sum([sp1_sq, sp2_sq])
 
-        typeof(sp)
         pop = StatePolyOpt(sp; is_unipotent=true, comm_gps=[x, y])
         @test pop.objective ==  true_obj
         @test pop.constraints == []
@@ -26,11 +24,11 @@ using DynamicPolynomials: NonCommutative, CreationOrder
     end
     @testset "Example 7.2.2" begin
         @ncpolyvar x[1:3] y[1:3]
-        cov(a, b) = 1.0 * StateWord([x[a] * y[b]]) * one(x[1]) - 1.0 * (StateWord(monomial.([x[a]])) * StateWord(monomial.([y[b]]))) * one(x[1])
+        cov(a, b) = 1.0 * NCStateWord([x[a] * y[b]], one(x[1])) - 1.0 * (NCStateWord(monomial.([x[a]]), one(x[1])) * NCStateWord(monomial.([y[b]]), one(x[1])))
         sp = cov(1,1) + cov(1,2) + cov(1,3) + cov(2,1) + cov(2,2) - cov(2,3) + cov(3,1) - cov(3,2)
 
         pop = StatePolyOpt(sp; is_unipotent=true,comm_gps= [x,y])
-        true_obj = sum([1.0,-1.0,1.0,-1.0,1.0,-1.0,1.0,-1.0,1.0,-1.0,-1.0,1.0,1.0,-1.0,-1.0,1.0] .* StateWord.([[x[1]*y[1]],[x[1],y[1]],[x[1]*y[2]],[x[1],y[2]],[x[1]*y[3]],[x[1],y[3]],[x[2]*y[1]],[x[2],y[1]],[x[2]*y[2]],[x[2],y[2]],[x[2]*y[3]],[x[2],y[3]],[x[3]*y[1]],[x[3],y[1]],[x[3]*y[2]],[x[3],y[2]]])) * one(x[1])
+        true_obj = sum([1.0, -1.0, 1.0, -1.0, 1.0, -1.0, 1.0, -1.0, 1.0, -1.0, -1.0, 1.0, 1.0, -1.0, -1.0, 1.0] .* map(a -> prod(ς.(a)), ([[x[1] * y[1]], [x[1], y[1]], [x[1] * y[2]], [x[1], y[2]], [x[1] * y[3]], [x[1], y[3]], [x[2] * y[1]], [x[2], y[1]], [x[2] * y[2]], [x[2], y[2]], [x[2] * y[3]], [x[2], y[3]], [x[3] * y[1]], [x[3], y[1]], [x[3] * y[2]], [x[3], y[2]]])))
         @test pop.objective == true_obj
         @test pop.constraints == []
         @test pop.is_unipotent == true
@@ -41,17 +39,13 @@ using DynamicPolynomials: NonCommutative, CreationOrder
         @test_throws AssertionError StatePolyOpt(sp; comm_gps=[x, y, z])
     end
 
-    @testset "Example 8.1.1" begin
-
-    end
-
     @testset "Example 8.1.2" begin
         @ncpolyvar A[1:3] B[1:3] 
-        J1 = sum(0.5 .* [coefficient(t) * StateWord([monomial(t)]) for t in terms(1.0 * (A[1] + A[2] + A[3] + one(A[1]) * B[1] * (A[1] + A[2])))])
-        J2 = sum(0.5 .* [coefficient(t) * StateWord([monomial(t)]) for t in terms(1.0 * (A[1] + A[2] - A[3] + one(A[1]) * B[2] * (A[1] - A[2])))]) + sum(0.5 .* [coefficient(t) * StateWord([monomial(t)]) for t in terms(1.0 * (A[1] - A[2]) * (B[3] * A[1] - B[3] * A[2]))])
-        L = sum([4.0, 1.0, 1.0] .* [StateWord([monomial(v)]) for v in [one(A[1]), A[1], A[2]]])
+        J1 = sum(0.5 .* [coefficient(t) * ς(monomial(t)) for t in terms(1.0 * (A[1] + A[2] + A[3] + one(A[1]) * B[1] * (A[1] + A[2])))])
+        J2 = sum(0.5 .* [coefficient(t) * ς(monomial(t)) for t in terms(1.0 * (A[1] + A[2] - A[3] + one(A[1]) * B[2] * (A[1] - A[2])))]) + sum(0.5 .* [coefficient(t) * ς(monomial(t)) for t in terms(1.0 * (A[1] - A[2]) * (B[3] * A[1] - B[3] * A[2]))])
+        L = sum([4.0, 1.0, 1.0] .* [ς(monomial(v)) for v in [one(A[1]), A[1], A[2]]])
 
-        sp = sum([2.0 * J1 * J2, 2.0 * J1 * L, 2.0 * J2 * L, -1.0 * J1 * J1, -1.0 * J2 * J2, -1.0 * L * L] .* fill(one(A[1]), 6))
+        sp = sum([2.0 * J1 * J2, 2.0 * J1 * L, 2.0 * J2 * L, -1.0 * J1 * J1, -1.0 * J2 * J2, -1.0 * L * L])
         pop = StatePolyOpt(sp; is_unipotent=true, comm_gps = [A,B])
         @test pop.constraints == []
         @test pop.is_unipotent == true

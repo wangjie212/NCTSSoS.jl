@@ -2,25 +2,25 @@ using Test, NCTSSoS
 using Clarabel
 
 @testset "Majumdar Gosh Model" begin
-    num_sites = 12 
+    num_sites = 12
     J1_interactions = unique!([tuple(sort([i, mod1(i + 1, num_sites)])...) for i in 1:num_sites])
     J2_interactions = unique!([tuple(sort([i, mod1(i + 2, num_sites)])...) for i in 1:num_sites])
 
     J1 = 2.0
     J2 = 1.0
 
-    true_ans = -num_sites / 4 * 6 
+    true_ans = -num_sites / 4 * 6
 
-    ij2idx_dict = Dict(zip([(i,j) for i in 1:num_sites, j in 1:num_sites if j > i], 1:(num_sites*(num_sites-1)÷2)))
+    ij2idx_dict = Dict(zip([(i, j) for i in 1:num_sites, j in 1:num_sites if j > i], 1:(num_sites*(num_sites-1)÷2)))
     @ncpolyvar hij[1:(num_sites*(num_sites-1)÷2)]
 
-    objective = (sum([J1 * hij[ij2idx_dict[(i,j)]] for (i,j) in J1_interactions]) + sum([J2 * hij[ij2idx_dict[(i,j)]] for (i,j) in J2_interactions]))
+    objective = (sum([J1 * hij[ij2idx_dict[(i, j)]] for (i, j) in J1_interactions]) + sum([J2 * hij[ij2idx_dict[(i, j)]] for (i, j) in J2_interactions]))
 
-    gs = 
-         unique!([
+    gs =
+        unique!([
             (
                 hij[ij2idx_dict[tuple(sort([i, j])...)]] * hij[ij2idx_dict[tuple(sort([j, k])...)]] +
-                hij[ij2idx_dict[tuple(sort([j, k])...)]] * hij[ij2idx_dict[tuple(sort([i, j])...)]] - 0.5 *(hij[ij2idx_dict[tuple(sort([i, j])...)]] + hij[ij2idx_dict[tuple(sort([j, k])...)]] - hij[ij2idx_dict[tuple(sort([i, k])...)]])
+                hij[ij2idx_dict[tuple(sort([j, k])...)]] * hij[ij2idx_dict[tuple(sort([i, j])...)]] - 0.5 * (hij[ij2idx_dict[tuple(sort([i, j])...)]] + hij[ij2idx_dict[tuple(sort([j, k])...)]] - hij[ij2idx_dict[tuple(sort([i, k])...)]])
             ) for i in 1:num_sites, j in 1:num_sites, k in 1:num_sites if
             (i != j && j != k && i != k)
         ])
@@ -55,9 +55,9 @@ end
 
 @testset "README Example Unconstrained" begin
     @ncpolyvar x[1:3]
-    f = 1.0 + x[1]^4 + x[2]^4 + x[3]^4 + x[1]*x[2] + x[2]*x[1] + x[2]*x[3] + x[3]*x[2]
+    f = 1.0 + x[1]^4 + x[2]^4 + x[3]^4 + x[1] * x[2] + x[2] * x[1] + x[2] * x[3] + x[3] * x[2]
 
-    pop =  PolyOpt(f)
+    pop = PolyOpt(f)
 
     solver_config_dense = SolverConfig(optimizer=Clarabel.Optimizer)
 
@@ -74,11 +74,11 @@ end
 
 @testset "README Example Constrained" begin
     @ncpolyvar x[1:2]
-    f = 2.0 - x[1]^2 + x[1]*x[2]^2*x[1] - x[2]^2
+    f = 2.0 - x[1]^2 + x[1] * x[2]^2 * x[1] - x[2]^2
     g = 4.0 - x[1]^2 - x[2]^2
-    h1 = x[1]*x[2] + x[2]*x[1] - 2.0
+    h1 = x[1] * x[2] + x[2] * x[1] - 2.0
 
-    pop =  PolyOpt(f; constraints=[g, h1], is_equality=[false, true])
+    pop = PolyOpt(f; constraints=[g, h1], is_equality=[false, true])
 
     result_dense = cs_nctssos(pop, SolverConfig(optimizer=Clarabel.Optimizer))
 
