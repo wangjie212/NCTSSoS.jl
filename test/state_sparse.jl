@@ -4,6 +4,7 @@ using NCTSSoS: AsIsElimination
 using NCTSSoS: sorted_union, symmetric_canonicalize, neat_dot, iterate_term_sparse_supp
 using NCTSSoS: get_correlative_graph, correlative_sparsity, moment_relax, sos_dualize
 using DynamicPolynomials
+using DynamicPolynomials: degree
 using Graphs
 using COSMO
 using JuMP
@@ -35,6 +36,7 @@ using MosekTools
 
     mom_problem = moment_relax(spop, cr.cliques_cons, cr.global_cons, cliques_term_sparsities)
     set_optimizer(mom_problem.model, Clarabel.Optimizer)
+
     optimize!(mom_problem.model)
     @test isapprox(objective_value(mom_problem.model), -2.828, atol=1e-3)
     @test is_solved_and_feasible(mom_problem.model)
@@ -56,17 +58,10 @@ end
 
     spop = StatePolyOpt(sp; is_unipotent=true, comm_gps=[x, y])
 
-    using DynamicPolynomials: degree
-    using NCTSSoS: symmetric_canonicalize, monomials
-    cur_reducer = reducer(spop)
-    nc_basis = filter(a -> degree(a) == 3, unique!(map(a -> prod(symmetric_canonicalize.(a)), (cur_reducer.(monomials([x; y], 3))))))
-    nc_basis = filter(a -> degree(a) == 3, unique!(cur_reducer.(monomials([x; y], 3))))
-
     d = 3
 
     cg = get_correlative_graph(spop.variables, spop.objective, spop.constraints, d)
     @test cg.fadjlist == [[2,3,4],[1,3,4],[1,2,4],[1,2,3]]
-
 
     cr = correlative_sparsity(spop, d, NoElimination())
     @test cr.cliques == [[x;y]]
@@ -78,14 +73,8 @@ end
     initial_activated_supp = [sorted_union(symmetric_canonicalize.(monomials(obj_part)), mapreduce(a -> monomials(a), vcat, spop.constraints[cons_idx]; init=typeof(monomials(spop.objective)[1])[]))
                               for (obj_part, cons_idx, idcs_bases) in zip(cliques_objective, cr.cliques_cons, cr.cliques_idcs_bases)]
 
-    # state word basis is incorrect! should use trace basis but why?
     cliques_term_sparsities = map(zip(initial_activated_supp, cr.cliques_cons, cr.cliques_idcs_bases)) do (activated_supp, cons_idx, idcs_bases)
         [iterate_term_sparse_supp(activated_supp, poly, basis, AsIsElimination()) for (poly, basis) in zip([one(spop.objective); spop.constraints[cons_idx]], idcs_bases)]
-    end
-    # which variable group according to correlative sparsity
-    # is it a moment matrix or localizing matrix?
-    for el in cliques_term_sparsities[1][1].block_bases
-        @show el[1]
     end
 
     mom_problem = moment_relax(spop, cr.cliques_cons, cr.global_cons, cliques_term_sparsities)

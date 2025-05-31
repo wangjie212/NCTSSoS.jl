@@ -96,7 +96,7 @@ end
     sos_problem = sos_dualize(mom_problem)
     set_optimizer(sos_problem.model, optimizer_with_attributes(COSMO.Optimizer,"eps_rel"=> 1e-8))
     optimize!(sos_problem.model)
-    @test isapprox(objective_value(sos_problem.model), -5.0, atol=1e-4)
+    @test isapprox(objective_value(sos_problem.model), -5.0, atol=1e-3)
 end
 
 

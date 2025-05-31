@@ -16,7 +16,7 @@ function sos_dualize(moment_problem::StateMomentProblem{V,M,T}) where {V,M,T}
 
     unsymmetrized_basis = sort(collect(keys(moment_problem.monomap)))
 
-    symmetric_basis = sort(unique!([prod(moment_problem.reduce_func(symmetric_canonicalize(basis))) for basis in unsymmetrized_basis]))
+    symmetric_basis = unsymmetrized_basis 
 
     # JuMP variables corresponding to symmetric_basis
     symmetric_variables = getindex.(Ref(moment_problem.monomap), symmetric_basis)
