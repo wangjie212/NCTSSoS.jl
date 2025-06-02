@@ -12,6 +12,8 @@ end
 
 Monomial(vars, z) = Monomial(collect(Variable, vars), collect(Int, z))
 
+degree(m::Monomial) = sum(m.z)
+
 # 2-argument show, used by Array show, print(obj) and repr(obj), keep it short
 function Base.show(io::IO, obj::Monomial)
     print_object(io, obj; multiline=false)

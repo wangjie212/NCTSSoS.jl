@@ -1,4 +1,5 @@
 using Test, NCTSSoS.FastPolynomials
+using NCTSSoS.FastPolynomials: degree
 
 @testset "Monomials" begin
     @testset "Creation" begin
@@ -12,5 +13,15 @@ using Test, NCTSSoS.FastPolynomials
         mono2 = Monomial((x, y, z), (1, 2, 3))
         @test mono2.vars == [x, y, z]
         @test mono2.z == [1, 2, 3]
+    end
+
+    @testset "Utils" begin
+        @ncpolyvar x y z
+
+        mono1 = Monomial([x, y, x, z], [30, 2, 0, 1])
+        mono2 = Monomial([x, y, x, z], [0, 0, 0, 0])
+
+        @test degree(mono1) == 33
+        @test degree(mono2) == 0
     end
 end

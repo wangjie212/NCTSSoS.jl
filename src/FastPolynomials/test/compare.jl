@@ -23,6 +23,16 @@ using BenchmarkTools
 
 		@test x[1] == x[1]
 		@test x[1] != x[2]
+
+		mono1 = Monomial([x, y], [1, 2])
+		mono2 = Monomial([x, y], [1, 2])
+        mono3 = Monomial([x, z, y], [1, 0, 2])
+
+		# TODO
+		@test 
+		using BenchmarkTools
+		cmp(mono1, mono2)
+		@btime cmp(mono1, mono2) 
 	end
 
 end
