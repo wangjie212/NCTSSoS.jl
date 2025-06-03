@@ -2,7 +2,7 @@ using Test, NCTSSoS.FastPolynomials
 using BenchmarkTools
 
 @testset "Comparison" begin
-	@testset "cmp" begin
+	@testset "cmp variables" begin
 		@ncpolyvar x y z
 
         @test cmp(x, x) == 0
@@ -24,15 +24,24 @@ using BenchmarkTools
 		@test x[1] == x[1]
 		@test x[1] != x[2]
 
-		mono1 = Monomial([x, y], [1, 2])
-		mono2 = Monomial([x, y], [1, 2])
-        mono3 = Monomial([x, z, y], [1, 0, 2])
+	end
 
-		# TODO
-		@test 
-		using BenchmarkTools
-		cmp(mono1, mono2)
-		@btime cmp(mono1, mono2) 
+	@testset "cmp monomials" begin
+		@ncpolyvar x y z
+
+		mono1 = Monomial([x, y], [1, 2]) 
+		mono2 = Monomial([x, y], [1, 2])
+		mono3 = Monomial([x, y], [1, 1])
+       	mono4 = Monomial([x, z, y], [1, 0, 2])
+        mono5 = Monomial([x, z, y], [1, 1, 1])
+
+		# TODO: add more tests
+
+		@test cmp(mono1, mono2) == 0	
+		@test cmp(mono1, mono3) == 1		
+		@test cmp(mono1,mono4) == 0
+		@test cmp(mono4, mono5) == -1
+
 	end
 
 end
