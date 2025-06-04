@@ -18,3 +18,5 @@ function Base.cmp(a::Monomial, b::Monomial)
     end
     return 0
 end
+
+Base.:(==)(a::Monomial, b::Monomial) = cmp(a, b) == 0
