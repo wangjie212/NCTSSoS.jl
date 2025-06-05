@@ -40,5 +40,12 @@ using Test, NCTSSoS.FastPolynomials
 
 	@testset "compare polynomials" begin
 		p1 = Polynomial([1.0 ,2.0], [Monomial([x, y], [1, 2]), Monomial([x, y], [1, 1])])
+		p2 = Polynomial([1.0 ,2.0], [Monomial([x, y], [1, 2]), Monomial([x, y], [1, 1])])
+		p3 = Polynomial([1.00000001 ,2.0], [Monomial([x, y], [1, 2]), Monomial([x, y], [1, 1])])
+		@test p1 == p2
+		@test !(p1 == p3)
+
+		@test !isapprox(p1,p3;atol=1e-9)
+		@test isapprox(p1,p3;atol=1e-7)
 	end
 end

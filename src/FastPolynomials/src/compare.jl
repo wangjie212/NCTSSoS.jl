@@ -1,4 +1,4 @@
-Base.cmp(a::Variable, b::Variable) = a.name == b.name ? 0 : (a.name < b.name ? -1 : 1)
+Base.cmp(a::Variable, b::Variable) = (a.name == b.name) ? 0 : (a.name < b.name ? -1 : 1)
 
 Base.isless(a::Variable, b::Variable) = cmp(a, b) < 0
 
@@ -24,45 +24,24 @@ Base.isless(a::Monomial, b::Monomial) = cmp(a, b) == -1
 
 Base.:(==)(a::Monomial, b::Monomial) = iszero(cmp(a, b))
 
-# Comparison of Term
-function (==)(p::Polynomial{T}, q::Polynomial{T}) where {T}
+function Base.:(==)(p::Polynomial{T}, q::Polynomial{T}) where {T}
     length(p.monos) != length(q.monos) && return false
-    map(zip(p.monos, q.monos)) do (mono1, mono2)
+    for (mono1, mono2) in zip(p.monos, q.monos)
         mono1 != mono2 && return false
     end
-    map(zip(p.coeffs, q.coeffs)) do (mono1, mono2)
-        mono1 != mono2 && return false
+    for (coef1, coef2) in zip(p.coeffs, q.coeffs)
+        coef1 != coef2 && return false
     end
     return true
 end
 
-# FIXME
-function Base.isapprox(
-    p::Polynomial{S},
-    q::Polynomial{T};
-    rtol::Real=Base.rtoldefault(S, T, 0),
-    atol::Real=0.0,
-    ztol::Real=iszero(atol) ? Base.rtoldefault(S, T, 0) : atol,
-) where {S,T}
-    i = j = 1
-    while i <= length(p.monos) || j <= length(q.monos)
-        if i > length(p.x) || (j <= length(q.x) && q.x[j] < p.x[i])
-            if !isapproxzero(q.a[j]; ztol=ztol)
-                return false
-            end
-            j += 1
-        elseif j > length(q.x) || p.x[i] < q.x[j]
-            if !isapproxzero(p.a[i]; ztol=ztol)
-                return false
-            end
-            i += 1
-        else
-            if !isapprox(p.a[i], q.a[j]; rtol=rtol, atol=atol)
-                return false
-            end
-            i += 1
-            j += 1
-        end
-    end
+function Base.isapprox(p::Polynomial{S}, q::Polynomial{T}; atol::Real=0.0) where {S,T}
+    p_nz_idcs = findall(x -> !isapprox(0.0, p.coeffs[x]; atol=atol), 1:length(p.coeffs))
+    q_nz_idcs = findall(x -> !isapprox(0.0, q.coeffs[x]; atol=atol), 1:length(q.coeffs))
+
+    length(p_nz_idcs) != length(q_nz_idcs) && return false
+
+    p.monos[p_nz_idcs] != q.monos[q_nz_idcs] && return false
+    isapprox(p.coeffs[p_nz_idcs],q.coeffs[q_nz_idcs]; atol=atol) ||  return false
     return true
 end

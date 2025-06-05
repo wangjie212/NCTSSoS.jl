@@ -3,7 +3,7 @@
 # ALWAYS needs to guarantee `coeffs` are non-zero
 struct Polynomial{T}
     coeffs::Vector{T}
-    # perhaps make it into a set?
+    # perhaps make it into an ordered set?
     monos::Vector{Monomial}
 
     function Polynomial(a::Vector{T}, x::Vector{Monomial}) where {T}
