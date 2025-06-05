@@ -11,7 +11,6 @@ include("polynomial.jl")
 
 include("compare.jl")
 
-
 include("arithmetic.jl")
 
 include("operators.jl")

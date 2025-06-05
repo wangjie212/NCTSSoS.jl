@@ -42,6 +42,6 @@ function Base.isapprox(p::Polynomial{S}, q::Polynomial{T}; atol::Real=0.0) where
     length(p_nz_idcs) != length(q_nz_idcs) && return false
 
     p.monos[p_nz_idcs] != q.monos[q_nz_idcs] && return false
-    isapprox(p.coeffs[p_nz_idcs],q.coeffs[q_nz_idcs]; atol=atol) ||  return false
+    isapprox(p.coeffs[p_nz_idcs], q.coeffs[q_nz_idcs]; atol=atol) || return false
     return true
 end

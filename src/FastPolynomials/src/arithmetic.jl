@@ -1,7 +1,6 @@
 # I forbid the multiplication of two variables
 # Base.:(*)(a::Variable, b::variable)
 
-
 function Base.:(*)(x::Monomial, y::Monomial)
     i = findlast(z -> z > 0, x.z)
     isnothing(i) && return y

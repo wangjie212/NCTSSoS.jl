@@ -18,5 +18,4 @@ end
     p2 = x^2 + y^3
     @test p2 isa Polynomial{Float64}
     @test p2 ≈ Polynomial([1.0, 1.0], [Monomial([x], [2]), Monomial([y], [3])])
-    
 end
