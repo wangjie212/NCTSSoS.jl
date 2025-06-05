@@ -1,6 +1,3 @@
-# I forbid the multiplication of two variables
-# Base.:(*)(a::Variable, b::variable)
-
 function Base.:(*)(x::Monomial, y::Monomial)
     i = findlast(z -> z > 0, x.z)
     isnothing(i) && return y
@@ -15,4 +12,12 @@ function Base.:(*)(x::Monomial, y::Monomial)
         z = [x.z[1:i]; y.z[j:end]]
     end
     return Monomial(w, z)
+end
+
+function Base.:(+)(a::Polynomial, b::Monomial)
+    return Polynomial([a.coeffs; one(eltype(a.coeffs))], [a.monos; b])
+end
+
+function Base.:(*)(a::Number, b::Polynomial{T}) where T
+    return Polynomial(a .* b.coeffs, b.monos)
 end
