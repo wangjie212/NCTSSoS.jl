@@ -33,3 +33,20 @@ mono3 = Monomial([x, z, y], [2, 1, 1])
 
 #   104.322 ns (2 allocations: 64 bytes)
 @btime cmp(mono1, mono3)
+
+@ncpolyvar x[1:100000]
+
+var_coll = sort([x[i] for i in 1:99999])
+
+# BenchmarkTools.Trial: 10000 samples with 960 evaluations per sample.
+#  Range (min … max):  86.849 ns …  1.148 μs  ┊ GC (min … max): 0.00% … 89.56%
+#  Time  (median):     95.095 ns              ┊ GC (median):    0.00%
+#  Time  (mean ± σ):   96.888 ns ± 26.765 ns  ┊ GC (mean ± σ):  0.77% ±  2.62%
+
+#           ▃  ▃█▅                                               
+#   ▃▇▆▃▂▃▆▇██████▇▄▄▄▃▃▂▂▂▂▂▂▂▂▂▂▁▂▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁ ▂
+#   86.8 ns         Histogram: frequency by time         127 ns <
+
+#  Memory estimate: 32 bytes, allocs estimate: 1.
+
+@benchmark searchsortedfirst(var_coll, x[100000])	

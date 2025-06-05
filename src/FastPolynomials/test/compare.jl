@@ -1,5 +1,4 @@
 using Test, NCTSSoS.FastPolynomials
-using BenchmarkTools
 
 @testset "Comparison" begin
 	@testset "cmp variables" begin
@@ -15,15 +14,9 @@ using BenchmarkTools
 		@ncpolyvar x[1:10]
 		@test cmp(x[1],x[10]) == 1
 
-		@ncpolyvar x[1:100000]
-
-		var_coll = sort([x[i] for i in 1:99999])
-
-		@benchmark searchsortedfirst(var_coll, x[100000])	
 
 		@test x[1] == x[1]
 		@test x[1] != x[2]
-
 	end
 
 	@testset "cmp monomials" begin
@@ -42,6 +35,10 @@ using BenchmarkTools
 		@test cmp(mono1,mono4) == 0
 		@test cmp(mono4, mono5) == -1
 
+		@test isless(mono4, mono5)
 	end
 
+	@testset "compare polynomials" begin
+		p1 = Polynomial([1.0 ,2.0], [Monomial([x, y], [1, 2]), Monomial([x, y], [1, 1])])
+	end
 end

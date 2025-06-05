@@ -2,6 +2,10 @@ module NCTSSoS
 
 include("FastPolynomials/src/FastPolynomials.jl")
 using .FastPolynomials
+export @ncpolyvar
+
+export PolyOpt, TRACE, EIGEN
+include("pop.jl")
 
 # using DynamicPolynomials
 # using DynamicPolynomials:
@@ -46,7 +50,6 @@ using .FastPolynomials
 
 # include("statepolynomial.jl")
 
-# include("pop.jl")
 
 # include("sparse.jl")
 

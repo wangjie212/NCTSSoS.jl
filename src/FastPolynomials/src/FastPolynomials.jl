@@ -1,6 +1,6 @@
 module FastPolynomials
 
-export @ncpolyvar
+export @ncpolyvar, Variable
 include("variables.jl")
 
 export Monomial
@@ -13,5 +13,7 @@ include("compare.jl")
 
 
 include("arithmetic.jl")
+
+include("operators.jl")
 
 end
