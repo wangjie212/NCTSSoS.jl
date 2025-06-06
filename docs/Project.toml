@@ -1,5 +1,7 @@
 [deps]
+Clarabel = "61c947e1-3e6d-4ee4-985a-eec8c727bd6e"
 Documenter = "e30172f5-a6a5-5a46-863b-614d45cd2de4"
+LiveServer = "16fef848-5104-11e9-1b77-fb7a48bbb589"
 NCTSSoS = "bfd54a76-f566-4979-8478-f7e03b9d19fb"
 
 [compat]
