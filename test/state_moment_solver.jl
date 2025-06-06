@@ -74,10 +74,29 @@ end
 end
 
 @testset "State Polynomial Opt 7.2.2" begin
+
+
+    using NCTSSoS, Clarabel
+    using DynamicPolynomials: monomial 
+    @ncpolyvar x[1:3] y[1:3]
+    cov(a, b) = 1.0 * NCStateWord([x[a] * y[b]], one(x[1])) - 1.0 * (NCStateWord(monomial.([x[a]]), one(x[1])) * NCStateWord(monomial.([y[b]]), one(x[1])))
+    sp = cov(1,1) + cov(1,2) + cov(1,3) + cov(2,1) + cov(2,2) - cov(2,3) + cov(3,1) - cov(3,2)
+
+    spop = StatePolyOpt(sp; is_unipotent=true, comm_gps=[x[1:3], y[1:3]])
+
+    solver_config = SolverConfig(;optimizer=Clarabel.Optimizer, mom_order=2)
+
+    cs_nctssos(spop, solver_config)
+
     @ncpolyvar x[1:6]
+
     sp = NCStatePolynomial(map(a->a[1]*NCStateWord(monomial.(a[2]),one(x[1])),zip(Float64.([-1, 1, -1, 1, -1, 1, -1, 1, -1, 1, 1, -1, -1, 1, 1, -1]),[[x[1] * x[4]], [x[1], x[4]], [x[1] * x[5]], [x[1], x[5]], [x[1] * x[6]], [x[1], x[6]], [x[2] * x[4]], [x[2], x[4]], [x[2] * x[5]], [x[2], x[5]], [x[2] * x[6]], [x[2], x[6]], [x[3] * x[4]], [x[3], x[4]], [x[3] * x[5]], [x[3], x[5]]])))
 
     spop = StatePolyOpt(sp; is_unipotent=true, comm_gps=[x[1:3], x[4:6]])
+
+    solver_config = SolverConfig(;optimizer=Clarabel.Optimizer, mom_order=2)
+
+    cs_nctssos(spop, solver_config)
 
     d = 2
     cr = correlative_sparsity(spop, d, NoElimination())
