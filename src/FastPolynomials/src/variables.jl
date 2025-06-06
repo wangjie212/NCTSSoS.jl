@@ -5,7 +5,7 @@ struct Variable
     kind::ComplexKind
 
     function Variable(name::AbstractString, kind::ComplexKind=REAL)
-        new(convert(String, name), kind)
+        return new(convert(String, name), kind)
     end
 
     Variable(from::Variable, kind::ComplexKind) = new(from.name, kind)
@@ -58,17 +58,17 @@ end
 # from https://scientificcoder.com/user-defined-show-method-in-julia
 # 2-argument show, used by Array show, print(obj) and repr(obj), keep it short
 function Base.show(io::IO, obj::Variable)
-    print_object(io, obj; multiline=false)
+    return print_object(io, obj; multiline=false)
 end
 
 # the 3-argument show used by display(obj) on the REPL
 function Base.show(io::IO, mime::MIME"text/plain", obj::Variable)
     # you can add IO options if you want
     multiline = get(io, :multiline, true)
-    print_object(io, obj; multiline=multiline)
+    return print_object(io, obj; multiline=multiline)
 end
 
 function print_object(io::IO, obj::Variable; multiline::Bool)
     # write something short, or go back to default mode
-    multiline ? print(io, "$(obj.name)") : Base.show_default(io, obj)
+    return multiline ? print(io, "$(obj.name)") : Base.show_default(io, obj)
 end

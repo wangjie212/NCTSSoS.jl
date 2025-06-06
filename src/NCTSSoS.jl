@@ -5,7 +5,10 @@ using .FastPolynomials
 export @ncpolyvar
 
 export PolyOpt, TRACE, EIGEN
+
 include("pop.jl")
+
+include("solver_utils.jl")
 
 # using DynamicPolynomials
 # using DynamicPolynomials:
@@ -20,9 +23,8 @@ include("pop.jl")
 # using Base.Iterators: product, flatten
 # using DynamicPolynomials.MP: compare
 
-# export PolyOpt, StatePolyOpt
+# export StatePolyOpt
 # export NCStatePolynomial, ς
-# export TRACE, EIGEN
 # export SolverConfig
 # export cs_nctssos, cs_nctssos_higher
 
@@ -63,7 +65,6 @@ include("pop.jl")
 
 # include("state_sos_solver.jl")
 
-# include("solver_utils.jl")
 
 # include("interface.jl")
 

@@ -7,18 +7,25 @@ using Test, NCTSSoS
     objective = 1.0 * sum(x .^ 2)
     constraints = [1.0 * sum(i .* x) for i in 1:ncons]
 
+
+
     @testset "Unconstrained" begin
         pop = PolyOpt(objective)
 
         @test pop.is_equality == Bool[]
         @test sort(pop.variables) == sort(x)
-        @test pop.comm_gp == Set{Variable{NonCommutative,LexOrder}}()
+        @test pop.comm_gps == Set{Variable}[]
         @test !pop.is_unipotent
         @test !pop.is_projective
 
-        pop = PolyOpt(objective; comm_gp=[x[1]], obj_type=TRACE)
+        comm_gps = [Set([x[1]])]
+        union(comm_gps...)
 
-        @test pop.comm_gp == Set([x[1]])
+        # FIXME
+        issubset(union(comm_gps...), variables(objective))
+        op = PolyOpt(objective; comm_gps=[Set([x[1]])], obj_type=TRACE)
+
+        @test pop.comm_gps == [Set([x[1]])]
         @test pop isa PolyOpt{NonCommutative{CreationOrder},Graded{LexOrder},Float64,TRACE}
     end
 

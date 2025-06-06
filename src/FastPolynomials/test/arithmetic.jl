@@ -1,7 +1,18 @@
 using Test, NCTSSoS.FastPolynomials
-using NCTSSoS.FastPolynomials: Variable
+using NCTSSoS.FastPolynomials: Variable, Polynomial, Monomial
+
 
 @testset "Arithmetic" begin
+    @testset "Variable Multiplication" begin
+        @ncpolyvar x y z
+
+        p1 = 1 * x
+        @test p1 isa Polynomial{Int64}
+        @test p1.coeffs == [1]
+        @test p1.monos == [Monomial([x], [1])]
+
+
+    end
     @testset "Monomial multiplication" begin
         @ncpolyvar x y z
 
@@ -26,6 +37,13 @@ using NCTSSoS.FastPolynomials: Variable
         p2 = Monomial([x],[1]) + Monomial([y],[2])
         @test p2.coeffs == [1.0, 1.0]
         @test p2.monos == [Monomial([x], [1]), Monomial([y], [2])]
+
+        p3 = Polynomial(Int[2], [Monomial([x, y], [1, 2])])
+        p4 = Polynomial(Float32[1.0], [Monomial([z], [3])])
+        p34 = p3 + p4
+        @test p34 is Polynomial{Float32}
+        @test p34.coeffs == [2.0, 1.0]
+        @test p34.monos == [Monomial([x, y], [1, 2]), Monomial([z], [3])]
     end
 
     @testset "Scaling Polynomial" begin

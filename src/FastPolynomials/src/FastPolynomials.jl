@@ -1,5 +1,7 @@
 module FastPolynomials
 
+export variables
+
 export @ncpolyvar, Variable
 include("variables.jl")
 
