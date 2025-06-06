@@ -11,7 +11,7 @@ where $A_i$ and $B_j$ are observables measured by two parties (traditionally cal
 ## Linear Bell inequalities
 
 ### CHSH inequality
-The most famous Bell inequality is the CHSH (Clauser-Horne-Shimony-Holt) inequality, which involves two parties, each measuring two observables. For binary observables $A_1, A_2$ measured by Alice and $B_1, B_2$ measured by Bob. We define the objective function as:
+The most famous Bell inequality is the CHSH (Clauser-Horne-Shimony-Holt) inequality, which involves two parties, each measuring two observables. For unipotent (square to 1) observables $A_1, A_2$ measured by Alice and $B_1, B_2$ measured by Bob. We define the objective function as:
 
 $$f(A_1, A_2, B_1, B_2) = \langle A_1B_1 \rangle + \langle A_1B_2 \rangle + \langle A_2B_1 \rangle - \langle A_2B_2 \rangle$$
 
@@ -23,8 +23,8 @@ The upper bound of the CHSH inequality can be computed using the following code:
 ```@example chsh
 using NCTSSoS, Clarabel
 
-@ncpolyvar x[1:2]  # x[1] = A_1, x[2] = A_2
-@ncpolyvar y[1:2]  # y[1] = B_1, y[2] = B_2
+@ncpolyvar x[1:2]  # x = (A_1, A_2)
+@ncpolyvar y[1:2]  # y = (B_1, B_2)
 f = 1.0 * x[1] * y[1] + x[1] * y[2] + x[2] * y[1] - x[2] * y[2]  # objective function
 
 pop = PolyOpt(             # the optimization problem
@@ -42,8 +42,8 @@ result.objective  # the upper bound of the CHSH inequality
 ```
 
 Here, we first declare some operators as non-commutative variables, and then construct the optimization problem. In `PolyOpt` constructor,
-- `comm_gp` argument specifies the commutative group of the variables, which means variables in different commutative groups commute with each other.
-- `is_unipotent` argument specifies that the variables are unipotent, which means they are positive semidefinite.
+- `comm_gp` argument specifies the commutative group of the variables, which means variables in different commutative groups commute with each other. (TODO: change this API.)
+- `is_unipotent` argument specifies that the variables are unipotent, which means they square to 1 (e.g. Pauli operators).
 
 Here, since the variables on different qubits commute with each other, we can group them into different commutative groups.
 
@@ -53,7 +53,7 @@ The resulting upper bound is very close to the theoretical exact value $2\sqrt{2
 
 ### $I_{3322}$ inequality
 
-The $I_{3322}$ inequality is a more complex inequality that involves three parties, each measuring three observables. Let $A_1, A_2, A_3$ be the observables measured by Alice and $B_1, B_2, B_3$ be the observables measured by Bob. We define the objective function as[^Pal2010]:
+The $I_{3322}$ inequality is a more complex inequality that involves three parties, each measuring three observables. Let $A_1, A_2, A_3$ be the projective (square to itself) observables measured by Alice and $B_1, B_2, B_3$ be the projective observables measured by Bob. We define the objective function as[^Pal2010]:
 
 ```math
 f(A_1, A_2, A_3, B_1, B_2, B_3) = \langle A_1(B_1+B_2+B_3) \rangle + \langle A_2(B_1+B_2-B_3) \rangle\\
@@ -63,14 +63,15 @@ f(A_1, A_2, A_3, B_1, B_2, B_3) = \langle A_1(B_1+B_2+B_3) \rangle + \langle A_2
 
 In classical mechanics, the inequality $f(A_1, A_2, A_3, B_1, B_2, B_3) \leq 0$ must be satisfied. However, quantum mechanics can violate this inequality up to the value $0.25$, known as the Tsirelson bound. This violation demonstrates that quantum mechanics cannot be described by any local hidden variable theory.
 
-The upper bound of the I3322 inequality can be computed using the following code:
+The upper bound of the $I_{3322}$ inequality can be computed using the following code:
 
 ```@example i3322
 using NCTSSoS, Clarabel
 
 @ncpolyvar x[1:3]
 @ncpolyvar y[1:3]
-f = 1.0 * x[1] * (y[1] + y[2] + y[3]) + x[2] * (y[1] + y[2] - y[3]) + x[3] * (y[1] - y[2]) - x[1] - 2 * y[1] - y[2]
+f = 1.0 * x[1] * (y[1] + y[2] + y[3]) + x[2] * (y[1] + y[2] - y[3]) +
+    x[3] * (y[1] - y[2]) - x[1] - 2 * y[1] - y[2]  # objective function
 
 pop = PolyOpt(-f; comm_gp= Set(x), is_projective=true)
 
@@ -79,6 +80,8 @@ solver_config = SolverConfig(optimizer=Clarabel.Optimizer; mom_order=2)
 result = cs_nctssos(pop, solver_config)
 result.objective
 ```
+
+Here, the `is_projective` argument specifies that the variables are projective, which means they square to themselves (e.g. $|0\rangle\langle 0|$ and $|1\rangle\langle 1|$).
 
 The resulting upper bound is close to the theoretical exact value $0.25$. By increasing the order of the moment matrix, this upper bound can be improved.
 
@@ -90,29 +93,30 @@ The significance of non-linear Bell inequalities in quantum information lies in 
 
 ### Covariance Bell Inequality
 
-As an example, the covariance Bell inequality is a non-linear Bell inequality that involves the covariance of measurements. It can be expressed as:
+The covariance Bell inequality is a non-linear Bell inequality that involves the covariance of measurements. It can be expressed as:
 
 $$\text{Cov}(A, B) = \langle A B \rangle - \langle A \rangle \langle B \rangle$$
 
-where $A$ and $B$ are observables measured by two parties. Let us define the objective function as:
+where $A$ and $B$ are observables measured by two parties. Comparing with the linear Bell inequality, the covariance Bell inequality is non-linear because it involves the product of two observables.
+
+Let us define the objective function as:
 ```math
 f(A_1,A_2,A_3, B_1,B_2,B_3) = \text{Cov}(A_1, B_1) + \text{Cov}(A_1, B_2) + \text{Cov}(A_1,B_3)  + \\ \text{Cov}(A_2, B_1) + \text{Cov}(A_2, B_2) - \text{Cov}(A_2, B_3) + \text{Cov}(A_3, B_1) - \text{Cov}(A_3,B_2)
 ```
 
-it was shown that $f(A_1,A_2,A_3,B_1,B_2,B_3) \leq \frac{9}{2}$ in classical models, while it can attain a maximu value of $5$ in spatial quantum model of qubits and a maximally entangled state [^Pozsgay]. 
+it was shown that $f(A_1,A_2,A_3,B_1,B_2,B_3) \leq \frac{9}{2}$ in classical models, while it can attain a maximum value of $5$ in spatial quantum model of qubits and a maximally entangled state [^Pozsgay]. 
 
-An *open question* was whether a higher bound can be attained in a spatial quantum model of qudits, i.e., systems with more than two levels. Using State Polynomial Optimization, we can certify the upper bound of this inequality being $5$ in any system size!!
-
-The proof can be certified using the following State Polynomial Optimization code:
+An *open question* was whether a higher bound can be attained in a spatial quantum model of qudits, i.e., systems with more than two levels. Using State Polynomial Optimization (TODO: cite), we can certify the upper bound of this inequality:
 
 ```@example covariance
 using NCTSSoS, Clarabel
 using NCTSSoS.DynamicPolynomials: monomial 
 
-@ncpolyvar x[1:3] y[1:3] # x[1] = A_1, x[2] = A_2, x[3] = A_3, y[1] = B_1, y[2] = B_2, y[3] = B_3
+@ncpolyvar x[1:3] y[1:3]  # x = (A_1, A_2, A_3), y = (B_1, B_2, B_3)
 
 # covariance function
-cov(a, b) = 1.0 * NCStateWord([x[a] * y[b]], one(x[1])) - 1.0 * (NCStateWord(monomial.([x[a]]), one(x[1])) * NCStateWord(monomial.([y[b]]), one(x[1])))
+cov(a, b) = 1.0 * NCStateWord([x[a] * y[b]], one(x[1])) -
+            1.0 * (NCStateWord(monomial.([x[a]]), one(x[1])) * NCStateWord(monomial.([y[b]]), one(x[1])))
 
 # objective function
 sp = cov(1,1) + cov(1,2) + cov(1,3) + cov(2,1) + cov(2,2) - cov(2,3) + cov(3,1) - cov(3,2)
@@ -133,6 +137,10 @@ result = cs_nctssos(spop, solver_config)
 result
 ```
 The resulting upper bound is very close to the previously known best value of $5$ (accurate up to 7 decimals!!). It accertains the value of $5$ for any system size.
+
+Q: Why this number can be higher than $-5$ ($-4.999999975854065$)? Is it related to the algorithm to solve SDP?
+
+TODO: use sparsity to improve the performance of the algorithm.
 
 [^Goulart2024]: Goulart, P.J., Chen, Y., 2024. Clarabel: An interior-point solver for conic programs with quadratic objectives. https://doi.org/10.48550/arXiv.2405.12762
 [^Pal2010]: Pál, K.F., Vértesi, T., 2010. Maximal violation of the I3322 inequality using infinite dimensional quantum systems. Phys. Rev. A 82, 022116. https://doi.org/10.1103/PhysRevA.82.022116
