@@ -82,5 +82,60 @@ result.objective
 
 The resulting upper bound is close to the theoretical exact value $0.25$. By increasing the order of the moment matrix, this upper bound can be improved.
 
+## Nonlinear Bell Inequalities
+
+Non-linear Bell inequalities are extensions of the standard linear Bell inequalities. Instead of being linear combinations of expectation values, they involve polynomial functions of these expectation values. These inequalities arise naturally when considering more complex scenarios, such as multi-party settings or when the parties can perform sequences of measurements.
+
+The significance of non-linear Bell inequalities in quantum information lies in their ability to detect non-locality in situations where linear inequalities might fail. They can provide tighter bounds on classical correlations and reveal quantum non-locality in a broader range of experimental setups. Furthermore, studying non-linear Bell inequalities helps in understanding the structure of quantum correlations and the boundary between classical and quantum physics more deeply. They are also relevant in the context of quantum cryptography and communication complexity, where understanding the limits of classical and quantum correlations is crucial. 
+
+### Covariance Bell Inequality
+
+As an example, the covariance Bell inequality is a non-linear Bell inequality that involves the covariance of measurements. It can be expressed as:
+
+$$\text{Cov}(A, B) = \langle A B \rangle - \langle A \rangle \langle B \rangle$$
+
+where $A$ and $B$ are observables measured by two parties. Let us define the objective function as:
+```math
+f(A_1,A_2,A_3, B_1,B_2,B_3) = \text{Cov}(A_1, B_1) + \text{Cov}(A_1, B_2) + \text{Cov}(A_1,B_3)  + \\ \text{Cov}(A_2, B_1) + \text{Cov}(A_2, B_2) - \text{Cov}(A_2, B_3) + \text{Cov}(A_3, B_1) - \text{Cov}(A_3,B_2)
+```
+
+it was shown that $f(A_1,A_2,A_3,B_1,B_2,B_3) \leq \frac{9}{2}$ in classical models, while it can attain a maximu value of $5$ in spatial quantum model of qubits and a maximally entangled state [^Pozsgay]. 
+
+An *open question* was whether a higher bound can be attained in a spatial quantum model of qudits, i.e., systems with more than two levels. Using State Polynomial Optimization, we can certify the upper bound of this inequality being $5$ in any system size!!
+
+The proof can be certified using the following State Polynomial Optimization code:
+
+```@example covariance
+using NCTSSoS, Clarabel
+using NCTSSoS.DynamicPolynomials: monomial 
+
+@ncpolyvar x[1:3] y[1:3] # x[1] = A_1, x[2] = A_2, x[3] = A_3, y[1] = B_1, y[2] = B_2, y[3] = B_3
+
+# covariance function
+cov(a, b) = 1.0 * NCStateWord([x[a] * y[b]], one(x[1])) - 1.0 * (NCStateWord(monomial.([x[a]]), one(x[1])) * NCStateWord(monomial.([y[b]]), one(x[1])))
+
+# objective function
+sp = cov(1,1) + cov(1,2) + cov(1,3) + cov(2,1) + cov(2,2) - cov(2,3) + cov(3,1) - cov(3,2)
+
+
+spop = StatePolyOpt(
+        sp;                                 # the optimization problem
+        is_unipotent=true,                  # the variables are unipotent        
+        comm_gps=[x[1:3], y[1:3]]           # the commutative groups of the variables 
+        )
+
+solver_config = SolverConfig(
+    optimizer=Clarabel.Optimizer;           # the solver backend
+    mom_order=2                             # the order of the moment matrix   
+)
+
+result = cs_nctssos(spop, solver_config)
+result
+```
+The resulting upper bound is very close to the previously known best value of $5$ (accurate up to 7 decimals!!). It accertains the value of $5$ for any system size.
+
 [^Goulart2024]: Goulart, P.J., Chen, Y., 2024. Clarabel: An interior-point solver for conic programs with quadratic objectives. https://doi.org/10.48550/arXiv.2405.12762
 [^Pal2010]: Pál, K.F., Vértesi, T., 2010. Maximal violation of the I3322 inequality using infinite dimensional quantum systems. Phys. Rev. A 82, 022116. https://doi.org/10.1103/PhysRevA.82.022116
+[^Pozsgay]: Victor Pozsgay, Flavien Hirsch, Cyril Branciard, and Nicolas Brunner. Covariance Bell inequalities. Phys. Rev. A, 96(6):062128, 13, 2017. https://doi.org/10.1103/PhysRevA.96.062128
+
+

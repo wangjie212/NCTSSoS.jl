@@ -14,7 +14,7 @@ using Base.Iterators: product, flatten
 using DynamicPolynomials.MP: compare
 
 export PolyOpt, StatePolyOpt
-export NCStatePolynomial, ς
+export NCStatePolynomial, ς, NCStateWord
 export TRACE, EIGEN
 export SolverConfig
 export cs_nctssos, cs_nctssos_higher
