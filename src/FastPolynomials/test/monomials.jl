@@ -1,5 +1,5 @@
 using Test, NCTSSoS.FastPolynomials
-using NCTSSoS.FastPolynomials: degree
+using NCTSSoS.FastPolynomials: degree, Monomial
 
 @testset "Monomials" begin
     @testset "Creation" begin
@@ -27,5 +27,18 @@ using NCTSSoS.FastPolynomials: degree
 
         @test variables(mono1) == [x,y]
         @test variables(mono2) == typeof(x)[]
+    end
+
+    @testset "Hash" begin
+        @ncpolyvar x y z
+        mono1 = Monomial([x, y, z], [1, 2, 3])
+        mono2 = Monomial([x, y, z], [1, 3, 3])
+        mono3 = Monomial([x, z, y, z], [1, 0, 2, 3])
+
+        @test hash(mono1) != hash(mono2)
+        @test hash(mono1) == hash(mono3)
+
+        mono4 = Monomial([x], [0])
+        @test hash(mono4) == hash(Monomial([], []))
     end
 end

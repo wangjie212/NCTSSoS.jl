@@ -38,3 +38,7 @@ function print_object(io::IO, obj::Polynomial; multiline::Bool)
         return Base.show_default(io, obj)
     end
 end
+
+function Base.hash(p::Polynomial, u::UInt)
+    return hash(p.coeffs, hash(p.monos, u))
+end

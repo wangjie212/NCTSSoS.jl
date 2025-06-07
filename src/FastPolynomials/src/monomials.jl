@@ -41,3 +41,7 @@ end
 function print_object(io::IO, obj::Monomial; multiline::Bool)
     return multiline ? print(io, string(obj)) : Base.show_default(io, obj)
 end
+
+function Base.hash(m::Monomial, u::UInt)
+    return hash(m.vars, hash(m.z, u))
+end

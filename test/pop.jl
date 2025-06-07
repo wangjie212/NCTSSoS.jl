@@ -1,5 +1,5 @@
 using Test, NCTSSoS
-using NCTSSoS.FastPolynomials: Variable, variables
+using NCTSSoS.FastPolynomials: Variable, variables, Polynomial, Monomial
 
 @testset "PolyOpt Constructor" begin
     nvars = 10
@@ -33,11 +33,6 @@ using NCTSSoS.FastPolynomials: Variable, variables
 
         pop = PolyOpt(objective; constraints=Set([constraints; sum(x)]))
 
-        hash(pop.constraints[1])
-        hash(sum(x))
-         == hash(constraints)
-        Set([constraints; sum(x)])
-
         constraints[1] == sum(x)
 
         @test length(pop.constraints) == ncons
@@ -54,9 +49,10 @@ using NCTSSoS.FastPolynomials: Variable, variables
         @test_throws AssertionError PolyOpt(objective; is_equality= [true])
         @test_throws AssertionError PolyOpt(objective; constraints= constraints, is_equality=fill(true, ncons + 1), is_unipotent=false, is_projective=false)
         @test_throws AssertionError PolyOpt(objective; constraints= constraints, is_unipotent=true, is_projective=true)
-        @test_throws AssertionError PolyOpt(x[1]*x[2]+x[3]*x[2])
+        p1 = Polynomial([1,1],[Monomial([x[1],x[2]],[1,1]),Monomial([x[2],x[3]],[1,1])])
+        @test_throws AssertionError PolyOpt(p1)
         @ncpolyvar y[1:nvars]
-        @test_throws AssertionError PolyOpt(objective; comm_gp=y)
+        @test_throws AssertionError PolyOpt(objective; comm_gps=[Set(x),Set(y)])
     end
 end
 

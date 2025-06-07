@@ -1,4 +1,5 @@
 using Test, NCTSSoS.FastPolynomials
+using NCTSSoS.FastPolynomials: Polynomial
 
 @testset "Comparison" begin
     @testset "cmp variables" begin
@@ -49,5 +50,17 @@ using Test, NCTSSoS.FastPolynomials
 
         @test !isapprox(p1, p3; atol=1e-9)
         @test isapprox(p1, p3; atol=1e-7)
+    end
+    @testset "Hash Polynomial" begin
+        @ncpolyvar x y
+        p1 = Polynomial([1.0, 2.0], [Monomial([x, y], [1, 2]), Monomial([x, y], [1, 1])])
+        p2 = Polynomial([1.0, 2.0], [Monomial([x, y], [1, 2]), Monomial([x, y], [1, 1])])
+        @test hash(p1) == hash(p2)
+
+        p3 = Polynomial(
+            [1.00000001, 2.0], [Monomial([x, y], [1, 2]), Monomial([x, y], [1, 1])]
+        )
+        p_set = Set([p1,p2,p1,p3])
+        @test length(p_set) == 2
     end
 end
