@@ -38,6 +38,7 @@ using Test, NCTSSoS.FastPolynomials
     end
 
     @testset "compare polynomials" begin
+        @ncpolyvar x y z
         p1 = Polynomial([1.0, 2.0], [Monomial([x, y], [1, 2]), Monomial([x, y], [1, 1])])
         p2 = Polynomial([1.0, 2.0], [Monomial([x, y], [1, 2]), Monomial([x, y], [1, 1])])
         p3 = Polynomial(

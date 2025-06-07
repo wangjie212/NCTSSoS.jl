@@ -1,4 +1,5 @@
 using Test, NCTSSoS
+using NCTSSoS.FastPolynomials: Variable, variables
 
 @testset "PolyOpt Constructor" begin
     nvars = 10
@@ -6,8 +7,6 @@ using Test, NCTSSoS
     @ncpolyvar x[1:nvars]
     objective = 1.0 * sum(x .^ 2)
     constraints = [1.0 * sum(i .* x) for i in 1:ncons]
-
-
 
     @testset "Unconstrained" begin
         pop = PolyOpt(objective)
@@ -19,14 +18,11 @@ using Test, NCTSSoS
         @test !pop.is_projective
 
         comm_gps = [Set([x[1]])]
-        union(comm_gps...)
 
-        # FIXME
-        issubset(union(comm_gps...), variables(objective))
-        op = PolyOpt(objective; comm_gps=[Set([x[1]])], obj_type=TRACE)
+        pop = PolyOpt(objective; comm_gps=[Set([x[1]])], obj_type=TRACE)
 
         @test pop.comm_gps == [Set([x[1]])]
-        @test pop isa PolyOpt{NonCommutative{CreationOrder},Graded{LexOrder},Float64,TRACE}
+        @test pop isa PolyOpt{Float64,TRACE}
     end
 
     @testset "Constrainted Optimization Problem" begin
@@ -36,6 +32,13 @@ using Test, NCTSSoS
         @test pop.is_equality == fill(false, ncons)
 
         pop = PolyOpt(objective; constraints=Set([constraints; sum(x)]))
+
+        hash(pop.constraints[1])
+        hash(sum(x))
+         == hash(constraints)
+        Set([constraints; sum(x)])
+
+        constraints[1] == sum(x)
 
         @test length(pop.constraints) == ncons
         @test pop.is_equality == fill(false, ncons)

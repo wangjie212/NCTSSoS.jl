@@ -23,10 +23,20 @@ function Base.:(+)(a::Polynomial, b::Monomial)
     return Polynomial([a.coeffs; one(eltype(a.coeffs))], [a.monos; b])
 end
 
+function Base.:(+)(a::Polynomial, b::Variable)
+    return Polynomial([a.coeffs; one(eltype(a.coeffs))], [a.monos; Monomial([b], [1])])
+end
+
 function Base.:(*)(a::Number, b::Polynomial{T}) where {T}
     return Polynomial(a .* b.coeffs, b.monos)
 end
 
 function Base.:(*)(a::T, b::Variable) where {T<:Number}
     return Polynomial([a], [Monomial([b], [1])])
+end
+
+function Base.:(+)(a::Variable, b::Variable)
+    return Polynomial(
+        [one(Float64), one(Float64)], [Monomial([a], [1]), Monomial([b], [1])]
+    )
 end

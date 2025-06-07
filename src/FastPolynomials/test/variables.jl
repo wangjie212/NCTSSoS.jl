@@ -38,4 +38,15 @@ using NCTSSoS.FastPolynomials: polyarrayvar, buildpolyvar, buildpolyvars
     @testset "Utils: buildpolyvar" begin
         @test_throws ErrorException buildpolyvar(Expr(:call, :x, +), REAL)
     end
+
+    @testset "Hash" begin
+        @ncpolyvar x y z
+        @test hash(x) == hash(x)
+        @test hash(x) != hash(y)
+        @test hash(x) != hash(z)
+
+        @ncpolyvar x[1:10]
+        @test hash(x[1]) == hash(x[1])
+        @test hash(x[1]) != hash(x[2])
+    end
 end

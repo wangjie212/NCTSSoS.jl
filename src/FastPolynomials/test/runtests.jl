@@ -1,4 +1,4 @@
-using FastPolynomials
+using NCTSSoS.FastPolynomials
 using Test
 
 @testset "FastPolynomials.jl" begin

@@ -10,8 +10,19 @@ using NCTSSoS.FastPolynomials: Variable, Polynomial, Monomial
         @test p1 isa Polynomial{Int64}
         @test p1.coeffs == [1]
         @test p1.monos == [Monomial([x], [1])]
+    end
 
+    @testset "Variable Addition" begin
+        @ncpolyvar x y z
 
+        p1 = x + y
+        @test p1 isa Polynomial{Float64}
+        @test p1.coeffs == [1.0, 1.0]
+        @test p1.monos == [Monomial([x], [1]), Monomial([y], [1])]
+
+        p2 = p1 + z
+        @test p2.coeffs == [1.0, 1.0, 1.0]
+        @test p2.monos == [Monomial([x], [1]), Monomial([y], [1]), Monomial([z], [1])]
     end
     @testset "Monomial multiplication" begin
         @ncpolyvar x y z
@@ -41,7 +52,7 @@ using NCTSSoS.FastPolynomials: Variable, Polynomial, Monomial
         p3 = Polynomial(Int[2], [Monomial([x, y], [1, 2])])
         p4 = Polynomial(Float32[1.0], [Monomial([z], [3])])
         p34 = p3 + p4
-        @test p34 is Polynomial{Float32}
+        @test p34 isa Polynomial{Float32}
         @test p34.coeffs == [2.0, 1.0]
         @test p34.monos == [Monomial([x, y], [1, 2]), Monomial([z], [3])]
     end

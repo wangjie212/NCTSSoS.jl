@@ -72,3 +72,7 @@ function print_object(io::IO, obj::Variable; multiline::Bool)
     # write something short, or go back to default mode
     return multiline ? print(io, "$(obj.name)") : Base.show_default(io, obj)
 end
+
+function Base.hash(v::Variable, u::UInt)
+    return hash(v.name, u)
+end
