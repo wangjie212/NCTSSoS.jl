@@ -10,10 +10,15 @@ using NCTSSoS.FastPolynomials: degree, Monomial
 
         @test_throws ArgumentError Monomial([x, y], [1, 2, 3]) # wrong number of variables and exponents
 
-
         mono2 = Monomial((x, y, z), (1, 2, 3))
         @test mono2.vars == [x, y, z]
         @test mono2.z == [1, 2, 3]
+
+        mono3 = Monomial([x,y,z,y,z],[1,1,0,1,3])
+        @test mono3.vars == [x, y, z]
+        @test mono3.z == [1, 2, 3]
+
+        @test one(Monomial) == Monomial([], [])
     end
 
     @testset "Utils" begin

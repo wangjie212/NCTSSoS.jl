@@ -1,5 +1,6 @@
 # Invariants
-# ALWAYS
+# ALWAYS make sure z does not contain zeros
+# ALWAYS make sure vars does not contain consequtive same variables
 struct Monomial
     vars::Vector{Variable}
     z::Vector{Int}
@@ -9,7 +10,21 @@ struct Monomial
             throw(ArgumentError("There should be as many variables as exponents"))
         end
         nz_idcs = filter(x -> !iszero(z[x]), 1:length(z))
-        return new(vars[nz_idcs], z[nz_idcs])
+        isempty(nz_idcs) && return new(Variable[], Int[])
+
+        nonconseq_rep_vars = [vars[nz_idcs[1]]]
+        nonconseq_rep_z = [z[nz_idcs[1]]]
+        for nz_idx in view(nz_idcs, 2:length(nz_idcs))
+            if nonconseq_rep_vars[end] == vars[nz_idx]
+                nonconseq_rep_z[end] += z[nz_idx]
+                continue
+            else
+                push!(nonconseq_rep_vars, vars[nz_idx])
+                push!(nonconseq_rep_z, z[nz_idx])
+            end
+        end
+
+        return new(nonconseq_rep_vars, nonconseq_rep_z)
     end
 end
 
@@ -33,6 +48,7 @@ end
 function Base.string(obj::Monomial)
     # https://stackoverflow.com/a/70451947
     exponents = ('⁰', '¹', '²', '³', '⁴', '⁵', '⁶', '⁷', '⁸', '⁹')
+    isempty(obj.vars) && return "1"
     return mapreduce(*, zip(obj.vars, obj.z); init="") do (v, z)
         iszero(z) ? "" : "$(v.name)$(map(c -> exponents[c-'0'+1], string(z)))"
     end
@@ -44,4 +60,16 @@ end
 
 function Base.hash(m::Monomial, u::UInt)
     return hash(m.vars, hash(m.z, u))
+end
+
+function Base.one(::Monomial)
+    return Monomial(Variable[], Int[])
+end
+
+function Base.one(::Type{Monomial})
+    return Monomial(Variable[], Int[])
+end
+
+function Base.isone(m::Monomial)
+    return isempty(m.vars) && isempty(m.z)
 end

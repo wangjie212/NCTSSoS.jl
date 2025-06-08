@@ -76,3 +76,5 @@ end
 function Base.hash(v::Variable, u::UInt)
     return hash(v.name, u)
 end
+
+Base.one(::Variable) = Monomial(Variable[], Int[])

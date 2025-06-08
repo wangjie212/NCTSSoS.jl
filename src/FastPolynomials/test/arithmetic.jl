@@ -64,4 +64,17 @@ using NCTSSoS.FastPolynomials: Variable, Polynomial, Monomial
         @test p2.coeffs == [2.0, 4.0] 
         @test p2.monos == [Monomial([x], [1]), Monomial([y], [2])]
     end
+
+    @testset "Subtraction" begin
+        @ncpolyvar x y z
+        @test x - y == Polynomial([-1.0, 1.0], [Monomial([y], [1]), Monomial([x], [1])])
+
+        @test x^2 - y == Polynomial([-1.0, 1.0], [Monomial([y], [1]), Monomial([x], [2])])
+
+        @test x^2 - y^2 == Polynomial([-1.0, 1.0], [Monomial([y], [2]), Monomial([x], [2])])
+
+        p1 = 1.0 * x^2
+        p2 = 2.0 * y^2
+        @test p1 - p2 == Polynomial([-2.0, 1.0], [Monomial([y], [2]), Monomial([x], [2])]) 
+    end
 end

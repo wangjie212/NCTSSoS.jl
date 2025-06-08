@@ -1,8 +1,11 @@
 module NCTSSoS
 
+using JuMP
+
 include("FastPolynomials/src/FastPolynomials.jl")
 using .FastPolynomials
 export @ncpolyvar
+
 
 export PolyOpt, TRACE, EIGEN
 

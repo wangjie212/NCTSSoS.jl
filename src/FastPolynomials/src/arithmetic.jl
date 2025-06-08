@@ -40,3 +40,25 @@ function Base.:(+)(a::Variable, b::Variable)
         [one(Float64), one(Float64)], [Monomial([a], [1]), Monomial([b], [1])]
     )
 end
+
+function Base.:(-)(v1::Variable, v2::Variable)
+    return Polynomial(
+        [one(Float64), -one(Float64)], [Monomial([v1], [1]), Monomial([v2], [1])]
+    )
+end
+
+function Base.:(-)(m1::Monomial, v2::Variable)
+    return Polynomial([one(Float64), -one(Float64)], [m1, Monomial([v2], [1])])
+end
+
+function Base.:(-)(m1::Monomial, m2::Monomial)
+    return Polynomial([one(Float64), -one(Float64)], [m1, m2])
+end
+
+function Base.:(-)(p1::Polynomial{T}, m1::Monomial) where {T<:Number}
+    return Polynomial([p1.coeffs; -one(T)], [p1.monos; m1])
+end
+
+function Base.:(-)(p1::Polynomial{T}, p2::Polynomial{T}) where {T<:Number}
+    return Polynomial([p1.coeffs; -p2.coeffs], [p1.monos; p2.monos])
+end

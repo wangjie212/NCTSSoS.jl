@@ -13,7 +13,7 @@ using NCTSSoS.FastPolynomials: Variable, variables, Polynomial, Monomial
 
         @test pop.is_equality == Bool[]
         @test sort(pop.variables) == sort(x)
-        @test pop.comm_gps == Set{Variable}[]
+        @test pop.comm_gps == [Set(x)]
         @test !pop.is_unipotent
         @test !pop.is_projective
 
@@ -32,8 +32,6 @@ using NCTSSoS.FastPolynomials: Variable, variables, Polynomial, Monomial
         @test pop.is_equality == fill(false, ncons)
 
         pop = PolyOpt(objective; constraints=Set([constraints; sum(x)]))
-
-        constraints[1] == sum(x)
 
         @test length(pop.constraints) == ncons
         @test pop.is_equality == fill(false, ncons)

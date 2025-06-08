@@ -19,8 +19,10 @@ function PolyOpt(objective::Polynomial{T}; constraints=Any[], is_equality=fill(f
     is_eq = collect(Bool, is_equality)
     @assert length(is_eq) == length(cons) "The number of constraints must be the same as the number of equality conditions."
     vars = sorted_union(variables(objective), [variables(c) for c in cons]...)
-    if !isempty(comm_gps) 
+    if !isempty(comm_gps)
         @assert issubset(union(comm_gps...), vars) "The commutative variables must be a subset of the variables."
+    else
+        push!(comm_gps, Set(vars))
     end
     @assert !(is_unipotent && is_projective) "The problem cannot be both unipotent and projective."
     return PolyOpt{T,obj_type}(objective, cons, is_eq, vars, comm_gps, is_unipotent, is_projective)

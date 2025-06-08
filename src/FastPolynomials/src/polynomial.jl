@@ -1,5 +1,5 @@
 # WARNING:
-# ALWAYS needs to guarantee `monos` are sorted
+# ALWAYS needs to guarantee `monos` are sorted and non-repeating
 # ALWAYS needs to guarantee `coeffs` are non-zero
 struct Polynomial{T}
     coeffs::Vector{T}
@@ -9,9 +9,19 @@ struct Polynomial{T}
     function Polynomial(a::Vector{T}, x::Vector{Monomial}) where {T}
         length(a) == length(x) ||
             throw(ArgumentError("There should be as many coefficient than monomials"))
-        nz_idx = findall(!iszero, a)
-        sort!(nz_idx; by=idx -> x[idx])
-        return new{T}(a[nz_idx], x[nz_idx])
+        sorted_x_idx = sortperm(x)
+        sorted_x = x[sorted_x_idx]
+        unique_monos = sort!(unique(x))
+        unique_coeffs = map(unique_monos) do mono
+            mapreduce(
+                idx -> a[sorted_x_idx[idx]],
+                +,
+                searchsortedfirst(sorted_x, mono):searchsortedlast(sorted_x, mono);
+                init=zero(T),
+            )
+        end
+        nz_idx = findall(!iszero, unique_coeffs)
+        return new{T}(unique_coeffs[nz_idx], unique_monos[nz_idx])
     end
 end
 
