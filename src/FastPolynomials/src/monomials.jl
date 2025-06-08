@@ -29,6 +29,8 @@ struct Monomial
 end
 
 Monomial(vars, z) = Monomial(collect(Variable, vars), collect(Int, z))
+Monomial(a::Monomial) = a
+Monomial(a::Variable) = Monomial([a], [1])
 
 degree(m::Monomial) = sum(m.z)
 variables(m::Monomial) = unique(m.vars)

@@ -19,6 +19,12 @@ using NCTSSoS.FastPolynomials: degree, Monomial
         @test mono3.z == [1, 2, 3]
 
         @test one(Monomial) == Monomial([], [])
+
+        mono4 = Monomial(mono3)
+        @test mono4 === mono3
+
+        mono5 = Monomial(x)
+        @test mono5.vars == [x]
     end
 
     @testset "Utils" begin
