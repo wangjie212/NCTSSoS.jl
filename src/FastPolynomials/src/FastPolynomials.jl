@@ -17,6 +17,8 @@ include("arithmetic.jl")
 
 include("operators.jl")
 
+include("utils.jl")
+
 include("statepolynomial.jl")
 
 end

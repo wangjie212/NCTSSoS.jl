@@ -33,104 +33,147 @@ function print_object(io::IO, obj::StateWord; multiline::Bool)
     return multiline ? print(io, string(obj)) : Base.show_default(io, obj)
 end
 
-function Base.:(==)(a::StateWord, b::StateWord)
-    return length(a.state_monos) == length(b.state_monos) &&
-           all(a.state_monos .== b.state_monos)
+function Base.cmp(a::StateWord, b::StateWord)
+    degree(a) != degree(b) && return degree(a) < degree(b) ? -1 : 1
+    return cmp(a.state_monos, b.state_monos)
 end
+
+Base.:(==)(a::StateWord, b::StateWord) = iszero(cmp(a, b))
 # NOTE: need to guarantee it is always sorted
-Base.hash(a::StateWord) = hash(a.state_monos)
-Base.isless(a::StateWord, b::StateWord) = isless(a.state_monos, b.state_monos)
+Base.hash(a::StateWord, u::UInt) = hash(a.state_monos, u)
+Base.isless(a::StateWord, b::StateWord) = cmp(a, b) < 0
 
 Base.:(*)(a::StateWord, b::StateWord) = StateWord([a.state_monos; b.state_monos])
-# Base.:(*)(a::StateWord, b::Monomial) = NCStateWord(a, b)
-Base.:(*)(coef::T, a::StateWord) where {T} = StatePolynomial([coef], [a])
+Base.:(*)(a::StateWord, b::Monomial) = NCStateWord(a, b)
+# Base.:(*)(coef::T, a::StateWord) where {T} = StatePolynomial([coef], [a])
 Base.one(a::StateWord) = StateWord([one(a.state_monos[1])])
 Base.one(::Type{StateWord}) = StateWord([one(Monomial)])
 
-# struct NCStateWord{V,M}
-#     sw::StateWord{V,M}
-#     nc_word::Monomial{V,M}
-# end
+struct NCStateWord
+    sw::StateWord
+    nc_word::Monomial
+end
 
-# function DynamicPolynomials.effective_variables(ncsw::NCStateWord)
-#     return union(effective_variables(ncsw.nc_word), effective_variables(ncsw.sw))
-# end
-# DynamicPolynomials.degree(ncsw::NCStateWord) = degree(ncsw.nc_word) + degree(ncsw.sw)
-# function DynamicPolynomials.variables(ncsw::NCStateWord)
-#     return union(variables(ncsw.nc_word), variables(ncsw.sw))
-# end
+degree(ncsw::NCStateWord) = degree(ncsw.nc_word) + degree(ncsw.sw)
+function variables(ncsw::NCStateWord)
+    return union(variables(ncsw.nc_word), variables(ncsw.sw))
+end
 
-# Base.adjoint(a::NCStateWord{V,M}) where {V,M} = NCStateWord{V,M}(a.sw, star(a.nc_word))
-# function Base.:(*)(a::NCStateWord{V,M}, b::NCStateWord{V,M}) where {V,M}
-#     return NCStateWord{V,M}(a.sw * b.sw, a.nc_word * b.nc_word)
-# end
-# Base.:(*)(coef::T, a::NCStateWord{V,M}) where {V,M,T} = NCStateTerm(coef, a)
-# function Base.:(==)(a::NCStateWord{V,M}, b::NCStateWord{V,M}) where {V,M}
-#     return a.sw == b.sw && a.nc_word == b.nc_word
-# end
-# Base.hash(a::NCStateWord) = hash((hash(a.sw), hash(a.nc_word)))
-# function Base.show(io::IO, ncsw::NCStateWord)
-#     return print(io, string(ncsw.sw) * " ⋅ " * string(ncsw.nc_word))
-# end
-# function Base.one(::Type{NCStateWord{V,M}}) where {V,M}
-#     return NCStateWord{V,M}(one(StateWord{V,M}), one(Monomial{V,M}))
-# end
-# function Base.isless(a::NCStateWord{V,M}, b::NCStateWord{V,M}) where {V,M}
-#     comp_val = compare(a.nc_word, b.nc_word)
-#     return comp_val < 0 || (comp_val == 0 && isless(a.sw, b.sw))
-# end
+Base.adjoint(a::NCStateWord) = NCStateWord(a.sw, star(a.nc_word))
+function Base.:(*)(a::NCStateWord, b::NCStateWord)
+    return NCStateWord(a.sw * b.sw, a.nc_word * b.nc_word)
+end
+# Base.:(*)(coef::T, a::NCStateWord) where {T} = NCStatePolynomial([coef], [a])
+#
 
-# expval(a::NCStateWord) = StateWord([a.sw.state_monos; a.nc_word])
+function Base.cmp(a::NCStateWord, b::NCStateWord)
+    degree(a) != degree(b) && return degree(a) < degree(b) ? -1 : 1
+    nc_word_res = cmp(a.nc_word, b.nc_word)
+    iszero(nc_word_res) && return cmp(a.sw, b.sw)
+    return nc_word_res
+end
+
+Base.isless(a::NCStateWord, b::NCStateWord) = cmp(a, b) < 0
+#
+Base.:(==)(a::NCStateWord, b::NCStateWord) = iszero(cmp(a, b))
+
+Base.hash(a::NCStateWord, u::UInt) = hash((hash(a.sw, u), hash(a.nc_word, u)))
+
+function Base.show(io::IO, obj::NCStateWord)
+    return print_object(io, obj; multiline=false)
+end
+
+# the 3-argument show used by display(obj) on the REPL
+function Base.show(io::IO, mime::MIME"text/plain", obj::NCStateWord)
+    # you can add IO options if you want
+    multiline = get(io, :multiline, true)
+    return print_object(io, obj; multiline=multiline)
+end
+
+Base.string(obj::NCStateWord) = string(obj.sw) * " " * string(obj.nc_word)
+
+function print_object(io::IO, obj::NCStateWord; multiline::Bool)
+    return multiline ? print(io, string(obj)) : Base.show_default(io, obj)
+end
+
+Base.one(::Type{NCStateWord}) = NCStateWord(one(StateWord), one(Monomial))
+
+expval(a::NCStateWord) = StateWord([a.sw.state_monos; a.nc_word])
 
 struct StatePolynomial{T}
     coeffs::Vector{T}
     state_words::Vector{StateWord}
     function StatePolynomial(coeffs::Vector{T}, state_words::Vector{StateWord}) where {T}
-        uniq_state_words = sorted_unique([st.state_word for st in state_terms])
-        return new{T}(
-            map(uniq_state_words) do sw
-                StateTerm(
-                    sum([
-                        st.coef for st in
-                        getindex.(
-                            Ref(state_terms), findall(x -> x.state_word == sw, state_terms)
-                        )
-                    ]),
-                    sw,
-                )
-            end,
-        )
+        uniq_state_words = sorted_unique(state_words)
+        uniq_coeffs = zeros(T, length(uniq_state_words))
+        for (coef, sw) in zip(coeffs, state_words)
+            idx = searchsortedfirst(uniq_state_words, sw)
+            uniq_coeffs[idx] += coef
+        end
+        return new{T}(uniq_coeffs, uniq_state_words)
     end
 end
 
-DynamicPolynomials.variables(sp::StatePolynomial) = union(variables.(sp.state_terms)...)
-DynamicPolynomials.degree(sp::StatePolynomial) = mapreduce(degree, max, sp.state_terms)
-DynamicPolynomials.monomials(sp::StatePolynomial) = [st.state_word for st in sp.state_terms]
-DynamicPolynomials.terms(sp::StatePolynomial) = sp.state_terms
+variables(sp::StatePolynomial) = union(variables.(sp.state_words)...)
+degree(sp::StatePolynomial) = mapreduce(degree, max, sp.state_words)
 
-Base.show(io::IO, sp::StatePolynomial) = print(io, join(string.(sp.state_terms), " + "))
-Base.:(==)(a::StatePolynomial, b::StatePolynomial) = all(a.state_terms .== b.state_terms)
-Base.hash(a::StatePolynomial) = hash(hash.(a.state_terms))
-function Base.:(*)(a::StatePolynomial{V,M,T}, b::StatePolynomial{V,M,T}) where {V,M,T}
-    return StatePolynomial(
-        vec(map(x -> x[1] * x[2], product(a.state_terms, b.state_terms)))
+function Base.show(io::IO, obj::StatePolynomial)
+    return print_object(io, obj; multiline=false)
+end
+
+function Base.show(io::IO, mime::MIME"text/plain", obj::StatePolynomial)
+    multiline = get(io, :multiline, true)
+    return print_object(io, obj; multiline=multiline)
+end
+
+function Base.string(obj::StatePolynomial)
+    return join(
+        map(zip(obj.coeffs, obj.state_words)) do (coef, sw)
+            string(coef) * " * " * string(sw)
+        end,
+        " + ",
     )
 end
-function Base.:(*)(a::StatePolynomial{V,M,T}, b::Monomial{V,M}) where {V,M,T}
-    return StatePolynomialOp([st * b for st in a.state_terms])
+
+function print_object(io::IO, obj::StatePolynomial; multiline::Bool)
+    return multiline ? print(io, string(obj)) : Base.show_default(io, obj)
 end
-function Base.:(*)(n, a::StatePolynomial{V,M,T}) where {V,M,T}
-    return StatePolynomial(T(n) .* a.state_terms)
+
+function Base.:(==)(a::StatePolynomial, b::StatePolynomial)
+    a.state_words != b.state_words && return false
+    a.coeffs != b.coeffs && return false
+    return true
 end
-function Base.:(+)(a::StatePolynomial{V,M,T}, b::StatePolynomial{V,M,T}) where {V,M,T}
-    return StatePolynomial([a.state_terms; b.state_terms])
+
+Base.hash(a::StatePolynomial, u::UInt) = hash(hash.(a.coeffs, u), hash.(a.state_words, u))
+
+function Base.:(*)(a::StatePolynomial{T}, b::StatePolynomial{T}) where {T}
+    return StatePolynomial(
+        vec([ac * bc for (ac, bc) in Iterators.product(a.coeffs, b.coeffs)]),
+        vec([asw * bsw for (asw, bsw) in Iterators.product(a.state_words, b.state_words)]),
+    )
 end
-function Base.:(+)(a::StatePolynomial{V,M,T}, b::StateTerm{V,M,T}) where {V,M,T}
-    return StatePolynomial([a.state_terms; b])
+
+function Base.:(*)(a::StatePolynomial{T}, b::Monomial) where {T}
+    return NCStatePolynomial(a.coeffs, [sw * b for sw in a.state_words])
 end
-Base.one(::StatePolynomial{V,M,T}) where {V,M,T} = StatePolynomial([one(StateTerm{V,M,T})])
-function Base.zero(::StatePolynomial{V,M,T}) where {V,M,T}
-    return StatePolynomial([zero(StateTerm{V,M,T})])
+
+function Base.:(*)(n, a::StatePolynomial{T}) where {T}
+    return StatePolynomial(T(n) .* a.coeffs, a.state_words)
+end
+
+function Base.:(+)(a::StatePolynomial{T1}, b::StatePolynomial{T2}) where {T1,T2}
+    T = promote_type(T1, T2)
+    return StatePolynomial(T[a.coeffs; b.coeffs], [a.state_words; b.state_words])
+end
+
+function Base.:(+)(a::StatePolynomial{T}, b::StateWord) where {T}
+    return StatePolynomial([a.coeffs; one(T)], [a.state_words; b])
+end
+
+Base.one(::StatePolynomial{T}) where {T} = StatePolynomial([one(StateTerm{T})])
+function Base.zero(::StatePolynomial{T}) where {T}
+    return StatePolynomial([zero(StateTerm{T})])
 end
 
 # # T: type of coefficient
