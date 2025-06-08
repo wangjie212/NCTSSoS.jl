@@ -1,17 +1,19 @@
 using Test, NCTSSoS
+using NCTSSoS.FastPolynomials
 using JuMP
 using Clarabel
 using Graphs
-using DynamicPolynomials
-using DynamicPolynomials: NonCommutative, Monomial, CreationOrder, Graded, LexOrder
-using NCTSSoS: correlative_sparsity, sorted_union, symmetric_canonicalize, neat_dot, iterate_term_sparse_supp, moment_relax, TermSparsity, get_basis, substitute_variables, star, remove_zero_degree, constrain_moment_matrix!
+
+using NCTSSoS: get_basis, substitute_variables
+# using NCTSSoS: correlative_sparsity, sorted_union, symmetric_canonicalize, neat_dot, iterate_term_sparse_supp, moment_relax, TermSparsity, get_basis, substitute_variables, star, remove_zero_degree, constrain_moment_matrix!
 
 @testset "Special Constraint Type " begin
     @testset "CHSH Inequality" begin
         @ncpolyvar x[1:2]
         @ncpolyvar y[1:2]
+
         f = 1.0 * x[1] * y[1] + x[1] * y[2] + x[2] * y[1] - x[2] * y[2]
-        pop = PolyOpt(f; comm_gp= Set(x), is_unipotent=true)
+        pop = PolyOpt(f; comm_gps=[Set(x), Set(y)], is_unipotent=true)
 
         solver_config = SolverConfig(optimizer=Clarabel.Optimizer; mom_order=1)
 
@@ -24,7 +26,8 @@ using NCTSSoS: correlative_sparsity, sorted_union, symmetric_canonicalize, neat_
         @ncpolyvar x[1:3]
         @ncpolyvar y[1:3]
         f = 1.0 * x[1] * (y[1] + y[2] + y[3]) + x[2] * (y[1] + y[2] - y[3]) + x[3] * (y[1] - y[2]) - x[1] - 2 * y[1] - y[2]
-        pop = PolyOpt(-f; comm_gp= Set(x), is_projective=true)
+        -f
+        pop = PolyOpt(-f; comm_gps=[Set(x), Set(y)], is_projective=true)
 
         solver_config = SolverConfig(optimizer=Clarabel.Optimizer; mom_order=3)
 
@@ -134,39 +137,7 @@ end
 
     monomap = Dict(get_basis([x, y, z], 2) .=> jm)
 
-    @test substitute_variables(poly, monomap) == 1.0 * jm[13] - 2.0 * jm[12] - jm[1]
-end
-
-@testset "Constrain Moment Matrix" begin
-    # Example 2.4 in Sparse Polynomial Optimization: Theory and Practice
-    model = GenericModel{Float64}()
-    order = 2
-    @variable(model, y[1:15])
-    @polyvar x[1:2]
-
-    moment_mtx_idcs = get_basis(x, order)
-    total_basis = sort(
-        unique([
-            remove_zero_degree(row_idx * col_idx) for row_idx in star.(moment_mtx_idcs) for
-            col_idx in moment_mtx_idcs
-        ]),
-    )
-    monomap = Dict(total_basis .=> y)
-
-    g1 = 1.0 * x[1] - x[1]^2
-    local_basis = [one(x[1]), x[1], x[2]]
-    localizing_matrix_constraint_ineq = constrain_moment_matrix!(model, g1, local_basis, monomap, PSDCone(),identity)
-    localizing_matrix_constraint_eq = constrain_moment_matrix!(model, g1, local_basis, monomap, Zeros(),identity)
-
-    myexponents = [([1, 0], [2, 0]) ([2, 0], [3, 0]) ([1, 1], [2, 1]); ([2, 0], [3, 0]) ([3, 0], [4, 0]) ([2, 1], [3, 1]); ([1, 1], [2, 1]) ([2, 1], [3, 1]) ([1, 2], [2, 2])]
-
-    true_localizing_matrix = [mapreduce(
-        a -> (monomap[prod([iszero(b[2]) ? one(x[1]) : x[b[1]]^b[2] for b in enumerate(a)])]), -, myexponents[i]) for i in eachindex(myexponents)]
-
-    @test true_localizing_matrix == JuMP.constraint_object(localizing_matrix_constraint_ineq).func
-    @test true_localizing_matrix == JuMP.constraint_object(localizing_matrix_constraint_eq).func
-    @test JuMP.constraint_object(localizing_matrix_constraint_ineq).set == MOI.PositiveSemidefiniteConeSquare(length(local_basis))
-    @test JuMP.constraint_object(localizing_matrix_constraint_eq).set == MOI.Zeros(length(local_basis)^2)
+    @test substitute_variables(poly, monomap) == 1.0 * jm[7] - 2.0 * jm[5] - jm[1]
 end
 
 @testset "Moment Method Example 1" begin

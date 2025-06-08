@@ -17,11 +17,19 @@ using NCTSSoS.FastPolynomials: Polynomial, variables
 
         @test p.coeffs == [2.0, -3.0, 1.0]
         @test p.monos == monos[[3, 4, 1]] # only non-zero coefficients
+        @test (-p).coeffs == [-2.0, 3.0, -1.0]
+        @test (-p).monos == monos[[3, 4, 1]] # negation preserves monomials
+
 
         p_rep_mono = Polynomial([1.0,2.0],[Monomial([x[1],x[2]],[1,2]),Monomial([x[1],x[2],x[2]],[1,1,1])])
 
         @test p_rep_mono.coeffs == [3.0]
         @test p_rep_mono.monos == [Monomial([x[1], x[2]], [1, 2])]
+
+        p_const = Polynomial(Float32, 1)
+        @test p_const isa Polynomial{Float32}
+        @test p_const.coeffs == [1.0]
+        @test p_const.monos == [Monomial([], [])]
     end
     @testset "utils" begin
         @ncpolyvar x y z

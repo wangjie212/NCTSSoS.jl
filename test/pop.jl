@@ -17,11 +17,9 @@ using NCTSSoS.FastPolynomials: Variable, variables, Polynomial, Monomial
         @test !pop.is_unipotent
         @test !pop.is_projective
 
-        comm_gps = [Set([x[1]])]
+        pop = PolyOpt(objective; comm_gps=[Set([x[1]]), Set(x[2:end])], obj_type=TRACE)
 
-        pop = PolyOpt(objective; comm_gps=[Set([x[1]])], obj_type=TRACE)
-
-        @test pop.comm_gps == [Set([x[1]])]
+        @test pop.comm_gps == [Set([x[1]]), Set(x[2:end])]
         @test pop isa PolyOpt{Float64,TRACE}
     end
 

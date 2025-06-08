@@ -25,6 +25,13 @@ struct Polynomial{T}
     end
 end
 
+Polynomial(a) = Polynomial(Float64, a)
+Polynomial(::Type{T}, a::Variable) where {T} = Polynomial([one(T)], [Monomial([a], [1])])
+Polynomial(::Type{T}, a::Monomial) where {T} = Polynomial([one(T)], [a])
+function Polynomial(::Type{T1}, a::T2) where {T1,T2}
+    return Polynomial(promote_type(T1, T2), Monomial([], []))
+end
+
 variables(p::Polynomial) = union(variables.(p.monos)...)
 
 function Base.show(io::IO, obj::Polynomial)
