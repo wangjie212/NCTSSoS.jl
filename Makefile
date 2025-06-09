@@ -24,4 +24,9 @@ clean:
 	rm -rf docs/build
 	find . -name "*.cov" -type f -print0 | xargs -0 /bin/rm -f
 
+format-FastPoly:
+	$(JL) -e 'using JuliaFormatter; JuliaFormatter.format("src/FastPolynomials")'
+test-FastPoly:
+	$(JL) -e 'using Pkg; Pkg.status(); include("src/FastPolynomials/test/runtests.jl")'
+
 .PHONY: init test

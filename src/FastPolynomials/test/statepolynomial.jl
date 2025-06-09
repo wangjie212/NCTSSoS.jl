@@ -1,10 +1,38 @@
-using Test, NCTSSoS
-using NCTSSoS: NCStateWord, NCStateTerm, NCStatePolynomial, expval, neat_dot, get_state_basis, degree
-using DynamicPolynomials
-using DynamicPolynomials: monomial
+using Test, NCTSSoS.FastPolynomials
+
+using NCTSSoS.FastPolynomials: StateWord, NCStateWord, ς, degree
 
 @testset "NCStatePolynomial Components" begin
     @ncpolyvar x[1:2] y[1:2]
+
+    @testset "StateWord" begin
+        sw = StateWord([x[1] * x[2], x[2]^2])
+        sw2 = ς(x[1] * x[2]) * ς(x[2]^2)
+        @test sw == sw2
+        @test string(sw) == "<x[1]¹x[2]¹> * <x[2]²>"
+        @test sort(variables(sw)) == sort(x)
+
+        sw_sorted = StateWord([x[2]^2, x[1] * x[2]])
+        @test sw_sorted == sw
+
+        sw_more = StateWord([x[1] * x[2], x[1]^2])
+        @test sw_less < sw
+
+        @test unique([sw, sw_sorted]) == [sw]
+        @test sw * sw_more == StateWord([x[2]^2, x[1] * x[2], x[1] * x[2], x[1]^2])
+
+        sw_partial = StateWord([x[1] * x[2]])
+        @test sw != sw_partial
+
+        @test degree(sw) == 4
+
+        @test one(sw) == ς(Monomial([], []))
+
+        sw_rep1s = StateWord(Monomial.(fill(one(x[1]), 3)))
+        @test sw_rep1s == StateWord([Monomial([],[])])
+		@test one(StateWord) == ς(Monomial([], []))
+        @test (4.0 * sw) isa StatePolynomial{Float64} 
+    end
 
     @testset "NCStateWord" begin
         sw = NCStateWord([x[1] * x[2], x[2]^2], one(x[1]))
