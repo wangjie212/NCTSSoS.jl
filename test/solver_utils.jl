@@ -1,10 +1,12 @@
 using Test, NCTSSoS
 using JuMP
+using NCTSSoS.FastPolynomials
 using NCTSSoS: get_dim, reducer, sorted_unique
 
-using NCTSSoS.FastPolynomials: Monomial, Polynomial
+using NCTSSoS.FastPolynomials: Monomial, Polynomial, sorted_union, get_basis
 
 @testset "Utilities" begin
+    @ncpolyvar x y z
     @testset "VectorConstraint Dim" begin
         model = Model()
         n = 5
