@@ -7,7 +7,8 @@ using NCTSSoS.FastPolynomials: Monomial, Polynomial, sorted_union, get_basis
 
 @testset "Utilities" begin
     @ncpolyvar x y z
-    @testset "VectorConstraint Dim" begin
+    @testset "VectorConstraint Diexport @ncpolyvar
+m" begin
         model = Model()
         n = 5
         var1 = @variable(model, [1:n, 1:n])

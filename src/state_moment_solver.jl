@@ -8,7 +8,7 @@ struct StateMomentProblem{T,CR<:ConstraintRef} <: OptimizationProblem
     reduce_func::Function
 end
 
-function substitute_variables(poly::NCStatePolynomial{T}, wordmap::Dict{NCStateWord,GenericVariableRef{T}}) where {V,M,T}
+function substitute_variables(poly::NCStatePolynomial{T}, wordmap::Dict{NCStateWord,GenericVariableRef{T}}) where {T}
     mapreduce(x -> (x.coef * wordmap[expval(x.ncstate_word)]), +, terms(poly))
 end
 
@@ -74,7 +74,7 @@ function constrain_moment_matrix!(
     monomap::Dict{NCStateWord,GenericVariableRef{T}},
     cone, # FIXME: which type should I use?
     reduce_func::Function
-) where {V,M,T}
+) where {T}
     moment_mtx = [
         substitute_variables(sum([poly_term.coef * reduce_func(neat_dot(row_idx, poly_term.ncstate_word * col_idx)) for poly_term in terms(poly)]; init=zero(poly)), monomap) for row_idx in local_basis, col_idx in local_basis
     ]
