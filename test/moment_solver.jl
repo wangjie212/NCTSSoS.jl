@@ -4,16 +4,15 @@ using JuMP
 using Clarabel
 using Graphs
 
-using NCTSSoS.FastPolynomials: get_basis
-using NCTSSoS: substitute_variables
-using NCTSSoS: correlative_sparsity
+using NCTSSoS.FastPolynomials: get_basis, monomials, neat_dot
+using NCTSSoS: substitute_variables, correlative_sparsity, TermSparsity, sorted_union, symmetric_canonicalize, iterate_term_sparse_supp, moment_relax
+
 # sorted_union, symmetric_canonicalize, neat_dot, iterate_term_sparse_supp, moment_relax, TermSparsity, get_basis, substitute_variables, star, remove_zero_degree, constrain_moment_matrix!
 
 @testset "Special Constraint Type " begin
     @testset "CHSH Inequality" begin
         @ncpolyvar x[1:2]
         @ncpolyvar y[1:2]
-
 
         f = 1.0 * x[1] * y[1] + x[1] * y[2] + x[2] * y[1] - x[2] * y[2]
         pop = PolyOpt(f; comm_gps=[Set(x), Set(y)], is_unipotent=true)
@@ -65,7 +64,7 @@ end
 
     corr_sparsity = correlative_sparsity(pop, order, cs_algo)
 
-    cliques_objective = [reduce(+, [issubset(effective_variables(mono), clique) ? coef * mono : zero(mono) for (coef, mono) in zip(coefficients(pop.objective), monomials(pop.objective))]) for clique in corr_sparsity.cliques]
+    cliques_objective = [reduce(+, [issubset(variables(mono), clique) ? coef * mono : zero(mono) for (coef, mono) in zip(pop.objective.coeffs, pop.objective.monos)]) for clique in corr_sparsity.cliques]
 
     # prepare the support for each term sparse localizing moment
     initial_activated_supp = [
@@ -160,7 +159,7 @@ end
 
     @testset "Dense" begin
         cliques_term_sparsities = [
-            [TermSparsity(Monomial{NonCommutative{CreationOrder},Graded{LexOrder}}[], [basis]) for basis in idx_basis]
+            [TermSparsity(Monomial[], [basis]) for basis in idx_basis]
             for idx_basis in corr_sparsity.cliques_idcs_bases
         ]
 
@@ -178,7 +177,7 @@ end
     @testset "Sprase" begin
         ts_algo = MMD()
 
-        cliques_objective = [reduce(+, [issubset(effective_variables(mono), clique) ? coef * mono : zero(mono) for (coef, mono) in zip(coefficients(pop.objective), monomials(pop.objective))]) for clique in corr_sparsity.cliques]
+        cliques_objective = [reduce(+, [issubset(variables(mono), clique) ? coef * mono : zero(mono) for (coef, mono) in zip(pop.objective.coeffs, pop.objective.monos)]) for clique in corr_sparsity.cliques]
 
         # prepare the support for each term sparse localizing moment
         initial_activated_supp = [
@@ -213,7 +212,7 @@ end
 
     @testset "Dense" begin
         cliques_term_sparsities = [
-            [TermSparsity(Monomial{NonCommutative{CreationOrder},Graded{LexOrder}}[], [basis]) for basis in idx_basis]
+            [TermSparsity(Monomial[], [basis]) for basis in idx_basis]
             for idx_basis in corr_sparsity.cliques_idcs_bases
         ]
 
@@ -229,7 +228,7 @@ end
     @testset "Term Sparse" begin
         ts_algo = MMD()
 
-        cliques_objective = [reduce(+, [issubset(effective_variables(mono), clique) ? coef * mono : zero(mono) for (coef, mono) in zip(coefficients(pop.objective), monomials(pop.objective))]) for clique in corr_sparsity.cliques]
+        cliques_objective = [reduce(+, [issubset(variables(mono), clique) ? coef * mono : zero(mono) for (coef, mono) in zip(pop.objective.coeffs, pop.objective.monos)]) for clique in corr_sparsity.cliques]
 
         # prepare the support for each term sparse localizing moment
         initial_activated_supp = [
@@ -267,7 +266,7 @@ end
 
     @testset "Correlative Sparse" begin
         cliques_term_sparsities = [
-            [TermSparsity(Monomial{NonCommutative{CreationOrder},Graded{LexOrder}}[], [basis]) for basis in idx_basis]
+            [TermSparsity(Monomial[], [basis]) for basis in idx_basis]
             for idx_basis in corr_sparsity.cliques_idcs_bases
         ]
 
@@ -285,7 +284,7 @@ end
     @testset "Term Sparse" begin
         ts_algo = MMD()
 
-        cliques_objective = [reduce(+, [issubset(effective_variables(mono), clique) ? coef * mono : zero(mono) for (coef, mono) in zip(coefficients(pop.objective), monomials(pop.objective))]) for clique in corr_sparsity.cliques]
+        cliques_objective = [reduce(+, [issubset(variables(mono), clique) ? coef * mono : zero(mono) for (coef, mono) in zip(pop.objective.coeffs, pop.objective.monos)]) for clique in corr_sparsity.cliques]
 
         # prepare the support for each term sparse localizing moment
         initial_activated_supp = [

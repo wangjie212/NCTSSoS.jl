@@ -3,8 +3,6 @@ using NCTSSoS.FastPolynomials: star, symmetric_canonicalize, cyclic_canonicalize
 
 using NCTSSoS.FastPolynomials: Monomial, Polynomial
 
-
-
 @testset "Utilities" begin
     @ncpolyvar x y z
 

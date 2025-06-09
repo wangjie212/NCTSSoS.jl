@@ -91,8 +91,7 @@ function get_term_sparsity_graph(cons_support::Vector{Monomial}, activated_supp:
     sorted_activated_supp = sort(activated_supp)
     for i in 1:nterms, j in i+1:nterms
         for supp in cons_support
-            # if symmetric_canonicalize(neat_dot(basis[i], supp * basis[j])) in activated_supp
-            if !iszero(binary_search(symmetric_canonicalize(neat_dot(basis[i], supp * basis[j])), sorted_activated_supp))
+            if symmetric_canonicalize(neat_dot(basis[i], supp * basis[j])) in activated_supp
                 add_edge!(G, i, j)
                 continue
             end
@@ -103,7 +102,7 @@ end
 
 # returns: F (the chordal graph), blocks in basis
 function iterate_term_sparse_supp(activated_supp::Vector{Monomial}, poly::Polynomial, basis::Vector{Monomial}, elim_algo::EliminationAlgorithm)
-    F = get_term_sparsity_graph(collect(monomials(poly)), activated_supp, basis)
+    F = get_term_sparsity_graph(poly.monos, activated_supp, basis)
     blocks = clique_decomp(F, elim_algo)
     map(block -> add_clique!(F, block), blocks)
     return TermSparsity(term_sparsity_graph_supp(F, basis, poly), map(x -> basis[x], blocks))
@@ -115,6 +114,6 @@ function term_sparsity_graph_supp(G::SimpleGraph, basis::Vector{Monomial}, g::Po
     # following (10.4) in Sparse Polynomial Optimization: Theory and Practise
     # NOTE: Do I need to symmetric canonicalize it?
     # TODO: add reduce! here
-    gsupp(a, b) = map(g_supp -> neat_dot(a, g_supp * b), monomials(g))
+    gsupp(a, b) = map(g_supp -> neat_dot(a, g_supp * b), g.monos)
     return union([gsupp(basis[v], basis[v]) for v in vertices(G)]..., [gsupp(basis[e.src], basis[e.dst]) for e in edges(G)]...)
 end

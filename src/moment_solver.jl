@@ -31,7 +31,7 @@ function moment_relax(pop::PolyOpt{T}, cliques_cons::Vector{Vector{Int}}, global
     # the union of clique_total_basis
     total_basis = sorted_union(map(zip(cliques_cons, cliques_term_sparsities)) do (cons_idx, term_sparsities)
         union(vec(reduce(vcat, [
-            map(monomials(poly)) do m
+            map(poly.monos) do m
                 prod(reduce_func(neat_dot(rol_idx, m * col_idx)))
             end
             for (poly, term_sparsity) in zip([one(pop.objective); pop.constraints[cons_idx]], term_sparsities) for basis in term_sparsity.block_bases for rol_idx in basis for col_idx in basis
@@ -67,7 +67,7 @@ function moment_relax(pop::PolyOpt{T}, cliques_cons::Vector{Vector{Int}}, global
                 )
             end]
 
-    @objective(model, Min, substitute_variables(mapreduce(p -> coefficient(p) * prod(reduce_func(monomial(p))), +, terms(symmetric_canonicalize(pop.objective)); init=zero(pop.objective)), monomap))
+    @objective(model, Min, substitute_variables(mapreduce(p -> p[1] * prod(reduce_func(p[2])), +, terms(symmetric_canonicalize(pop.objective)); init=zero(pop.objective)), monomap))
 
     return MomentProblem(model, constraint_matrices, monomap, reduce_func)
 end

@@ -50,10 +50,10 @@ function cs_nctssos(pop::PolyOpt{T}, solver_config::SolverConfig) where {T}
 
     corr_sparsity = correlative_sparsity(pop, mom_order, solver_config.cs_algo)
 
-    cliques_objective = [reduce(+, [issubset(effective_variables(mono), clique) ? coef * mono : zero(mono) for (coef, mono) in zip(coefficients(pop.objective), monomials(pop.objective))]) for clique in corr_sparsity.cliques]
+    cliques_objective = [reduce(+, [issubset(sort!(variables(mono)), clique) ? coef * mono : zero(mono) for (coef, mono) in zip(pop.objective.coeffs, pop.objective.monos)]) for clique in corr_sparsity.cliques]
 
     # prepare the support for each term sparse localizing moment
-    initial_activated_supp = [sorted_union(symmetric_canonicalize.(monomials(obj_part)), mapreduce(a -> monomials(a), vcat, pop.constraints[cons_idx]; init=Monomial[]), [neat_dot(b, b) for b in idcs_bases[1]])
+    initial_activated_supp = [sorted_union(symmetric_canonicalize.(obj_part.monos), mapreduce(a -> a.monos, vcat, pop.constraints[cons_idx]; init=Monomial[]), [neat_dot(b, b) for b in idcs_bases[1]])
                               for (obj_part, cons_idx, idcs_bases) in zip(cliques_objective, corr_sparsity.cliques_cons, corr_sparsity.cliques_idcs_bases)]
 
     # TODO: check here 2.6s
@@ -96,7 +96,7 @@ function cs_nctssos(spop::StatePolyOpt{T}, solver_config::SolverConfig) where {T
 
     cr = correlative_sparsity(spop, mom_order, solver_config.cs_algo)
 
-    cliques_objective = [reduce(+, [issubset(effective_variables(t.ncstate_word), clique) ? t : zero(t) for t in terms(spop.objective)]) for clique in cr.cliques]
+    cliques_objective = [reduce(+, [issubset(sort!(variables(t.ncstate_word)), clique) ? t : zero(t) for t in terms(spop.objective)]) for clique in cr.cliques]
 
     initial_activated_supp = [sorted_union(symmetric_canonicalize.(monomials(obj_part)), mapreduce(a -> monomials(a), vcat, spop.constraints[cons_idx]; init=typeof(monomials(spop.objective)[1])[]))
                               for (obj_part, cons_idx, idcs_bases) in zip(cliques_objective, cr.cliques_cons, cr.cliques_idcs_bases)]

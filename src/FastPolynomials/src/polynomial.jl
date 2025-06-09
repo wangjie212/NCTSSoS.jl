@@ -95,8 +95,10 @@ end
 
 Polynomial(a::Polynomial) = a
 
-Base.convert(::Type{Polynomial{T}},a::Variable) where {T} = Polynomial([one(T)], [Monomial([a], [one(T)])])
-Base.convert(::Type{Polynomial{T}},a::Monomial) where {T} = Polynomial([one(T)], [a])
+function Base.convert(::Type{Polynomial{T}}, a::Variable) where {T}
+    return Polynomial([one(T)], [Monomial([a], [one(T)])])
+end
+Base.convert(::Type{Polynomial{T}}, a::Monomial) where {T} = Polynomial([one(T)], [a])
 
 """
     variables(p::Polynomial)
@@ -164,8 +166,16 @@ end
 
 maxdegree(p::Polynomial) = maximum(degree.(p.monos))
 
-function Base.:(^)(p::Polynomial,n::Int)
+function Base.:(^)(p::Polynomial, n::Int)
     n == 0 && return one(typeof(p))
     n == 1 && return p
-    return p * (p^(n-1))
+    return p * (p^(n - 1))
 end
+
+Base.one(::Polynomial{T}) where {T} = Polynomial([one(T)], [Monomial([], [])])
+Base.zero(::Polynomial{T}) where {T} = Polynomial([zero(T)], [Monomial([], [])])
+
+coefficients(p::Polynomial) = p.coeffs
+monomials(p::Polynomial) = p.monos
+
+terms(p::Polynomial) = zip(p.coeffs, p.monos)
