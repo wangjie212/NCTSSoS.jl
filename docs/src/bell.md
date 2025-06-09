@@ -28,8 +28,8 @@ using NCTSSoS, Clarabel
 f = 1.0 * x[1] * y[1] + x[1] * y[2] + x[2] * y[1] - x[2] * y[2]  # objective function
 
 pop = PolyOpt(             # the optimization problem
-        f; 
-        comm_gp= Set(x),   # commutative group
+        f;
+        comm_gps= [Set(x), Set(y)],   # commutative group
         is_unipotent=true  # the variables are unipotent
     )
 
@@ -42,7 +42,7 @@ result.objective  # the upper bound of the CHSH inequality
 ```
 
 Here, we first declare some operators as non-commutative variables, and then construct the optimization problem. In `PolyOpt` constructor,
-- `comm_gp` argument specifies the commutative group of the variables, which means variables in different commutative groups commute with each other. (TODO: change this API.)
+- `comm_gps` argument specifies the commutative group of the variables, which means variables in different commutative groups commute with each other. (TODO: change this API.)
 - `is_unipotent` argument specifies that the variables are unipotent, which means they square to 1 (e.g. Pauli operators).
 
 Here, since the variables on different qubits commute with each other, we can group them into different commutative groups.
@@ -57,7 +57,7 @@ The $I_{3322}$ inequality is a more complex inequality that involves three parti
 
 ```math
 f(A_1, A_2, A_3, B_1, B_2, B_3) = \langle A_1(B_1+B_2+B_3) \rangle + \langle A_2(B_1+B_2-B_3) \rangle\\
-+ \langle A_3(B_1-B_2) \rangle 
++ \langle A_3(B_1-B_2) \rangle
 - \langle A_1 \rangle - 2\langle B_1 \rangle - \langle B_2 \rangle
 ```
 
@@ -73,7 +73,7 @@ using NCTSSoS, Clarabel
 f = 1.0 * x[1] * (y[1] + y[2] + y[3]) + x[2] * (y[1] + y[2] - y[3]) +
     x[3] * (y[1] - y[2]) - x[1] - 2 * y[1] - y[2]  # objective function
 
-pop = PolyOpt(-f; comm_gp= Set(x), is_projective=true)
+pop = PolyOpt(-f; comm_gps= [Set(x),Set(y)], is_projective=true)
 
 solver_config = SolverConfig(optimizer=Clarabel.Optimizer; mom_order=2)
 
@@ -89,7 +89,7 @@ The resulting upper bound is close to the theoretical exact value $0.25$. By inc
 
 Non-linear Bell inequalities are extensions of the standard linear Bell inequalities. Instead of being linear combinations of expectation values, they involve polynomial functions of these expectation values. These inequalities arise naturally when considering more complex scenarios, such as multi-party settings or when the parties can perform sequences of measurements.
 
-The significance of non-linear Bell inequalities in quantum information lies in their ability to detect non-locality in situations where linear inequalities might fail. They can provide tighter bounds on classical correlations and reveal quantum non-locality in a broader range of experimental setups. Furthermore, studying non-linear Bell inequalities helps in understanding the structure of quantum correlations and the boundary between classical and quantum physics more deeply. They are also relevant in the context of quantum cryptography and communication complexity, where understanding the limits of classical and quantum correlations is crucial. 
+The significance of non-linear Bell inequalities in quantum information lies in their ability to detect non-locality in situations where linear inequalities might fail. They can provide tighter bounds on classical correlations and reveal quantum non-locality in a broader range of experimental setups. Furthermore, studying non-linear Bell inequalities helps in understanding the structure of quantum correlations and the boundary between classical and quantum physics more deeply. They are also relevant in the context of quantum cryptography and communication complexity, where understanding the limits of classical and quantum correlations is crucial.
 
 ### Covariance Bell Inequality
 
@@ -104,13 +104,12 @@ Let us define the objective function as:
 f(A_1,A_2,A_3, B_1,B_2,B_3) = \text{Cov}(A_1, B_1) + \text{Cov}(A_1, B_2) + \text{Cov}(A_1,B_3)  + \\ \text{Cov}(A_2, B_1) + \text{Cov}(A_2, B_2) - \text{Cov}(A_2, B_3) + \text{Cov}(A_3, B_1) - \text{Cov}(A_3,B_2)
 ```
 
-it was shown that $f(A_1,A_2,A_3,B_1,B_2,B_3) \leq \frac{9}{2}$ in classical models, while it can attain a maximum value of $5$ in spatial quantum model of qubits and a maximally entangled state [^Pozsgay]. 
+it was shown that $f(A_1,A_2,A_3,B_1,B_2,B_3) \leq \frac{9}{2}$ in classical models, while it can attain a maximum value of $5$ in spatial quantum model of qubits and a maximally entangled state [^Pozsgay].
 
 An *open question* was whether a higher bound can be attained in a spatial quantum model of qudits, i.e., systems with more than two levels. Using State Polynomial Optimization (TODO: cite), we can certify the upper bound of this inequality:
 
 ```@example covariance
-using NCTSSoS, Clarabel
-using NCTSSoS.DynamicPolynomials: monomial 
+using NCTSSoS, COSMO
 
 @ncpolyvar x[1:3] y[1:3]  # x = (A_1, A_2, A_3), y = (B_1, B_2, B_3)
 
@@ -124,13 +123,13 @@ sp = cov(1,1) + cov(1,2) + cov(1,3) + cov(2,1) + cov(2,2) - cov(2,3) + cov(3,1) 
 
 spop = StatePolyOpt(
         sp;                                 # the optimization problem
-        is_unipotent=true,                  # the variables are unipotent        
-        comm_gps=[x[1:3], y[1:3]]           # the commutative groups of the variables 
+        is_unipotent=true,                  # the variables are unipotent
+        comm_gps=[x[1:3], y[1:3]]           # the commutative groups of the variables
         )
 
 solver_config = SolverConfig(
-    optimizer=Clarabel.Optimizer;           # the solver backend
-    mom_order=2                             # the order of the moment matrix   
+    optimizer=COSMO.Optimizer;           # the solver backend
+    mom_order=2                             # the order of the moment matrix
 )
 
 result = cs_nctssos(spop, solver_config)
@@ -145,5 +144,3 @@ TODO: use sparsity to improve the performance of the algorithm.
 [^Goulart2024]: Goulart, P.J., Chen, Y., 2024. Clarabel: An interior-point solver for conic programs with quadratic objectives. https://doi.org/10.48550/arXiv.2405.12762
 [^Pal2010]: Pál, K.F., Vértesi, T., 2010. Maximal violation of the I3322 inequality using infinite dimensional quantum systems. Phys. Rev. A 82, 022116. https://doi.org/10.1103/PhysRevA.82.022116
 [^Pozsgay]: Victor Pozsgay, Flavien Hirsch, Cyril Branciard, and Nicolas Brunner. Covariance Bell inequalities. Phys. Rev. A, 96(6):062128, 13, 2017. https://doi.org/10.1103/PhysRevA.96.062128
-
-

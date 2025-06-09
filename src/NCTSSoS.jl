@@ -7,6 +7,7 @@ import CliqueTrees.cliquetree
 
 include("FastPolynomials/src/FastPolynomials.jl")
 using .FastPolynomials
+using .FastPolynomials: sorted_union
 export @ncpolyvar
 
 

@@ -202,19 +202,19 @@ order of variables within each group.
 - `Vector{Monomial}`: Projections of the monomial onto each commutative group
 
 # Example
-```jldoctest; setup=:(using NCTSSoS.FastPolynomials)
+```jldoctest; setup=:(using NCTSSoS.FastPolynomials; using NCTSSoS.FastPolynomials: _comm)
 julia> @ncpolyvar x y; comm_gps = [Set([x]),Set([y])]
 2-element Vector{Set{Variable}}:
  Set([x])
  Set([y])
 
- julia> mono1 = x*y*x*y
- x¹y¹x¹y¹
+julia> mono1 = x*y*x*y
+x¹y¹x¹y¹
 
- julia> _comm(mono1, comm_gps)
- 2-element Vector{Monomial}:
-  x²
-  y²
+julia> _comm(mono1, comm_gps)
+2-element Vector{Monomial}:
+ x²
+ y²
 ```
 """
 function _comm(mono::Monomial, comm_gps::Vector{Set{Variable}})

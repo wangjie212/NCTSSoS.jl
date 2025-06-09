@@ -33,7 +33,13 @@ Creates a StateWord from a monomial or variable using the Greek letter ς (sigma
 - `StateWord`: StateWord containing the input as a single state monomial
 
 # Example
-```jldoctest; setup:=(using NCTSSoS.FastPolynomials: ς)
+```jldoctest; setup=:(using NCTSSoS.FastPolynomials; using NCTSSoS.FastPolynomials: ς)
+julia> @ncpolyvar x y z
+(x, y, z)
+
+julia> ς(x^2*y)
+<x²y¹>
+```
 """
 ς(m::Union{Monomial,Variable}) = StateWord([Monomial(m)])
 
@@ -145,6 +151,7 @@ Base.:(==)(a::StateWord, b::StateWord) = iszero(cmp(a, b))
     Base.hash(a::StateWord, u::UInt)
 
 Computes hash value for a StateWord based on its state monomials.
+Need to guarantee it is always sorted
 
 # Arguments
 - `a::StateWord`: The StateWord to hash
@@ -153,7 +160,6 @@ Computes hash value for a StateWord based on its state monomials.
 # Returns
 - `UInt`: Hash value of the state monomials (requires sorted invariant)
 """
-# NOTE: need to guarantee it is always sorted
 Base.hash(a::StateWord, u::UInt) = hash(a.state_monos, u)
 
 """
@@ -234,6 +240,18 @@ Represents mixed commutative-noncommutative polynomial expressions.
 # Fields
 - `sw::StateWord`: Commutative state word part
 - `nc_word::Monomial`: Non-commutative monomial part
+
+# Examples
+```jldoctest; setup=:(using NCTSSoS.FastPolynomials; using NCTSSoS.FastPolynomials:NCStateWord, ς)
+julia> @ncpolyvar x y z
+(x, y, z)
+
+julia> sw = ς(x^2*y)
+<x²y¹>
+
+julia> ncsw = sw * (x*z)
+<x²y¹> x¹z¹
+```
 """
 struct NCStateWord
     sw::StateWord
