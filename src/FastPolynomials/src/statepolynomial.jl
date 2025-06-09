@@ -171,120 +171,148 @@ function Base.:(+)(a::StatePolynomial{T}, b::StateWord) where {T}
     return StatePolynomial([a.coeffs; one(T)], [a.state_words; b])
 end
 
-Base.one(::StatePolynomial{T}) where {T} = StatePolynomial([one(StateTerm{T})])
+Base.one(::StatePolynomial{T}) where {T} = StatePolynomial([one(T)], [one(StateWord)])
 function Base.zero(::StatePolynomial{T}) where {T}
-    return StatePolynomial([zero(StateTerm{T})])
+    return StatePolynomial([zero(T)], [one(StateWord)])
 end
 
-# # T: type of coefficient
-# # V: whether the variabels is NonCommutative{CreationOrder} or Commutative{CreationOrder}
-# # M: ordering of the monomials Graded{LexOrder} or else
-# # FIXME: inheriting from AbstractPolynomial gives StackOverflowError when trying to print in REPL
-# struct StatePolynomialOp{V,M,T}
-#     nc_state_terms::Vector{NCStateTerm{V,M,T}}
-#     # TODO: get a more user friendly way of declaring StatePolynomial
-#     function StatePolynomialOp(nc_state_terms::Vector{NCStateTerm{V,M,T}}) where {V,M,T}
-#         uniq_words = sorted_unique([ncst.ncstate_word for ncst in nc_state_terms])
-#         return new{V,M,T}(
-#             map(uniq_words) do word
-#                 NCStateTerm(
-#                     sum([
-#                         ncst.coef for ncst in nc_state_terms[findall(
-#                             x -> x.ncstate_word == (word), nc_state_terms
-#                         )]
-#                     ]),
-#                     word,
-#                 )
-#             end,
-#         )
-#     end
-# end
+# T: type of coefficient
+struct NCStatePolynomial{T}
+    coeffs::Vector{T}
+    nc_state_words::Vector{NCStateWord}
 
-# function Base.show(io::IO, ncsp::StatePolynomialOp)
-#     return print(io, join(string.(ncsp.nc_state_terms), " + "))
-# end
+    function NCStatePolynomial(
+        coeffs::Vector{T}, nc_state_words::Vector{NCStateWord}
+    ) where {T}
+        uniq_nc_state_words = sorted_unique(nc_state_words)
+        uniq_coeffs = zeros(T, length(uniq_nc_state_words))
+        for (coef, sw) in zip(coeffs, nc_state_words)
+            idx = searchsortedfirst(uniq_nc_state_words, sw)
+            uniq_coeffs[idx] += coef
+        end
+        return new{T}(uniq_coeffs, uniq_nc_state_words)
+    end
+end
 
-# function Base.:(==)(a::StatePolynomialOp, b::StatePolynomialOp)
-#     return all(a.nc_state_terms .== b.nc_state_terms)
-# end # by constructor I alwasy guarantee no duplicate words and sorted
-# Base.hash(ncsp::StatePolynomialOp) = hash(hash.(ncsp.nc_state_terms))
-# function Base.:(+)(a::StatePolynomialOp, b::StatePolynomialOp)
-#     return StatePolynomialOp([a.nc_state_terms; b.nc_state_terms])
-# end
-# Base.:(+)(a::StatePolynomialOp, b::NCStateTerm) = StatePolynomialOp([a.nc_state_terms; b])
-# function Base.:(-)(a::StatePolynomialOp{V,M,T}, b::StatePolynomialOp{V,M,T}) where {V,M,T}
-#     return StatePolynomialOp([a.nc_state_terms; -one(T) .* b.nc_state_terms])
-# end
-# function Base.:(-)(a::StatePolynomialOp{V,M,T}, b::NCStateTerm) where {V,M,T}
-#     return StatePolynomialOp([a.nc_state_terms; -one(T) * b])
-# end
+function Base.show(io::IO, obj::NCStatePolynomial)
+    return print_object(io, obj; multiline=false)
+end
 
-# function Base.one(::StatePolynomialOp{V,M,T}) where {V,M,T}
-#     return StatePolynomialOp([one(NCStateTerm{V,M,T})])
-# end
-# function Base.zero(::StatePolynomialOp{V,M,T}) where {V,M,T}
-#     return StatePolynomialOp([zero(NCStateTerm{V,M,T})])
-# end
-# function Base.zero(::Type{StatePolynomialOp{V,M,T}}) where {V,M,T}
-#     return StatePolynomialOp([zero(NCStateTerm{V,M,T})])
-# end
-# function DynamicPolynomials.variables(ncsp::StatePolynomialOp)
-#     return sorted_union(variables.(ncsp.nc_state_terms)...)
-# end
-# function DynamicPolynomials.degree(ncsp::StatePolynomialOp)
-#     return reduce(max, degree.(ncsp.nc_state_terms))
-# end
-# DynamicPolynomials.monomials(ncsp::StatePolynomialOp) = monomial.(ncsp.nc_state_terms)
-# DynamicPolynomials.terms(ncsp::StatePolynomialOp) = ncsp.nc_state_terms
+# the 3-argument show used by display(obj) on the REPL
+function Base.show(io::IO, mime::MIME"text/plain", obj::NCStatePolynomial)
+    # you can add IO options if you want
+    multiline = get(io, :multiline, true)
+    return print_object(io, obj; multiline=multiline)
+end
 
-# function get_state_basis(variables::Vector{Variable{V,M}}, d::Int, reducer) where {V,M}
-#     return map(
-#         a -> NCStateWord(StateWord(a[1]), a[2]),
-#         mapreduce(vcat, 0:d) do nc_deg
-#             nc_basis = reducer.(monomials(variables, nc_deg))
-#             cw_deg = d - nc_deg
-#             cw_basis = unique!([
-#                 begin
-#                     interm = sort(filter(!isone, collect(c_word)))
-#                     isempty(interm) ? [one(variables[1])] : interm
+function Base.string(obj::NCStatePolynomial)
+    return join(
+        map(zip(obj.coeffs, obj.nc_state_words)) do (coef, ncsw)
+            string(coef) * " * " * string(ncsw)
+        end,
+        " + ",
+    )
+end
 
-#                     # if it is cyclic_canonicalize.(reducer.) the state basis matches why ?
-#                 end for c_word in product(
-#                     ntuple(
-#                         _ -> unique!(
-#                             symmetric_canonicalize.(
-#                                 reducer.(monomials(variables, 0:cw_deg))
-#                             ),
-#                         ),
-#                         cw_deg,
-#                     )...,
-#                     [one(variables[1])],
-#                 ) if sum(degree.(c_word)) <= cw_deg
-#             ])
-#             reshape(collect(product(cw_basis, nc_basis)), :)
-#         end,
-#     )
-# end
+function print_object(io::IO, obj::NCStatePolynomial; multiline::Bool)
+    return multiline ? print(io, string(obj)) : Base.show_default(io, obj)
+end
 
-# for symb in [:symmetric_canonicalize, :cyclic_canonicalize]
-#     take_adj = (symb == :symmetric_canonicalize ? :adjoint : :identity)
-#     eval(
-#         quote
-#             function $(symb)(sw::StateWord)
-#                 return StateWord($(symb).(sw.state_monos))
-#             end
+function Base.:(==)(a::NCStatePolynomial, b::NCStatePolynomial)
+    a.nc_state_words != b.nc_state_words && return false
+    a.coeffs != b.coeffs && return false
+    return true
+end
 
-#             function $(symb)(ncsw::NCStateWord)
-#                 return NCStateWord($(symb)(ncsw.sw), $(symb)(ncsw.nc_word))
-#             end
+function Base.hash(ncsp::NCStatePolynomial, u::UInt)
+    return hash(hash.(ncsp.coeffs, u), hash.(ncsp.nc_state_words, u))
+end
 
-#             function $(symb)(sp::StatePolynomial)
-#                 return StatePolynomial($(symb).(sp.state_terms))
-#             end
+function Base.:(+)(a::NCStatePolynomial{T1}, b::NCStatePolynomial{T2}) where {T1,T2}
+    T = promote_type(T1, T2)
+    return NCStatePolynomial(T[a.coeffs; b.coeffs], [a.nc_state_words; b.nc_state_words])
+end
+function Base.:(+)(a::NCStatePolynomial{T}, b::NCStateWord) where {T}
+    return NCStatePolynomial(T[a.coeffs; one(T)], [a.nc_state_words; b])
+end
 
-#             function $(symb)(spo::StatePolynomialOp)
-#                 return StatePolynomialOp($(symb).(spo.nc_state_terms))
-#             end
-#         end,
-#     )
-# end
+function Base.:(-)(a::NCStatePolynomial{T1}, b::NCStatePolynomial{T2}) where {T1,T2}
+    T = promote_type(T1, T2)
+    return NCStatePolynomial(
+        T[a.coeffs; -one(T); b.coeffs], [a.nc_state_words; b.nc_state_words]
+    )
+end
+
+function Base.:(-)(a::NCStatePolynomial{T}, b::NCStateWord) where {T}
+    return NCStatePolynomial(T[a.coeffs; -one(T)], [a.nc_state_words; b])
+end
+
+function Base.one(::NCStatePolynomial{T}) where {T}
+    return NCStatePolynomial([one(T)], [one(NCStateWord)])
+end
+
+function Base.zero(::NCStatePolynomial{T}) where {T}
+    return NCStatePolynomial([zero(T)], [one(NCStateWord)])
+end
+
+function Base.zero(::Type{NCStatePolynomial{T}}) where {T}
+    return NCStatePolynomial([zero(T)], [one(NCStateWord)])
+end
+
+function variables(ncsp::NCStatePolynomial)
+    return sorted_union(variables.(ncsp.nc_state_words)...)
+end
+
+function degree(ncsp::NCStatePolynomial)
+    return reduce(max, degree.(ncsp.nc_state_words))
+end
+
+function get_state_basis(variables::Vector{Variable}, d::Int, reducer)
+    return map(
+        a -> NCStateWord(StateWord(a[1]), a[2]),
+        mapreduce(vcat, 0:d) do nc_deg
+            nc_basis = reducer.(monomials(variables, nc_deg))
+            cw_deg = d - nc_deg
+            cw_basis = unique!([
+                begin
+                    interm = sort(filter(!isone, collect(c_word)))
+                    isempty(interm) ? [one(variables[1])] : interm
+
+                    # if it is cyclic_canonicalize.(reducer.) the state basis matches why ?
+                end for c_word in Iterators.product(
+                    ntuple(
+                        _ -> unique!(
+                            symmetric_canonicalize.(reducer.(get_basis(variables, cw_deg))),
+                        ),
+                        cw_deg,
+                    )...,
+                    [one(variables[1])],
+                ) if sum(degree.(c_word)) <= cw_deg
+            ])
+            reshape(collect(Iterators.product(cw_basis, nc_basis)), :)
+        end,
+    )
+end
+
+for symb in [:symmetric_canonicalize, :cyclic_canonicalize]
+    take_adj = (symb == :symmetric_canonicalize ? :adjoint : :identity)
+    eval(
+        quote
+            function $(symb)(sw::StateWord)
+                return StateWord($(symb).(sw.state_monos))
+            end
+
+            function $(symb)(ncsw::NCStateWord)
+                return NCStateWord($(symb)(ncsw.sw), $(symb)(ncsw.nc_word))
+            end
+
+            function $(symb)(sp::StatePolynomial)
+                return StatePolynomial($(symb).(sp.state_words))
+            end
+
+            function $(symb)(spo::NCStatePolynomial)
+                return NCStatePolynomial($(symb).(spo.nc_state_words))
+            end
+        end,
+    )
+end

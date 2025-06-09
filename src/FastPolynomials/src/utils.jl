@@ -30,14 +30,18 @@ function cyclic_canonicalize(poly::Polynomial)
     return Polynomial(poly.coeffs, cyclic_canonicalize.(poly.monos))
 end
 
+function monomials(vars::Vector{Variable}, cur_d::Int)
+    return vec(
+        map(Iterators.product(repeat([vars], cur_d)...)) do cur_vars
+            Monomial(cur_vars, ones(cur_d))
+        end,
+    )
+end
+
 function get_basis(vars::Vector{Variable}, d::Int)
     return sort(
         mapreduce(vcat, 0:d) do dg
-            vec(
-                map(Iterators.product(repeat([vars], dg)...)) do cur_var
-                    Monomial(cur_var, ones(dg))
-                end,
-            )
+            monomials(vars, dg)
         end,
     )
 end
