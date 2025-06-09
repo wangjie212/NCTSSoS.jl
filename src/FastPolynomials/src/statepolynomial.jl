@@ -299,6 +299,10 @@ Computes the adjoint of an NCStateWord by taking the star of the non-commutative
 """
 Base.adjoint(a::NCStateWord) = NCStateWord(a.sw, star(a.nc_word))
 
+function neat_dot(x::NCStateWord, y::NCStateWord)
+    return adjoint(x) * y
+end
+
 """
     Base.:(*)(a::NCStateWord, b::NCStateWord)
 
@@ -445,6 +449,14 @@ Computes the expectation value by combining state monomials with the non-commuta
 - `StateWord`: StateWord containing all state monomials plus the non-commutative word
 """
 expval(a::NCStateWord) = StateWord([a.sw.state_monos; a.nc_word])
+
+function _unipotent(ncsw::NCStateWord)
+    NCStateWord(_unipotent.(ncsw.sw), _unipotent(ncsw.nc_word))
+end
+
+_projective(ncsw::NCStateWord) =
+    NCStateWord(_projective.(ncsw.sw), _projective(ncsw.nc_word))
+
 
 """
     StatePolynomial{T}

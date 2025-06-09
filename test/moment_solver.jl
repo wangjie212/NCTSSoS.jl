@@ -4,13 +4,16 @@ using JuMP
 using Clarabel
 using Graphs
 
-using NCTSSoS: get_basis, substitute_variables
-# using NCTSSoS: correlative_sparsity, sorted_union, symmetric_canonicalize, neat_dot, iterate_term_sparse_supp, moment_relax, TermSparsity, get_basis, substitute_variables, star, remove_zero_degree, constrain_moment_matrix!
+using NCTSSoS.FastPolynomials: get_basis
+using NCTSSoS: substitute_variables
+using NCTSSoS: correlative_sparsity
+# sorted_union, symmetric_canonicalize, neat_dot, iterate_term_sparse_supp, moment_relax, TermSparsity, get_basis, substitute_variables, star, remove_zero_degree, constrain_moment_matrix!
 
 @testset "Special Constraint Type " begin
     @testset "CHSH Inequality" begin
         @ncpolyvar x[1:2]
         @ncpolyvar y[1:2]
+
 
         f = 1.0 * x[1] * y[1] + x[1] * y[2] + x[2] * y[1] - x[2] * y[2]
         pop = PolyOpt(f; comm_gps=[Set(x), Set(y)], is_unipotent=true)
@@ -113,7 +116,7 @@ end
     corr_sparsity = correlative_sparsity(pop, order, cs_algo)
 
     cliques_term_sparsities = [
-        [TermSparsity(Monomial{NonCommutative{CreationOrder},Graded{LexOrder}}[], [basis]) for basis in idx_basis]
+        [TermSparsity(Monomial[], [basis]) for basis in idx_basis]
         for idx_basis in corr_sparsity.cliques_idcs_bases
     ]
 

@@ -7,7 +7,7 @@ using NCTSSoS.FastPolynomials: Variable, Polynomial, Monomial
         @ncpolyvar x y z
 
         p1 = 1 * x
-        @test p1 isa Polynomial{Int64}
+        @test p1 isa Polynomial{Float64}
         @test p1.coeffs == [1]
         @test p1.monos == [Monomial([x], [1])]
     end

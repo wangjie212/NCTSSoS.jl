@@ -8,11 +8,14 @@ import CliqueTrees.cliquetree
 include("FastPolynomials/src/FastPolynomials.jl")
 using .FastPolynomials
 using .FastPolynomials: Variable, Monomial, Polynomial, StateWord, NCStateWord, StatePolynomial, NCStatePolynomial
-using .FastPolynomials: sorted_union, monomials
+using .FastPolynomials: sorted_union, monomials, _comm, sorted_unique, _projective, _unipotent, monomials, maxdegree, get_basis
 export @ncpolyvar
 
 
 export PolyOpt, TRACE, EIGEN
+export SolverConfig
+export NoElimination, MF, MMD
+export cs_nctssos
 
 include("pop.jl")
 

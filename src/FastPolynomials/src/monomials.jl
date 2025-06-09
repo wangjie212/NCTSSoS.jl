@@ -215,3 +215,5 @@ Checks if a monomial represents the multiplicative identity (1).
 function Base.isone(m::Monomial)
     return isempty(m.vars) && isempty(m.z)
 end
+
+Base.convert(::Type{Monomial},a::Variable) = Monomial([a],[1])

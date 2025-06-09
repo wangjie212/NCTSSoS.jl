@@ -13,6 +13,11 @@ function substitute_variables(poly::Polynomial{T}, monomap::Dict{Monomial,Generi
     end
 end
 
+function get_mom_matrix(mom_problem::MomentProblem)
+    _, mom_loc = findmax(get_dim, constraint_object.(mom_problem.constraints))
+    return value.(mom_problem.constraints[mom_loc])
+end
+
 # cliques_cons: groups constraints according to cliques,
 # global_cons: constraints that are not in any single clique
 # cliques_term_sparsities: each clique, each obj/constraint, each ts_clique, each basis needed to index moment matrix

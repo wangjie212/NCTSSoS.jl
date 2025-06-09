@@ -93,6 +93,11 @@ function Polynomial(::Type{T1}, a::T2) where {T1<:Number,T2<:Number}
     return Polynomial(promote_type(T1, T2), Monomial([], []))
 end
 
+Polynomial(a::Polynomial) = a
+
+Base.convert(::Type{Polynomial{T}},a::Variable) where {T} = Polynomial([one(T)], [Monomial([a], [one(T)])])
+Base.convert(::Type{Polynomial{T}},a::Monomial) where {T} = Polynomial([one(T)], [a])
+
 """
     variables(p::Polynomial)
 
@@ -155,4 +160,12 @@ Computes hash value for a polynomial based on its coefficients and monomials.
 """
 function Base.hash(p::Polynomial, u::UInt)
     return hash(p.coeffs, hash(p.monos, u))
+end
+
+maxdegree(p::Polynomial) = maximum(degree.(p.monos))
+
+function Base.:(^)(p::Polynomial,n::Int)
+    n == 0 && return one(typeof(p))
+    n == 1 && return p
+    return p * (p^(n-1))
 end

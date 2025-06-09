@@ -158,9 +158,6 @@ function neat_dot(x::Monomial, y::Monomial)
     return star(x) * y
 end
 
-# function neat_dot(x::NCStateWord, y::NCStateWord)
-#     return adjoint(x) * y
-# end
 
 """
     sorted_unique(xs)
@@ -250,9 +247,6 @@ function _unipotent(mono::Monomial)
     return cur_mono
 end
 
-# function _unipotent(ncsw::NCStateWord)
-#     NCStateWord(_unipotent.(ncsw.sw), _unipotent(ncsw.nc_word))
-# end
 
 """
     _projective(mono::Monomial)
@@ -270,6 +264,3 @@ function _projective(mono::Monomial)
         var^(iszero(expo) ? expo : one(expo))
     end
 end
-
-# _projective(ncsw::NCStateWord) =
-#     NCStateWord(_projective.(ncsw.sw), _projective(ncsw.nc_word))

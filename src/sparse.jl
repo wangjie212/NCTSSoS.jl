@@ -22,15 +22,15 @@ function get_correlative_graph(ordered_vars::Vector{Variable}, obj::Polynomial{T
     G = SimpleGraph(nvars)
 
     # find index of all unique variables in polynomial/monomial p
-    vmap(p) = map(v -> findfirst(==(v), ordered_vars), unique!(effective_variables(p)))
+    vmap(p) = map(v -> findfirst(==(v), ordered_vars), unique!(variables(p)))
 
-    map(mono -> add_clique!(G, vmap(mono)), monomials(obj))
+    map(mono -> add_clique!(G, vmap(mono)), obj.monos)
 
     for poly in cons
         # for clearer logic, I didn't combine the two branches
         if order == ceil(Int, maxdegree(poly) // 2)
             # if objective or order too large, each term forms a clique
-            map(mono -> add_clique!(G, vmap(mono)), monomials(poly))
+            map(mono -> add_clique!(G, vmap(mono)), poly.monos)
         else
             # NOTE: if is constraint and order not too large, all variables in the constraint forms a clique
             # this ensures each "small" constraint is in a clique ?
@@ -52,7 +52,7 @@ function assign_constraint(cliques::Vector{Vector{Variable}}, cons::Vector{Polyn
 
     # clique_cons: vector of vector of constraints index, each belong to a clique
     clique_cons = map(cliques) do clique
-        findall(g -> issubset(unique!(effective_variables(g)), clique), cons)
+        findall(g -> issubset(unique!(variables(g)), clique), cons)
     end
     return clique_cons, setdiff(1:length(cons), union(clique_cons...))
 end
