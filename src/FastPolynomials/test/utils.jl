@@ -1,5 +1,5 @@
 using Test, NCTSSoS.FastPolynomials
-using NCTSSoS.FastPolynomials: star, symmetric_canonicalize, cyclic_canonicalize, support, neat_dot, get_basis,_comm, _projective, _unipotent
+using NCTSSoS.FastPolynomials: star, symmetric_canonicalize, cyclic_canonicalize, support, neat_dot, get_basis,_comm, _projective, _unipotent, monomials
 
 using NCTSSoS.FastPolynomials: Monomial, Polynomial
 
@@ -136,6 +136,20 @@ using NCTSSoS.FastPolynomials: Monomial, Polynomial
 
     @testset "Get basis" begin
         @ncpolyvar x y z
+
+        monomials_deg2 = monomials([x, y, z], 2)
+        @test sort(monomials_deg2) == sort([
+            Monomial([x], [2]),
+            Monomial([y], [2]),
+            Monomial([z], [2]),
+            Monomial([x, y], [1, 1]),
+            Monomial([x, z], [1, 1]),
+            Monomial([y, z], [1, 1]),
+            Monomial([z, y], [1, 1]),
+            Monomial([z, x], [1, 1]),
+            Monomial([y, x], [1, 1]),
+        ])
+
         nc_basis_deg2 = get_basis([x, y, z], 2)
 
         @test sort(nc_basis_deg2) == sort([one(x), Monomial([x], [1]), Monomial([y], [1]), Monomial([z], [1]), x^2, y^2, z^2, x * y, x * z, y * z, z * x, z * y, y * x])

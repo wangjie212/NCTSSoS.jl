@@ -1,14 +1,14 @@
 """
     ComplexKind
 
-An `enum` representing the kind of a variable.
+An `Enum` representing whether a variable is complex or real
 """
 @enum ComplexKind REAL COMPLEX
 
 """
     Variable
 
-A variable represents a symbolic variable in a polynomial expression.
+A `Variable` represents a symbolic variable in a polynomial expression.
 It can be either `REAL` or `COMPLEX`.
 """
 struct Variable
@@ -30,7 +30,7 @@ Creates an array of variables with indexed names.
 # Arguments
 - `complex_kind::ComplexKind`: The kind of variables (REAL or COMPLEX)
 - `prefix::String`: The base name for the variables
-- `indices...`: Variable number of index ranges
+- `indices...`: Variable number of index ranges like `i1, i2, ...`
 
 # Returns
 - Array of `Variable` objects with names formatted as `prefix[i1,i2,...]`
@@ -108,10 +108,14 @@ Macro to create non-commutative polynomial variables of REAL kind.
 - Tuple of created Variable objects
 
 # Example
-```julia
-@ncpolyvar x y z      # Creates three real variables
-@ncpolyvar u[1:3]     # Creates array of variables u[1], u[2], u[3]
+```jldoctest; setup=:(using NCTSSoS.FastPolynomials)
+julia> @ncpolyvar x y z     # Creates three real variables
+(x, y, z)
+
+julia> @ncpolyvar u[1:3]     # Creates array of variables u[1], u[2], u[3]
+(Variable[u[1], u[2], u[3]],)
 ```
+
 """
 macro ncpolyvar(args...)
     vars, exprs = buildpolyvars(args, REAL)
@@ -123,7 +127,7 @@ end
 # from https://scientificcoder.com/user-defined-show-method-in-julia
 # 2-argument show, used by Array show, print(obj) and repr(obj), keep it short
 function Base.show(io::IO, obj::Variable)
-    return print_object(io, obj; multiline=false)
+    return print_object(io, obj; multiline=true)
 end
 
 # the 3-argument show used by display(obj) on the REPL
@@ -147,7 +151,6 @@ Prints a Variable object to an IO stream.
 - Nothing (prints to IO stream)
 """
 function print_object(io::IO, obj::Variable; multiline::Bool)
-    # write something short, or go back to default mode
     return multiline ? print(io, "$(obj.name)") : Base.show_default(io, obj)
 end
 
