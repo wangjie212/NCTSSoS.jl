@@ -9,7 +9,7 @@ makedocs(;
         "API" => "api.md",
         "Examples" => ["Bell inequalities" => "bell.md"],
     ],
-    modules=[NCTSSoS],
+    modules=[NCTSSoS, NCTSSoS.FastPolynomials],
     format=Documenter.HTML(; prettyurls=get(ENV, "CI", nothing) == "true"),
 )
 

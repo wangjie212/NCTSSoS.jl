@@ -1,4 +1,4 @@
 ```@autodocs
-Modules = [NCTSSoS]
+Modules = [NCTSSoS, NCTSSoS.FastPolynomials]
 Order = [:type, :function]
 ```

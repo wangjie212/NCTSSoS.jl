@@ -1,5 +1,16 @@
+"""
+    ComplexKind
+
+An `enum` representing the kind of a variable.
+"""
 @enum ComplexKind REAL COMPLEX
 
+"""
+    Variable
+
+A variable represents a symbolic variable in a polynomial expression.
+It can be either `REAL` or `COMPLEX`.
+"""
 struct Variable
     name::String
     kind::ComplexKind
@@ -11,6 +22,19 @@ struct Variable
     Variable(from::Variable, kind::ComplexKind) = new(from.name, kind)
 end
 
+"""
+    polyarrayvar(complex_kind, prefix, indices...)
+
+Creates an array of variables with indexed names.
+
+# Arguments
+- `complex_kind::ComplexKind`: The kind of variables (REAL or COMPLEX)
+- `prefix::String`: The base name for the variables
+- `indices...`: Variable number of index ranges
+
+# Returns
+- Array of `Variable` objects with names formatted as `prefix[i1,i2,...]`
+"""
 function polyarrayvar(complex_kind, prefix, indices...)
     return map(
         i -> Variable("$(prefix)[$(join(i, ","))]", complex_kind),
@@ -18,6 +42,18 @@ function polyarrayvar(complex_kind, prefix, indices...)
     )
 end
 
+"""
+    buildpolyvar(var, complex_kind)
+
+Builds a polynomial variable declaration from a symbol or expression.
+
+# Arguments
+- `var`: Either a Symbol for single variable or Expr for array variables
+- `complex_kind::ComplexKind`: The kind of variables (REAL or COMPLEX)
+
+# Returns
+- Tuple of (variable_name, expression) for variable creation
+"""
 function buildpolyvar(var, complex_kind)
     if isa(var, Symbol)
         var, :($(esc(var)) = $Variable($"$var", $complex_kind))
@@ -37,6 +73,18 @@ function buildpolyvar(var, complex_kind)
     end
 end
 
+"""
+    buildpolyvars(args, complex_kind)
+
+Builds multiple polynomial variable declarations from a collection of arguments.
+
+# Arguments
+- `args`: Collection of symbols or expressions for variable names
+- `complex_kind::ComplexKind`: The kind of variables (REAL or COMPLEX)
+
+# Returns
+- Tuple of (variable_names_array, expressions_array) for variable creation
+"""
 function buildpolyvars(args, complex_kind)
     vars = Symbol[]
     exprs = []
@@ -48,6 +96,23 @@ function buildpolyvars(args, complex_kind)
     return vars, exprs
 end
 
+"""
+    @ncpolyvar(args...)
+
+Macro to create non-commutative polynomial variables of REAL kind.
+
+# Arguments
+- `args...`: Variable arguments specifying variable names (symbols or indexed expressions)
+
+# Returns
+- Tuple of created Variable objects
+
+# Example
+```julia
+@ncpolyvar x y z      # Creates three real variables
+@ncpolyvar u[1:3]     # Creates array of variables u[1], u[2], u[3]
+```
+"""
 macro ncpolyvar(args...)
     vars, exprs = buildpolyvars(args, REAL)
     # calls the exprs that initializes the variables
@@ -68,13 +133,49 @@ function Base.show(io::IO, mime::MIME"text/plain", obj::Variable)
     return print_object(io, obj; multiline=multiline)
 end
 
+"""
+    print_object(io, obj; multiline)
+
+Prints a Variable object to an IO stream.
+
+# Arguments
+- `io::IO`: The output stream
+- `obj::Variable`: The Variable to print
+- `multiline::Bool`: Whether to use multiline format
+
+# Returns
+- Nothing (prints to IO stream)
+"""
 function print_object(io::IO, obj::Variable; multiline::Bool)
     # write something short, or go back to default mode
     return multiline ? print(io, "$(obj.name)") : Base.show_default(io, obj)
 end
 
+"""
+    Base.hash(v, u)
+
+Computes hash value for a Variable based on its name.
+
+# Arguments
+- `v::Variable`: The Variable to hash
+- `u::UInt`: Hash seed value
+
+# Returns
+- `UInt`: Hash value of the variable's name
+"""
 function Base.hash(v::Variable, u::UInt)
     return hash(v.name, u)
 end
 
+"""
+    Base.one(::Variable)
+
+Returns the multiplicative identity (empty monomial) for Variable type.
+
+# Arguments
+- `::Variable`: Any Variable (type parameter only)
+
+# Returns
+- `Monomial`: Empty monomial representing the number 1
+"""
 Base.one(::Variable) = Monomial(Variable[], Int[])
