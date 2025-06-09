@@ -3,18 +3,18 @@
 # constraints in a clique only has support on corresponding variables
 # discarded_cons: constraints that are not in any clique
 # cliques_idcs_bases: within each clique, the vectors of monomials used to index moment/localizing matrices
-struct CorrelativeSparsity{V,M}
-    cliques::Vector{Vector{Variable{V,M}}}
+struct CorrelativeSparsity
+    cliques::Vector{Vector{Variable}}
     cliques_cons::Vector{Vector{Int}}
     # FIXME: add test case for difference
     global_cons::Vector{Int}
-    cliques_idcs_bases::Vector{Vector{Vector{Monomial{V,M}}}}
+    cliques_idcs_bases::Vector{Vector{Vector{Monomial}}}
 end
 
 # ordered_vars: variables in the order to be appeared in graph
 # polys: objective + constraints, order is important
 # order: order of the moment problem
-function get_correlative_graph(ordered_vars::Vector{Variable{V,M}}, obj::Polynomial{V,M,T}, cons::Vector{Polynomial{V,M,T}}, order::Int) where {V,M,T}
+function get_correlative_graph(ordered_vars::Vector{Variable}, obj::Polynomial{T}, cons::Vector{Polynomial{T}}, order::Int) where {T}
     # NOTE: code will be buggy is ordered_vars is not the same as the one reference in other functions
     # @assert issorted(ordered_vars, rev=true) "Variables must be sorted"
 
@@ -45,7 +45,7 @@ function clique_decomp(G::SimpleGraph, clique_alg::EliminationAlgorithm)
     return map(x -> label[x], collect(Vector{Int}, tree))
 end
 
-function assign_constraint(cliques::Vector{Vector{Variable{V,M}}}, cons::Vector{Polynomial{V,M,T}}) where {V,M,T}
+function assign_constraint(cliques::Vector{Vector{Variable}}, cons::Vector{Polynomial{T}}) where {T}
     # assign each constraint to a clique
     # there might be constraints that are not captured by any single clique,
     # NOTE: we ignore this constraint. This should only occur at lower order of relaxation.
@@ -57,7 +57,7 @@ function assign_constraint(cliques::Vector{Vector{Variable{V,M}}}, cons::Vector{
     return clique_cons, setdiff(1:length(cons), union(clique_cons...))
 end
 
-function correlative_sparsity(pop::PolyOpt{V,M,T}, order::Int, elim_algo::EliminationAlgorithm) where {V,M,T}
+function correlative_sparsity(pop::PolyOpt{T}, order::Int, elim_algo::EliminationAlgorithm) where {T}
     cliques = map(x -> pop.variables[x], clique_decomp(get_correlative_graph(pop.variables, pop.objective, pop.constraints, order), elim_algo))
 
     cliques_cons, global_cons = assign_constraint(cliques, pop.constraints)
@@ -70,22 +70,22 @@ function correlative_sparsity(pop::PolyOpt{V,M,T}, order::Int, elim_algo::Elimin
         [[sorted_unique(reduce_func.(get_basis(sort(clique, rev=true), order)))]; map(b -> sorted_unique(reduce_func.(b)), get_basis.(Ref(sort(clique, rev=true)), order .- ceil.(Int, maxdegree.(pop.constraints[clique_cons]) / 2)))]
     end
 
-    return CorrelativeSparsity{V,M}(cliques, cliques_cons, global_cons, cliques_idx_basis)
+    return CorrelativeSparsity(cliques, cliques_cons, global_cons, cliques_idx_basis)
 end
 
 
 # term_sparse_graph_supp: support of the current term sparsity graph for an obj/cons
 # block_bases: the bases of the moment/localizing matrix in each clique of term sparse graph
-struct TermSparsity{V,M}
-    term_sparse_graph_supp::Vector{Monomial{V,M}}
-    block_bases::Vector{Vector{Monomial{V,M}}}
+struct TermSparsity
+    term_sparse_graph_supp::Vector{Monomial}
+    block_bases::Vector{Vector{Monomial}}
 end
 
 # porting nccpop.jl's  get_graph
 # constructs the graph according to (7.5) and (7.14) together
 # activated_supp: support of objective, constraint and their corresponding term sparsity graph in previous iteration (7.14)
 # basis: basis used to index the moment matrix
-function get_term_sparsity_graph(cons_support::Vector{Monomial{V,M}}, activated_supp::Vector{Monomial{V,M}}, basis::Vector{Monomial{V,M}}) where {V,M}
+function get_term_sparsity_graph(cons_support::Vector{Monomial}, activated_supp::Vector{Monomial}, basis::Vector{Monomial})
     nterms = length(basis)
     G = SimpleGraph(nterms)
     sorted_activated_supp = sort(activated_supp)
@@ -102,7 +102,7 @@ function get_term_sparsity_graph(cons_support::Vector{Monomial{V,M}}, activated_
 end
 
 # returns: F (the chordal graph), blocks in basis
-function iterate_term_sparse_supp(activated_supp::Vector{Monomial{V,M}}, poly::Polynomial, basis::Vector{Monomial{V,M}}, elim_algo::EliminationAlgorithm) where {V,M}
+function iterate_term_sparse_supp(activated_supp::Vector{Monomial}, poly::Polynomial, basis::Vector{Monomial}, elim_algo::EliminationAlgorithm)
     F = get_term_sparsity_graph(collect(monomials(poly)), activated_supp, basis)
     blocks = clique_decomp(F, elim_algo)
     map(block -> add_clique!(F, block), blocks)
@@ -111,7 +111,7 @@ end
 
 # supp(G,g): monomials that are either v^† g_supp v where v is a vertex in G, or β^† g_supp γ where {β,γ} is an edge in G following (10,4)
 # given term sparsity graph G, which terms needs to be considered as a variable for describing the localizing/moment matrix with respect to g
-function term_sparsity_graph_supp(G::SimpleGraph, basis::Vector{Monomial{V,M}}, g::Polynomial) where {V,M}
+function term_sparsity_graph_supp(G::SimpleGraph, basis::Vector{Monomial}, g::Polynomial)
     # following (10.4) in Sparse Polynomial Optimization: Theory and Practise
     # NOTE: Do I need to symmetric canonicalize it?
     # TODO: add reduce! here

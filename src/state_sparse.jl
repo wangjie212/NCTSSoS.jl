@@ -4,19 +4,19 @@
 # discarded_cons: constraints that are not in any clique
 # cliques_idcs_bases: within each clique, the vectors of monomials used to index moment/localizing matrices
 # TODO: merge this with CorrelativeSparsity by adding a parameter
-struct StateCorrelativeSparsity{V,M}
-    cliques::Vector{Vector{Variable{V,M}}}
+struct StateCorrelativeSparsity
+    cliques::Vector{Vector{Variable}}
     cliques_cons::Vector{Vector{Int}}
     # FIXME: add test case for difference
     global_cons::Vector{Int}
-    cliques_idcs_bases::Vector{Vector{Vector{NCStateWord{V,M}}}}
+    cliques_idcs_bases::Vector{Vector{Vector{NCStateWord}}}
 end
 
 # ordered_vars: variables in the order to be appeared in graph
 # polys: objective + constraints, order is important
 # order: order of the moment problem
 # TODO: this can also be merged with get_correlative_graph
-function get_correlative_graph(ordered_vars::Vector{Variable{V,M}}, obj::NCStatePolynomial{V,M,T}, cons::Vector{NCStatePolynomial{V,M,T}}, order::Int) where {V,M,T}
+function get_correlative_graph(ordered_vars::Vector{Variable}, obj::NCStatePolynomial{T}, cons::Vector{NCStatePolynomial{T}}, order::Int) where {T}
     # NOTE: code will be buggy is ordered_vars is not the same as the one reference in other functions
     # @assert issorted(ordered_vars, rev=true) "Variables must be sorted"
 
@@ -42,7 +42,7 @@ function get_correlative_graph(ordered_vars::Vector{Variable{V,M}}, obj::NCState
     return G
 end
 
-function assign_constraint(cliques::Vector{Vector{Variable{V,M}}}, cons::Vector{NCStatePolynomial{V,M,T}}) where {V,M,T}
+function assign_constraint(cliques::Vector{Vector{Variable}}, cons::Vector{NCStatePolynomial{T}}) where {T}
     # assign each constraint to a clique
     # there might be constraints that are not captured by any single clique,
     # NOTE: we ignore this constraint. This should only occur at lower order of relaxation.
@@ -54,7 +54,7 @@ function assign_constraint(cliques::Vector{Vector{Variable{V,M}}}, cons::Vector{
     return clique_cons, setdiff(1:length(cons), union(clique_cons...))
 end
 
-function correlative_sparsity(pop::StatePolyOpt{V,M,T}, order::Int, elim_algo::EliminationAlgorithm) where {V,M,T}
+function correlative_sparsity(pop::StatePolyOpt{T}, order::Int, elim_algo::EliminationAlgorithm) where {T}
     cliques = map(x -> pop.variables[x], clique_decomp(get_correlative_graph(pop.variables, pop.objective, pop.constraints, order), elim_algo))
 
     cliques_cons, global_cons = assign_constraint(cliques, pop.constraints)
@@ -67,21 +67,21 @@ function correlative_sparsity(pop::StatePolyOpt{V,M,T}, order::Int, elim_algo::E
         [[sorted_unique(reduce_func.(get_state_basis(sort(clique, rev=true), order, reduce_func)))]; map(b -> sorted_unique(reduce_func.(b)), get_state_basis.(Ref(sort(clique, rev=true)), order .- ceil.(Int, maxdegree.(pop.constraints[clique_cons]) / 2)), Ref(reduce_func))]
     end
 
-    return StateCorrelativeSparsity{V,M}(cliques, cliques_cons, global_cons, cliques_idx_basis)
+    return StateCorrelativeSparsity(cliques, cliques_cons, global_cons, cliques_idx_basis)
 end
 
 # term_sparse_graph_supp: support of the current term sparsity graph for an obj/cons
 # block_bases: the bases of the moment/localizing matrix in each clique of term sparse graph
-struct StateTermSparsity{V,M}
-    term_sparse_graph_supp::Vector{NCStateWord{V,M}}
-    block_bases::Vector{Vector{NCStateWord{V,M}}}
+struct StateTermSparsity
+    term_sparse_graph_supp::Vector{NCStateWord}
+    block_bases::Vector{Vector{NCStateWord}}
 end
 
 # porting nccpop.jl's  get_graph
 # constructs the graph according to (7.5) and (7.14) together
 # activated_supp: support of objective, constraint and their corresponding term sparsity graph in previous iteration (7.14)
 # basis: basis used to index the moment matrix
-function get_term_sparsity_graph(cons_support::Vector{NCStateWord{V,M}}, activated_supp::Vector{NCStateWord{V,M}}, basis::Vector{NCStateWord{V,M}}) where {V,M}
+function get_term_sparsity_graph(cons_support::Vector{NCStateWord}, activated_supp::Vector{NCStateWord}, basis::Vector{NCStateWord})
     nterms = length(basis)
     G = SimpleGraph(nterms)
     as = expval.(activated_supp)
@@ -99,7 +99,7 @@ function get_term_sparsity_graph(cons_support::Vector{NCStateWord{V,M}}, activat
 end
 
 # returns: F (the chordal graph), blocks in basis
-function iterate_term_sparse_supp(activated_supp::Vector{NCStateWord{V,M}}, poly::NCStatePolynomial, basis::Vector{NCStateWord{V,M}}, elim_algo::EliminationAlgorithm) where {V,M}
+function iterate_term_sparse_supp(activated_supp::Vector{NCStateWord}, poly::NCStatePolynomial, basis::Vector{NCStateWord}, elim_algo::EliminationAlgorithm)
     F = get_term_sparsity_graph(collect(monomials(poly)), activated_supp, basis)
     if !(elim_algo isa AsIsElimination)
         blocks = clique_decomp(F, elim_algo)
@@ -112,7 +112,7 @@ end
 
 # supp(G,g): monomials that are either v^† g_supp v where v is a vertex in G, or β^† g_supp γ where {β,γ} is an edge in G following (10,4)
 # given term sparsity graph G, which terms needs to be considered as a variable for describing the localizing/moment matrix with respect to g
-function term_sparsity_graph_supp(G::SimpleGraph, basis::Vector{NCStateWord{V,M}}, g::NCStatePolynomial) where {V,M}
+function term_sparsity_graph_supp(G::SimpleGraph, basis::Vector{NCStateWord}, g::NCStatePolynomial)
     # following (10.4) in Sparse Polynomial Optimization: Theory and Practise
     # NOTE: Do I need to symmetric canonicalize it?
     # TODO: add reduce! here

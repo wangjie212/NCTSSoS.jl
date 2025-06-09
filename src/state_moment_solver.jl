@@ -1,16 +1,14 @@
-# V: is the varaibles commuting
-# M: Ordering of variables
 # T: type of the coefficients
 # monomap: map from monomials in DynamicPolynomials to variables in JuMP
 # TODO: move StateWord{V,M} to parameter of MomentProblem
-struct StateMomentProblem{V,M,T,CR<:ConstraintRef} <: OptimizationProblem
+struct StateMomentProblem{T,CR<:ConstraintRef} <: OptimizationProblem
     model::GenericModel{T}
     constraints::Vector{CR}
-    monomap::Dict{NCStateWord{V,M},GenericVariableRef{T}}  # TODO: maybe refactor.
+    monomap::Dict{NCStateWord,GenericVariableRef{T}}  # TODO: maybe refactor.
     reduce_func::Function
 end
 
-function substitute_variables(poly::NCStatePolynomial{V,M,T}, wordmap::Dict{NCStateWord{V,M},GenericVariableRef{T}}) where {V,M,T}
+function substitute_variables(poly::NCStatePolynomial{T}, wordmap::Dict{NCStateWord,GenericVariableRef{T}}) where {V,M,T}
     mapreduce(x -> (x.coef * wordmap[expval(x.ncstate_word)]), +, terms(poly))
 end
 
@@ -18,7 +16,7 @@ end
 # global_cons: constraints that are not in any single clique
 # cliques_term_sparsities: each clique, each obj/constraint, each ts_clique, each basis needed to index moment matrix
 # FIXME: should I use CorrelativeSparsity here instead of cliques_cons and global_cons
-function moment_relax(pop::StatePolyOpt{V,M,T}, cliques_cons::Vector{Vector{Int}}, global_cons::Vector{Int}, cliques_term_sparsities::Vector{Vector{StateTermSparsity{V,M}}}) where {V,M,T}
+function moment_relax(pop::StatePolyOpt{T}, cliques_cons::Vector{Vector{Int}}, global_cons::Vector{Int}, cliques_term_sparsities::Vector{Vector{StateTermSparsity}}) where {T}
     # NOTE: objective and constraints may have integer coefficients, but popular JuMP solvers does not support integer coefficients
     # left type here to support BigFloat model for higher precision
     model = GenericModel{T}()
@@ -71,9 +69,9 @@ end
 
 function constrain_moment_matrix!(
     model::GenericModel{T},
-    poly::NCStatePolynomial{V,M,T},
-    local_basis::Vector{NCStateWord{V,M}},
-    monomap::Dict{NCStateWord{V,M},GenericVariableRef{T}},
+    poly::NCStatePolynomial{T},
+    local_basis::Vector{NCStateWord},
+    monomap::Dict{NCStateWord,GenericVariableRef{T}},
     cone, # FIXME: which type should I use?
     reduce_func::Function
 ) where {V,M,T}

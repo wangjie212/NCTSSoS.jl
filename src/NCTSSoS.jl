@@ -1,13 +1,14 @@
 module NCTSSoS
 
-using JuMP
-using CliqueTrees
+using SparseArrays, LinearAlgebra, JuMP
+using CliqueTrees, ChordalGraph, Graphs
 using CliqueTrees: EliminationAlgorithm, SupernodeType
 import CliqueTrees.cliquetree
 
 include("FastPolynomials/src/FastPolynomials.jl")
 using .FastPolynomials
-using .FastPolynomials: sorted_union
+using .FastPolynomials: Variable, Monomial, Polynomial
+using .FastPolynomials: sorted_union, monomials
 export @ncpolyvar
 
 
@@ -19,5 +20,16 @@ include("solver_utils.jl")
 
 include("moment_solver.jl")
 
+include("sos_solver.jl")
+
+include("sparse.jl")
+
+include("interface.jl")
+
+include("state_moment_solver.jl")
+
+include("state_sos_solver.jl")
+
+include("state_sparse.jl")
 
 end
