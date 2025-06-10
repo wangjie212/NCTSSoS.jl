@@ -1,5 +1,5 @@
-using Test, NCTSSoS
-using JuMP, DynamicPolynomials
+using Test, NCTSSoS, NCTSSoS.FastPolynomials
+using JuMP
 using NCTSSoS: get_state_basis, neat_dot, NCStateWord, NCStatePolynomial, constrain_moment_matrix!, expval, substitute_variables, NCStateTerm, moment_relax
 using Clarabel, COSMO
 using NCTSSoS: sos_dualize

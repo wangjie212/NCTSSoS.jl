@@ -1,10 +1,9 @@
-using Test, NCTSSoS
-using DynamicPolynomials, Clarabel
+using Test, NCTSSoS, NCTSSoS.FastPolynomials
+using Clarabel
 using SparseArrays
 using JuMP
 using Graphs
 using CliqueTrees
-using DynamicPolynomials: NonCommutative, CreationOrder, Graded, LexOrder, Monomial
 using NCTSSoS: get_Cαj, clique_decomp, correlative_sparsity, sorted_union, neat_dot, iterate_term_sparse_supp, symmetric_canonicalize, TermSparsity, moment_relax, sos_dualize
 
 # NOTE: sos_dualize has performance issue have verified locally it's correct
@@ -29,11 +28,11 @@ using NCTSSoS: get_Cαj, clique_decomp, correlative_sparsity, sorted_union, neat
 
     corr_sparsity = correlative_sparsity(pop, order, cs_algo)
 
-    cliques_objective = [reduce(+, [issubset(effective_variables(mono), clique) ? coef * mono : zero(mono) for (coef, mono) in zip(coefficients(pop.objective), monomials(pop.objective))]) for clique in corr_sparsity.cliques]
+    cliques_objective = [reduce(+, [issubset(variables(mono), clique) ? coef * mono : zero(mono) for (coef, mono) in zip(pop.objective.coeffs, pop.objective.monos)]) for clique in corr_sparsity.cliques]
 
     # prepare the support for each term sparse localizing moment
     initial_activated_supp = [
-        sorted_union(symmetric_canonicalize.(monomials(obj_part)), mapreduce(a -> monomials(a), vcat, pop.constraints[cons_idx]), [neat_dot(b, b) for b in idcs_bases[1]])
+        sorted_union(symmetric_canonicalize.(obj_part.monos), mapreduce(a -> a.monos, vcat, pop.constraints[cons_idx]), [neat_dot(b, b) for b in idcs_bases[1]])
         for (obj_part, cons_idx, idcs_bases) in zip(cliques_objective, corr_sparsity.cliques_cons, corr_sparsity.cliques_idcs_bases)
     ]
 
@@ -82,7 +81,7 @@ end
     corr_sparsity = correlative_sparsity(pop, order, NoElimination())
 
     cliques_term_sparsities = [
-        [TermSparsity(Monomial{NonCommutative{CreationOrder},Graded{LexOrder}}[], [basis]) for basis in idx_basis]
+        [TermSparsity(Monomial[], [basis]) for basis in idx_basis]
         for idx_basis in corr_sparsity.cliques_idcs_bases
     ]
 
@@ -116,7 +115,7 @@ end
 
     @testset "Dense" begin
         cliques_term_sparsities = [
-            [TermSparsity(Monomial{NonCommutative{CreationOrder},Graded{LexOrder}}[], [basis]) for basis in idx_basis]
+            [TermSparsity(Monomial[], [basis]) for basis in idx_basis]
             for idx_basis in corr_sparsity.cliques_idcs_bases
         ]
 
@@ -133,12 +132,12 @@ end
     @testset "Term Sparse" begin
         ts_algo = MMD()
 
-        cliques_objective = [reduce(+, [issubset(effective_variables(mono), clique) ? coef * mono : zero(mono) for (coef, mono) in zip(coefficients(pop.objective), monomials(pop.objective))]) for clique in corr_sparsity.cliques]
+        cliques_objective = [reduce(+, [issubset(variables(mono), clique) ? coef * mono : zero(mono) for (coef, mono) in zip(pop.objective.coeffs, pop.objective.monos)]) for clique in corr_sparsity.cliques]
 
         # prepare the support for each term sparse localizing moment
         initial_activated_supp = [
             # why does order matter here?
-            sorted_union(symmetric_canonicalize.(monomials(obj_part)), mapreduce(a -> monomials(a), vcat, pop.constraints[cons_idx]), [neat_dot(b, b) for b in idcs_bases[1]])
+            sorted_union(symmetric_canonicalize.(obj_part.monos), mapreduce(a -> a.monos, vcat, pop.constraints[cons_idx]), [neat_dot(b, b) for b in idcs_bases[1]])
             for (obj_part, cons_idx, idcs_bases) in zip(cliques_objective, corr_sparsity.cliques_cons, corr_sparsity.cliques_idcs_bases)
         ]
 
@@ -169,7 +168,7 @@ end
     corr_sparsity = correlative_sparsity(pop, order, NoElimination())
 
     cliques_term_sparsities = [
-        [TermSparsity(Monomial{NonCommutative{CreationOrder},Graded{LexOrder}}[], [basis]) for basis in idx_basis]
+        [TermSparsity(Monomial[], [basis]) for basis in idx_basis]
         for idx_basis in corr_sparsity.cliques_idcs_bases
     ]
 
@@ -201,7 +200,7 @@ end
     corr_sparsity = correlative_sparsity(pop, order, NoElimination())
 
     cliques_term_sparsities = [
-        [TermSparsity(Monomial{NonCommutative{CreationOrder},Graded{LexOrder}}[], [basis]) for basis in idx_basis]
+        [TermSparsity(Monomial[], [basis]) for basis in idx_basis]
         for idx_basis in corr_sparsity.cliques_idcs_bases
     ]
 
@@ -249,7 +248,7 @@ end
     corr_sparsity = correlative_sparsity(pop, order, NoElimination())
 
     cliques_term_sparsities = [
-        [ TermSparsity(Monomial{NonCommutative{CreationOrder},Graded{LexOrder}}[], [basis]) for basis in idx_basis]
+        [ TermSparsity(Monomial[], [basis]) for basis in idx_basis]
         for idx_basis in corr_sparsity.cliques_idcs_bases
     ]
 
@@ -280,7 +279,7 @@ end
     corr_sparsity = correlative_sparsity(pop, order, cs_algo)
 
     cliques_term_sparsities = [
-        [TermSparsity(Monomial{NonCommutative{CreationOrder},Graded{LexOrder}}[], [basis]) for basis in idx_basis]
+        [TermSparsity(Monomial[], [basis]) for basis in idx_basis]
         for idx_basis in corr_sparsity.cliques_idcs_bases
     ]
 
@@ -313,14 +312,14 @@ end
     corr_sparsity_s = correlative_sparsity(pop, order, cs_algo)
 
     cliques_term_sparsities_s = [
-        [TermSparsity(Monomial{NonCommutative{CreationOrder},Graded{LexOrder}}[], [basis]) for basis in idx_basis]
+        [TermSparsity(Monomial[], [basis]) for basis in idx_basis]
         for idx_basis in corr_sparsity_s.cliques_idcs_bases
     ]
 
     corr_sparsity = correlative_sparsity(pop, order, NoElimination())
 
     cliques_term_sparsities = [
-        [TermSparsity(Monomial{NonCommutative{CreationOrder},Graded{LexOrder}}[], [basis]) for basis in idx_basis]
+        [TermSparsity(Monomial[], [basis]) for basis in idx_basis]
         for idx_basis in corr_sparsity.cliques_idcs_bases
     ]
 

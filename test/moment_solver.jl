@@ -7,8 +7,6 @@ using Graphs
 using NCTSSoS.FastPolynomials: get_basis, monomials, neat_dot
 using NCTSSoS: substitute_variables, correlative_sparsity, TermSparsity, sorted_union, symmetric_canonicalize, iterate_term_sparse_supp, moment_relax
 
-# sorted_union, symmetric_canonicalize, neat_dot, iterate_term_sparse_supp, moment_relax, TermSparsity, get_basis, substitute_variables, star, remove_zero_degree, constrain_moment_matrix!
-
 @testset "Special Constraint Type " begin
     @testset "CHSH Inequality" begin
         @ncpolyvar x[1:2]
