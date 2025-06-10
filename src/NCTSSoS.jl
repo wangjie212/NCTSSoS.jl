@@ -14,7 +14,7 @@ using .FastPolynomials: monomials, coefficients, terms
 export @ncpolyvar
 
 
-export PolyOpt, TRACE, EIGEN
+export PolyOpt, TRACE, EIGEN, StatePolyOpt
 export SolverConfig
 export NoElimination, MF, MMD
 export cs_nctssos

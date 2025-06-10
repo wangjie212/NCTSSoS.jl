@@ -17,6 +17,9 @@ using NCTSSoS.FastPolynomials: Polynomial
 
         @test x[1] == x[1]
         @test x[1] != x[2]
+
+        @test x in [x,y,z]
+        @test x ∉ [y,z]
     end
 
     @testset "cmp monomials" begin

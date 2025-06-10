@@ -29,7 +29,7 @@ function PolyOpt(objective::Polynomial{T}; constraints=Any[], is_equality=fill(f
 end
 
 struct StatePolyOpt{T} <: OptimizationProblem
-    objective::NCStatePolynomial{T}
+    objective::StatePolynomial{T}
     constraints::Vector{NCStatePolynomial{T}}
     is_equality::Vector{Bool}
     variables::Vector{Variable}
@@ -38,13 +38,13 @@ struct StatePolyOpt{T} <: OptimizationProblem
     is_projective::Bool # X^2 = X. Is projective.
 end
 
-function StatePolyOpt(objective::NCStatePolynomial{T}; constraints=Any[], is_equality=fill(false, length(constraints)), comm_gps=Vector{Variable}[], is_unipotent::Bool=false, is_projective::Bool=false) where {T}
+function StatePolyOpt(objective::StatePolynomial{T}; constraints=Any[], is_equality=fill(false, length(constraints)), comm_gps=Vector{Variable}[], is_unipotent::Bool=false, is_projective::Bool=false) where {T}
     cons = collect(NCStatePolynomial{T}, constraints)
     is_eq = collect(Bool, is_equality)
     @assert length(is_eq) == length(cons) "The number of constraints must be the same as the number of equality conditions."
     vars = sorted_union(variables(objective), [variables(c) for c in cons]...)
     isempty(comm_gps) && push!(comm_gps, vars)
-    @assert all([isdisjoint(gp_a, gp_b) for gp_a in comm_gps, gp_b in comm_gps if gp_a != gp_b]) "The commutative groups must be disjoint."
+    @assert all([isempty(intersect(gp_a, gp_b)) for gp_a in comm_gps, gp_b in comm_gps if gp_a != gp_b]) "The commutative groups must be disjoint."
     @assert sorted_union(comm_gps...) == sort(vars) "The commutative variables groups must be equivalent to all the variables"
     @assert !(is_unipotent && is_projective) "The problem cannot be both unipotent and projective."
     return StatePolyOpt{T}(objective, cons, is_eq, vars, Set.(comm_gps), is_unipotent, is_projective)

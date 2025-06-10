@@ -39,10 +39,10 @@ Checks if a variable is present in a sorted collection of variables.
 - `Bool`: True if variable is found in the collection
 """
 function Base.in(a::Variable, collection::Vector{Variable})
-    if issorted(collection)
+    if !issorted(collection)
         sort!(collection)
     end
-    return searchsortedfirst(collection, a) != 0
+    return !isempty(searchsorted(collection, a))
 end
 
 """
