@@ -45,6 +45,8 @@ julia> ς(x^2*y)
 
 variables(sw::StateWord) = sorted_union(variables.(sw.state_monos)...)
 
+star(sw::StateWord) = StateWord(star.(sw.state_monos))
+
 function degree(sw::StateWord)
     return mapreduce(degree, +, sw.state_monos; init=zero(Int))
 end
@@ -93,32 +95,9 @@ Base.isless(a::StateWord, b::StateWord) = cmp(a, b) < 0
 Base.:(*)(a::StateWord, b::StateWord) = StateWord([a.state_monos; b.state_monos])
 
 Base.:(*)(a::StateWord, b::Monomial) = NCStateWord(a, b)
-Base.:(*)(coef::T, a::StateWord) where {T} = StatePolynomial([coef], [a])
+Base.:(*)(coef::T, a::StateWord) where {T<:Number} = StatePolynomial([coef], [a])
 
-"""
-    Base.one(a::StateWord)
-
-Returns the multiplicative identity for StateWord type (instance method).
-
-# Arguments
-- `a::StateWord`: StateWord instance
-
-# Returns
-- `StateWord`: Identity StateWord with single identity monomial
-"""
 Base.one(a::StateWord) = StateWord([one(a.state_monos[1])])
-
-"""
-    Base.one(::Type{StateWord})
-
-Returns the multiplicative identity for StateWord type (type method).
-
-# Arguments
-- `::Type{StateWord}`: StateWord type
-
-# Returns
-- `StateWord`: Identity StateWord with single identity monomial
-"""
 Base.one(::Type{StateWord}) = StateWord([one(Monomial)])
 
 """
@@ -148,13 +127,15 @@ struct NCStateWord
     nc_word::Monomial
 end
 
+NCStateWord(sw::Vector, nc_word) = NCStateWord(StateWord(Monomial.(sw)), nc_word)
+
 degree(ncsw::NCStateWord) = degree(ncsw.nc_word) + degree(ncsw.sw)
 
 function variables(ncsw::NCStateWord)
     return sorted_union(variables(ncsw.nc_word), variables(ncsw.sw))
 end
 
-Base.adjoint(a::NCStateWord) = NCStateWord(a.sw, star(a.nc_word))
+Base.adjoint(a::NCStateWord) = NCStateWord(star(a.sw), star(a.nc_word))
 
 function neat_dot(x::NCStateWord, y::NCStateWord)
     return adjoint(x) * y
@@ -323,8 +304,12 @@ function Base.:(*)(a::StatePolynomial{T}, b::Monomial) where {T}
     return NCStatePolynomial(a.coeffs, [sw * b for sw in a.state_words])
 end
 
-function Base.:(*)(n, a::StatePolynomial{T}) where {T}
+function Base.:(*)(n::Number, a::StatePolynomial{T}) where {T}
     return StatePolynomial(T(n) .* a.coeffs, a.state_words)
+end
+
+function Base.:(*)(a::StatePolynomial, b::StateWord)
+    return StatePolynomial(a.coeffs, [sw * b for sw in a.state_words])
 end
 
 function Base.:(+)(a::StatePolynomial{T1}, b::StatePolynomial{T2}) where {T1,T2}
@@ -487,8 +472,6 @@ function get_state_basis(variables::Vector{Variable}, d::Int, reducer)
                 begin
                     interm = sort(filter(!isone, collect(c_word)))
                     isempty(interm) ? [one(variables[1])] : interm
-
-                    # if it is cyclic_canonicalize.(reducer.) the state basis matches why ?
                 end for c_word in Iterators.product(
                     ntuple(
                         _ -> unique!(
