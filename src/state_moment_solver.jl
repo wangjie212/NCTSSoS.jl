@@ -9,7 +9,7 @@ struct StateMomentProblem{T,CR<:ConstraintRef} <: OptimizationProblem
 end
 
 function substitute_variables(poly::NCStatePolynomial{T}, wordmap::Dict{NCStateWord,GenericVariableRef{T}}) where {T}
-    mapreduce(x -> (x.coef * wordmap[expval(x.ncstate_word)]), +, terms(poly))
+    mapreduce(x -> (x[1] * wordmap[expval(x[2])]), +, terms(poly))
 end
 
 # cliques_cons: groups constraints according to cliques,
@@ -27,7 +27,7 @@ function moment_relax(pop::StatePolyOpt{T}, cliques_cons::Vector{Vector{Int}}, g
     total_basis = sorted_union(map(zip(cliques_cons, cliques_term_sparsities)) do (cons_idx, term_sparsities)
         union(vec(reduce(vcat, [
             map(monomials(poly)) do m
-                expval(prod(reduce_func(neat_dot(rol_idx, m * col_idx))))
+                expval(reduce_func(neat_dot(rol_idx, m * col_idx)))
             end
             for (poly, term_sparsity) in zip([one(pop.objective); pop.constraints[cons_idx]], term_sparsities) for basis in term_sparsity.block_bases for rol_idx in basis for col_idx in basis
         ])))
@@ -36,7 +36,7 @@ function moment_relax(pop::StatePolyOpt{T}, cliques_cons::Vector{Vector{Int}}, g
     # # map the monomials to JuMP variables, the first variable must be 1
     @variable(model, y[1:length(total_basis)])
     @constraint(model, first(y) == 1)
-    monomap = Dict(zip(total_basis, y))
+    monomap = Dict(zip(NCStateWord.(total_basis), y))
 
     constraint_matrices =
         [mapreduce(vcat, zip(cliques_term_sparsities, cliques_cons)) do (term_sparsities, cons_idx)
@@ -44,10 +44,10 @@ function moment_relax(pop::StatePolyOpt{T}, cliques_cons::Vector{Vector{Int}}, g
                     map(term_sparsity.block_bases) do ts_sub_basis
                         constrain_moment_matrix!(
                             model,
-                            poly,
+                            poly * one(Monomial),
                             ts_sub_basis,
                             monomap,
-                            is_eq ? Zeros() : PSDCone(), prod ∘ reduce_func)
+                            is_eq ? Zeros() : PSDCone(), reduce_func)
                     end
                 end
             end
@@ -58,7 +58,7 @@ function moment_relax(pop::StatePolyOpt{T}, cliques_cons::Vector{Vector{Int}}, g
                     [one(pop.objective)],
                     monomap,
                     pop.is_equality[global_con] ? Zeros() : PSDCone(),
-                    prod ∘ reduce_func
+                    reduce_func
                 )
             end]
 
@@ -76,7 +76,7 @@ function constrain_moment_matrix!(
     reduce_func::Function
 ) where {T}
     moment_mtx = [
-        substitute_variables(sum([poly_term.coef * reduce_func(neat_dot(row_idx, poly_term.ncstate_word * col_idx)) for poly_term in terms(poly)]; init=zero(poly)), monomap) for row_idx in local_basis, col_idx in local_basis
+        substitute_variables(sum([poly_term[1] * reduce_func(neat_dot(row_idx, poly_term[2] * col_idx)) for poly_term in terms(poly)]; init=zero(poly)), monomap) for row_idx in local_basis, col_idx in local_basis
     ]
     return @constraint(model, moment_mtx in cone)
 end

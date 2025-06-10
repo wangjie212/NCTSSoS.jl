@@ -1,5 +1,5 @@
 using Test, NCTSSoS.FastPolynomials
-using NCTSSoS.FastPolynomials: StateWord, NCStateWord, ς, degree, StatePolynomial, get_state_basis, neat_dot, expval, NCStatePolynomial, monomials
+using NCTSSoS.FastPolynomials: StateWord, NCStateWord, ς, degree, StatePolynomial, get_state_basis, neat_dot, expval, NCStatePolynomial, monomials, _unipotent, _projective
 
 @testset "NCStatePolynomial Components" begin
     @ncpolyvar x[1:2] y[1:2]
@@ -178,4 +178,21 @@ end
     nc_words = [fill(one(x),7);fill(x,4);fill(x^2,2);[x^3]]
     c_words = [[one(x)], [x], [x^2], [x^3], [x, x], [x, x^2], [x, x, x], [one(x)], [x], [x^2], [x, x], [one(x)], [x], [one(x)]]
     @test sort(get_state_basis([x], 3, identity)) == sort(map(x->NCStateWord(x[1],x[2]),zip(c_words,nc_words))) 
+end
+
+@testset "_unipotent" begin
+    @ncpolyvar x[1:2] y[1:2]
+    # comm_gps = [Set(x),Set(y)]
+
+    @test _unipotent(ς(x[1]^2*y[1]^2)) == StateWord(Monomial[]) 
+    @test _unipotent(ς(x[1]^2*y[1]*y[2])) == ς(y[1]*y[2]) 
+    @test _unipotent(ς(x[1]^2) * ς(y[1] * y[2])) == ς(y[1] * y[2])
+    @test _unipotent(ς(x[1]*x[2]^2*x[1])*ς(y[1]*y[2]^2)) == ς(y[1])
+
+end
+@testset "_projective" begin
+    @ncpolyvar x[1:2] y[1:2]
+
+    @test _projective(ς(x[1]^2*y[1]^2)) == ς(x[1]*y[1]) 
+    @test _projective(ς(x[1] * x[2]^2 * x[1]) * ς(y[1] * y[2]^2)) == ς(x[1] * x[2] * x[1]) * ς(y[1] * y[2])
 end

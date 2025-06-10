@@ -9,9 +9,7 @@ end
 
 function reducer(spop::StatePolyOpt)
     function (x)
-        @show x typeof(x)
         cxs = _comm(x, spop.comm_gps)
-        @show cxs size(cxs)
         return spop.is_unipotent ? _unipotent(cxs) : (spop.is_projective ? _projective(cxs) : cxs)
     end
 end

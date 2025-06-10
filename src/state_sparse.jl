@@ -58,12 +58,13 @@ function correlative_sparsity(pop::StatePolyOpt{T}, order::Int, elim_algo::Elimi
     cliques = map(x -> pop.variables[x], clique_decomp(get_correlative_graph(pop.variables, pop.objective, pop.constraints, order), elim_algo))
 
     cliques_cons, global_cons = assign_constraint(cliques, pop.constraints)
+    @show cliques
 
-    reduce_func = prod ∘ reducer(pop)
+    reduce_func = reducer(pop)
     # get the operators needed to index columns of moment/localizing mtx in each clique
     # depending on the clique's varaibles each is slightly different
     cliques_idx_basis = map(zip(cliques, cliques_cons)) do (clique, clique_cons)
-        @show get_state_basis(sort(clique, rev=true), order, reduce_func) order
+        @show get_state_basis(clique, order, reduce_func) order
         # get the basis of the moment matrix in a clique, then sort it
         [[sorted_unique(reduce_func.(get_state_basis(sort(clique, rev=true), order, reduce_func)))]; map(b -> sorted_unique(reduce_func.(b)), get_state_basis.(Ref(sort(clique, rev=true)), order .- ceil.(Int, maxdegree.(pop.constraints[clique_cons]) / 2)), Ref(reduce_func))]
     end
@@ -90,7 +91,7 @@ function get_term_sparsity_graph(cons_support::Vector{NCStateWord}, activated_su
     for i in 1:nterms, j in i+1:nterms
         for supp in cons_support
             interm = symmetric_canonicalize(neat_dot(basis[i], supp * basis[j]))
-            if !iszero(binary_search(interm, as))
+            if interm in as
                 add_edge!(G, i, j)
                 continue
             end

@@ -128,6 +128,7 @@ struct NCStateWord
 end
 
 NCStateWord(sw::Vector, nc_word) = NCStateWord(StateWord(Monomial.(sw)), nc_word)
+NCStateWord(sw::StateWord) = NCStateWord(sw, one(Monomial))
 
 degree(ncsw::NCStateWord) = degree(ncsw.nc_word) + degree(ncsw.sw)
 
@@ -143,6 +144,10 @@ end
 
 function Base.:(*)(a::NCStateWord, b::NCStateWord)
     return NCStateWord(a.sw * b.sw, a.nc_word * b.nc_word)
+end
+
+function Base.:(*)(a::StateWord, b::NCStateWord)
+    return NCStateWord(a) * b
 end
 
 Base.:(*)(coef::Number, a::NCStateWord) = NCStatePolynomial([coef], [a])
@@ -347,6 +352,7 @@ function Base.zero(::StatePolynomial{T}) where {T}
     return StatePolynomial([zero(T)], [one(StateWord)])
 end
 
+terms(sp::StatePolynomial) = zip(sp.coeffs, sp.state_words)
 """
     NCStatePolynomial{T}
 
@@ -462,28 +468,27 @@ end
 
 monomials(ncsp::NCStatePolynomial) = ncsp.nc_state_words
 
+terms(ncsp::NCStatePolynomial) = zip(ncsp.coeffs, ncsp.nc_state_words)
+
 function get_state_basis(variables::Vector{Variable}, d::Int, reducer)
-    return map(
-        a -> NCStateWord(StateWord(a[1]), a[2]),
-        mapreduce(vcat, 0:d) do nc_deg
-            nc_basis = reducer.(monomials(variables, nc_deg))
-            cw_deg = d - nc_deg
-            cw_basis = unique!([
-                begin
-                    interm = sort(filter(!isone, collect(c_word)))
-                    isempty(interm) ? [one(variables[1])] : interm
-                end for c_word in Iterators.product(
-                    ntuple(
-                        _ -> unique!(
-                            symmetric_canonicalize.(reducer.(get_basis(variables, cw_deg))),
-                        ),
-                        cw_deg,
-                    )...,
-                    [one(variables[1])],
-                ) if sum(degree.(c_word)) <= cw_deg
-            ])
-            reshape(collect(Iterators.product(cw_basis, nc_basis)), :)
-        end,
+    return reducer.(
+        map(
+            a -> NCStateWord(StateWord(a[1]), a[2]),
+            mapreduce(vcat, 0:d) do nc_deg
+                nc_basis = monomials(variables, nc_deg)
+                cw_deg = d - nc_deg
+                cw_basis = unique!([
+                    begin
+                        interm = sort(filter(!isone, collect(c_word)))
+                        isempty(interm) ? [one(variables[1])] : interm
+                    end for c_word in Iterators.product(
+                        ntuple(_ -> unique!(get_basis(variables, cw_deg)), cw_deg)...,
+                        [one(variables[1])],
+                    ) if sum(degree.(c_word)) <= cw_deg
+                ])
+                reshape(collect(Iterators.product(cw_basis, nc_basis)), :)
+            end,
+        ),
     )
 end
 

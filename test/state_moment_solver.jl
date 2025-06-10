@@ -1,7 +1,7 @@
 using Test, NCTSSoS, NCTSSoS.FastPolynomials
 using JuMP
 using NCTSSoS: get_state_basis, neat_dot, NCStateWord, NCStatePolynomial, constrain_moment_matrix!, substitute_variables, moment_relax
-using NCTSSoS.FastPolynomials: expval, NCStateTerm
+using NCTSSoS.FastPolynomials: expval,  terms, symmetric_canonicalize, monomials
 using Clarabel, COSMO
 using NCTSSoS: sos_dualize
 using NCTSSoS: correlative_sparsity, iterate_term_sparse_supp, sorted_union, MinimalChordal, NoElimination
@@ -16,13 +16,14 @@ using NCTSSoS: correlative_sparsity, iterate_term_sparse_supp, sorted_union, Min
     # graph is defined on StateWords and NCStateWords
     cr = correlative_sparsity(spop, d, NoElimination())
 
-    cliques_objective = [reduce(+, [issubset(effective_variables(t.ncstate_word), clique) ? t : zero(t) for t in terms(spop.objective)]) for clique in cr.cliques]
+    cliques_objective = [reduce(+, [issubset(variables(mono), clique) ? coef * mono : zero(mono) for (coef, mono) in terms(spop.objective)]) for clique in cr.cliques]
 
     initial_activated_supp = [sorted_union(symmetric_canonicalize.(monomials(obj_part)), mapreduce(a -> monomials(a), vcat, spop.constraints[cons_idx]; init=typeof(monomials(spop.objective)[1])[]))
                               for (obj_part, cons_idx, idcs_bases) in zip(cliques_objective, cr.cliques_cons, cr.cliques_idcs_bases)]
 
+
     cliques_term_sparsities = map(zip(initial_activated_supp, cr.cliques_cons, cr.cliques_idcs_bases)) do (activated_supp, cons_idx, idcs_bases)
-        [iterate_term_sparse_supp(activated_supp, poly, basis, NoElimination()) for (poly, basis) in zip([one(spop.objective); spop.constraints[cons_idx]], idcs_bases)]
+        [iterate_term_sparse_supp(NCStateWord.(activated_supp) , poly * one(Monomial), basis, NoElimination()) for (poly, basis) in zip([one(spop.objective); spop.constraints[cons_idx]], idcs_bases)]
     end
 
     mom_problem = moment_relax(spop, cr.cliques_cons, cr.global_cons, cliques_term_sparsities)
