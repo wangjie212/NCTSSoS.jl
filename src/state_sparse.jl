@@ -16,7 +16,7 @@ end
 # polys: objective + constraints, order is important
 # order: order of the moment problem
 # TODO: this can also be merged with get_correlative_graph
-function get_correlative_graph(ordered_vars::Vector{Variable}, obj::StatePolynomial{T}, cons::Vector{NCStatePolynomial{T}}, order::Int) where {T}
+function get_correlative_graph(ordered_vars::Vector{Variable}, obj::NCStatePolynomial{T}, cons::Vector{NCStatePolynomial{T}}, order::Int) where {T}
     # NOTE: code will be buggy is ordered_vars is not the same as the one reference in other functions
     # @assert issorted(ordered_vars, rev=true) "Variables must be sorted"
 
@@ -58,7 +58,6 @@ function correlative_sparsity(pop::StatePolyOpt{T}, order::Int, elim_algo::Elimi
     cliques = map(x -> pop.variables[x], clique_decomp(get_correlative_graph(pop.variables, pop.objective, pop.constraints, order), elim_algo))
 
     cliques_cons, global_cons = assign_constraint(cliques, pop.constraints)
-    @show cliques
 
     reduce_func = reducer(pop)
     # get the operators needed to index columns of moment/localizing mtx in each clique

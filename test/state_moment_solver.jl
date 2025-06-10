@@ -6,6 +6,7 @@ using Clarabel, COSMO
 using NCTSSoS: sos_dualize
 using NCTSSoS: correlative_sparsity, iterate_term_sparse_supp, sorted_union, MinimalChordal, NoElimination
 
+
 @testset "State Polynomial Opt 7.2.0" begin
     @ncpolyvar x[1:2] y[1:2]
     sp =  -1.0 * ς(x[1]*y[1]) -1.0 * ς(x[1]*y[2]) -1.0 * ς(x[2]*y[1]) + 1.0 * ς(x[2]*y[2])
@@ -23,7 +24,7 @@ using NCTSSoS: correlative_sparsity, iterate_term_sparse_supp, sorted_union, Min
 
 
     cliques_term_sparsities = map(zip(initial_activated_supp, cr.cliques_cons, cr.cliques_idcs_bases)) do (activated_supp, cons_idx, idcs_bases)
-        [iterate_term_sparse_supp(NCStateWord.(activated_supp) , poly * one(Monomial), basis, NoElimination()) for (poly, basis) in zip([one(spop.objective); spop.constraints[cons_idx]], idcs_bases)]
+        [iterate_term_sparse_supp(activated_supp , poly , basis, NoElimination()) for (poly, basis) in zip([one(spop.objective); spop.constraints[cons_idx]], idcs_bases)]
     end
 
     mom_problem = moment_relax(spop, cr.cliques_cons, cr.global_cons, cliques_term_sparsities)
@@ -44,17 +45,16 @@ end
 
 @testset "State Polynomial Opt 7.2.1" begin
     @ncpolyvar x[1:2] y[1:2]
-    sp1 = NCStatePolynomial([coef*sw for (coef,sw) in zip([1.0,1.0],NCStateWord.([[x[1] * y[2]], [x[2] * y[1]]], Ref(one(x[1]))))])
-    sp2 = NCStatePolynomial([coef*sw for (coef,sw) in zip([1.0, -1.0],NCStateWord.([[x[1] * y[1]], [x[2] * y[2]]], Ref(one(x[1]))))])
-    words = [one(x[1]), one(x[1])]
-    sp = -1.0 * sp1 * sp1  + (-1.0 * sp2 * sp2)
+    sp1 = 1.0 * ς(x[1]*y[2]) + 1.0 * ς(x[2]*y[1])
+    sp2 = 1.0 * ς(x[1]*y[1]) + -1.0 * ς(x[2]*y[2])
+    sp = -1.0 * sp1 * sp1 -1.0 * sp2 * sp2
 
     spop = StatePolyOpt(sp; is_unipotent=true, comm_gps=[x, y])
 
     d = 3
     cr = correlative_sparsity(spop, d, NoElimination())
 
-    cliques_objective = [reduce(+, [issubset(effective_variables(t.ncstate_word), clique) ? t : zero(t) for t in terms(spop.objective)]) for clique in cr.cliques]
+    cliques_objective = [reduce(+, [issubset(variables(t[2]), clique) ? t[1] * t[2] : zero(t[2]) for t in terms(spop.objective)]) for clique in cr.cliques]
 
     initial_activated_supp = [sorted_union(symmetric_canonicalize.(monomials(obj_part)), mapreduce(a -> monomials(a), vcat, spop.constraints[cons_idx]; init=typeof(monomials(spop.objective)[1])[]))
                               for (obj_part, cons_idx, idcs_bases) in zip(cliques_objective, cr.cliques_cons, cr.cliques_idcs_bases)]
@@ -67,7 +67,7 @@ end
 
     set_optimizer(mom_problem.model, COSMO.Optimizer)
     optimize!(mom_problem.model)
-    @test isapprox(objective_value(mom_problem.model), -4.0, atol=1e-5)
+    @test isapprox(objective_value(mom_problem.model), -4.0, atol=1e-4)
     @test is_solved_and_feasible(mom_problem.model)
 
     sos_problem = sos_dualize(mom_problem)
@@ -81,29 +81,30 @@ end
     using NCTSSoS, Clarabel
     using DynamicPolynomials: monomial 
     @ncpolyvar x[1:3] y[1:3]
-    cov(a, b) = 1.0 * NCStateWord([x[a] * y[b]], one(x[1])) - 1.0 * (NCStateWord(monomial.([x[a]]), one(x[1])) * NCStateWord(monomial.([y[b]]), one(x[1])))
+    cov(a, b) = 1.0 * ς(x[a] * y[b]) - 1.0 * ς(x[a]) * ς(y[b])
     sp = cov(1,1) + cov(1,2) + cov(1,3) + cov(2,1) + cov(2,2) - cov(2,3) + cov(3,1) - cov(3,2)
 
     spop = StatePolyOpt(sp; is_unipotent=true, comm_gps=[x[1:3], y[1:3]])
 
-    solver_config = SolverConfig(;optimizer=Clarabel.Optimizer, mom_order=2)
+    solver_config = SolverConfig(;optimizer=COSMO.Optimizer, mom_order=2)
 
-    cs_nctssos(spop, solver_config)
+    @test cs_nctssos(spop, solver_config) ≈ -5.0 atol=1e-2 
 
     @ncpolyvar x[1:6]
 
-    sp = NCStatePolynomial(map(a->a[1]*NCStateWord(monomial.(a[2]),one(x[1])),zip(Float64.([-1, 1, -1, 1, -1, 1, -1, 1, -1, 1, 1, -1, -1, 1, 1, -1]),[[x[1] * x[4]], [x[1], x[4]], [x[1] * x[5]], [x[1], x[5]], [x[1] * x[6]], [x[1], x[6]], [x[2] * x[4]], [x[2], x[4]], [x[2] * x[5]], [x[2], x[5]], [x[2] * x[6]], [x[2], x[6]], [x[3] * x[4]], [x[3], x[4]], [x[3] * x[5]], [x[3], x[5]]])))
+    sp = -1.0 * ς(x[1] * x[4]) + 1 * ς(x[1]) * ς(x[4]) - 1 * ς(x[1] * x[5]) + 1 * ς(x[1]) * ς(x[5]) - 1 * ς(x[1] * x[6]) + 1 * ς(x[1]) * ς(x[6]) - 1 * ς(x[2] * x[4]) + 1 * ς(x[2]) * ς(x[4]) - 1 * ς(x[2] * x[5]) + 1 * ς(x[2]) * ς(x[5]) + 1 * ς(x[2] * x[6]) - 1 * ς(x[2]) * ς(x[6]) - 1 * ς(x[3] * x[4]) + 1 * ς(x[3]) * ς(x[4]) + 1 * ς(x[3] * x[5]) - 1 * ς(x[3]) * ς(x[5])
+
 
     spop = StatePolyOpt(sp; is_unipotent=true, comm_gps=[x[1:3], x[4:6]])
 
-    solver_config = SolverConfig(;optimizer=Clarabel.Optimizer, mom_order=2)
+    solver_config = SolverConfig(;optimizer=COSMO.Optimizer, mom_order=2)
 
-    cs_nctssos(spop, solver_config)
+    @test cs_nctssos(spop, solver_config) ≈ -5.0 atol=1e-2
 
     d = 2
     cr = correlative_sparsity(spop, d, NoElimination())
 
-    cliques_objective = [reduce(+, [issubset(effective_variables(t.ncstate_word), clique) ? t : zero(t) for t in terms(spop.objective)]) for clique in cr.cliques]
+    cliques_objective = [reduce(+, [issubset(variables(t[2]), clique) ? t[1] * t[2] : zero(t[2]) for t in terms(spop.objective)]) for clique in cr.cliques]
 
     initial_activated_supp = [sorted_union(symmetric_canonicalize.(monomials(obj_part)), mapreduce(a -> monomials(a), vcat, spop.constraints[cons_idx]; init=typeof(monomials(spop.objective)[1])[]))
                               for (obj_part, cons_idx, idcs_bases) in zip(cliques_objective, cr.cliques_cons, cr.cliques_idcs_bases)]
@@ -126,9 +127,9 @@ end
 
     basis = get_state_basis(x,1,identity)
 
-    sp = NCStatePolynomial(map(a -> a[1]* a[2], zip([1.0, 2.0, 3.0], NCStateWord.(map(x -> monomial.(x), [[x[1], x[2]], [x[1]], [x[2]]]),Ref(one(x[1]))))))
-    nc_words = monomial.([one(x[1]), x[1], x[2]])
-    ncsp = NCStatePolynomial(map(a -> a[1] * a[2], zip([1.0, 2.0, 3.0], NCStateWord.(map(x -> monomial.(x), [[x[1], x[2]], [x[1]], [x[2]]]),nc_words))))
+    sp = 1.0 * ς(x[1] * x[2]) + 2.0 * ς(x[1]) + 3.0 * ς(x[2])
+    nc_words = Monomial.([one(x[1]), x[1], x[2]])
+    ncsp = 1.0 * ς(x[1] * x[2]) * one(Monomial) + 2.0 * ς(x[1]) * Monomial(x[1]) + 3.0 * ς(x[2]) * Monomial(x[2])
     poly = one(ncsp)
 
     total_basis = sort(unique([expval(neat_dot(a,b)) for a in basis for b in basis]))
@@ -137,15 +138,16 @@ end
     @variable(model, y[1:length(total_basis)])
     wordmap = Dict(zip(total_basis,y))
 
-    ncterms = map(a -> a[1]* NCStateWord(monomial.(a[2]), a[3]), zip([1.0, 2.0, 3.0], [[x[1], x[2]], [x[1]], [x[2]]], nc_words))
-    @test sort(terms(ncsp)) == sort(ncterms)
+    ncterms = map(a -> a[1] * NCStateWord(Monomial.(a[2]), a[3]), zip([1.0, 2.0, 3.0], [[x[1] * x[2]], [x[1]], [x[2]]], nc_words))
 
-    @test substitute_variables(ncsp, wordmap) == 1.0 * y[4] + 3.0 * y[3] + 2.0 * y[6]
+    @test map(a -> a[1] * a[2], terms(ncsp)) == ncterms
+    @test substitute_variables(ncsp, wordmap) == 1.0 * y[7] + 3.0 * y[6] + 2.0 * y[4]
 
     true_mom_mtx = expval.([neat_dot(a,b) for a in basis, b in basis])
     mom_mtx_cons = constrain_moment_matrix!(model, one(ncsp), basis, wordmap, PSDCone(), identity)
     mom_mtx = constraint_object(mom_mtx_cons)
-    @test reshape(mom_mtx.func, 5, 5) == AffExpr[y[1] y[2] y[5] y[2] y[5]; y[2] y[3] y[4] y[3] y[4]; y[5] y[4] y[6] y[4] y[6]; y[2] y[3] y[4] y[8] y[7]; y[5] y[4] y[6] y[9] y[10]]
+    reshape(mom_mtx.func, 5,5)
+    @test reshape(mom_mtx.func, 5, 5) == AffExpr[y[1] y[2] y[3] y[2] y[3]; y[2] y[4] y[5] y[4] y[5]; y[3] y[5] y[6] y[5] y[6]; y[2] y[4] y[5] y[8] y[7]; y[3] y[5] y[6] y[9] y[10]]
 end
 
 

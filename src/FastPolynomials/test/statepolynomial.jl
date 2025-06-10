@@ -171,6 +171,7 @@ end
     c_words = [[one(x)], [y], [x], [one(x)], [one(x)]]
     nc_words = [one(x), one(x), one(x), y, x]
     @test sort(get_state_basis([x, y], 1, identity)) == sort(map(x -> NCStateWord(x[1],x[2]), zip(c_words, nc_words)))
+
     c_words = [[one(x)], [y], [x], [x * y], [y^2], [x^2], [y, y], [y, x], [x, x], [one(x)], [y], [x], [one(x)], [y], [x], fill([one(x)], 4)...]
     nc_words = [fill(one(x), 9); fill(y, 3); fill(x, 3); [y * x, y^2, x * y, x^2]]
     @test sort(get_state_basis([x, y], 2, identity)) == sort(map(x -> NCStateWord(x[1], x[2]), zip(c_words, nc_words)))
@@ -182,7 +183,6 @@ end
 
 @testset "_unipotent" begin
     @ncpolyvar x[1:2] y[1:2]
-    # comm_gps = [Set(x),Set(y)]
 
     @test _unipotent(ς(x[1]^2*y[1]^2)) == StateWord(Monomial[]) 
     @test _unipotent(ς(x[1]^2*y[1]*y[2])) == ς(y[1]*y[2]) 
@@ -190,6 +190,7 @@ end
     @test _unipotent(ς(x[1]*x[2]^2*x[1])*ς(y[1]*y[2]^2)) == ς(y[1])
 
 end
+
 @testset "_projective" begin
     @ncpolyvar x[1:2] y[1:2]
 

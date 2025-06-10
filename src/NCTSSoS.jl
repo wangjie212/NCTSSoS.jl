@@ -18,7 +18,7 @@ export @ncpolyvar
 export PolyOpt, TRACE, EIGEN, StatePolyOpt
 export SolverConfig
 export NoElimination, MF, MMD
-export cs_nctssos
+export cs_nctssos, cs_nctssos_higher
 
 include("pop.jl")
 

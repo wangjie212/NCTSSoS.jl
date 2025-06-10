@@ -1,7 +1,7 @@
 using Test, NCTSSoS
 using NCTSSoS.FastPolynomials
 using JuMP
-using Clarabel, MosekTools
+using Clarabel
 using Graphs
 
 using NCTSSoS.FastPolynomials: get_basis, monomials, neat_dot

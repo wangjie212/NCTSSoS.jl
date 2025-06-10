@@ -65,7 +65,7 @@ end
         true_obj = sum([sp1_sq, sp2_sq])
 
         pop = StatePolyOpt(sp; is_unipotent=true, comm_gps=[x, y])
-        @test pop.objective ==  true_obj
+        @test pop.objective ==  true_obj * one(Monomial)
         @test pop.constraints == []
         @test pop.is_equality == Bool[]
         @test pop.is_unipotent == true 
@@ -79,7 +79,7 @@ end
 
         pop = StatePolyOpt(sp; is_unipotent=true,comm_gps= [x,y])
         true_obj = sum([1.0, -1.0, 1.0, -1.0, 1.0, -1.0, 1.0, -1.0, 1.0, -1.0, -1.0, 1.0, 1.0, -1.0, -1.0, 1.0] .* map(a -> prod(ς.(a)), ([[x[1] * y[1]], [x[1], y[1]], [x[1] * y[2]], [x[1], y[2]], [x[1] * y[3]], [x[1], y[3]], [x[2] * y[1]], [x[2], y[1]], [x[2] * y[2]], [x[2], y[2]], [x[2] * y[3]], [x[2], y[3]], [x[3] * y[1]], [x[3], y[1]], [x[3] * y[2]], [x[3], y[2]]])))
-        @test pop.objective == true_obj
+        @test pop.objective == true_obj * one(Monomial)
         @test pop.constraints == []
         @test pop.is_unipotent == true
         @test pop.is_equality == Bool[]

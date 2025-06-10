@@ -380,7 +380,8 @@ struct NCStatePolynomial{T}
             idx = searchsortedfirst(uniq_nc_state_words, sw)
             uniq_coeffs[idx] += coef
         end
-        return new{T}(uniq_coeffs, uniq_nc_state_words)
+        nz_idcs = filter(a -> !iszero(uniq_coeffs[a]), 1:length(uniq_coeffs))
+        return new{T}(uniq_coeffs[nz_idcs], uniq_nc_state_words[nz_idcs])
     end
 end
 
@@ -482,7 +483,12 @@ function get_state_basis(variables::Vector{Variable}, d::Int, reducer)
                         interm = sort(filter(!isone, collect(c_word)))
                         isempty(interm) ? [one(variables[1])] : interm
                     end for c_word in Iterators.product(
-                        ntuple(_ -> unique!(get_basis(variables, cw_deg)), cw_deg)...,
+                        ntuple(
+                            _ -> unique!(
+                                symmetric_canonicalize.(get_basis(variables, cw_deg))
+                            ),
+                            cw_deg,
+                        )...,
                         [one(variables[1])],
                     ) if sum(degree.(c_word)) <= cw_deg
                 ])
@@ -505,11 +511,11 @@ for symb in [:symmetric_canonicalize, :cyclic_canonicalize]
             end
 
             function $(symb)(sp::StatePolynomial)
-                return StatePolynomial($(symb).(sp.state_words))
+                return StatePolynomial((sp.coeffs), $(symb).(sp.state_words))
             end
 
-            function $(symb)(spo::NCStatePolynomial)
-                return NCStatePolynomial($(symb).(spo.nc_state_words))
+            function $(symb)(ncsp::NCStatePolynomial)
+                return NCStatePolynomial((ncsp.coeffs), $(symb).(ncsp.nc_state_words))
             end
         end,
     )

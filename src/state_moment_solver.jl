@@ -4,11 +4,11 @@
 struct StateMomentProblem{T,CR<:ConstraintRef} <: OptimizationProblem
     model::GenericModel{T}
     constraints::Vector{CR}
-    monomap::Dict{NCStateWord,GenericVariableRef{T}}  # TODO: maybe refactor.
+    monomap::Dict{StateWord,GenericVariableRef{T}}  # TODO: maybe refactor.
     reduce_func::Function
 end
 
-function substitute_variables(poly::NCStatePolynomial{T}, wordmap::Dict{NCStateWord,GenericVariableRef{T}}) where {T}
+function substitute_variables(poly::NCStatePolynomial{T}, wordmap::Dict{StateWord,GenericVariableRef{T}}) where {T}
     mapreduce(x -> (x[1] * wordmap[expval(x[2])]), +, terms(poly))
 end
 
@@ -36,7 +36,7 @@ function moment_relax(pop::StatePolyOpt{T}, cliques_cons::Vector{Vector{Int}}, g
     # # map the monomials to JuMP variables, the first variable must be 1
     @variable(model, y[1:length(total_basis)])
     @constraint(model, first(y) == 1)
-    monomap = Dict(zip(NCStateWord.(total_basis), y))
+    monomap = Dict(zip(total_basis, y))
 
     constraint_matrices =
         [mapreduce(vcat, zip(cliques_term_sparsities, cliques_cons)) do (term_sparsities, cons_idx)
@@ -44,7 +44,7 @@ function moment_relax(pop::StatePolyOpt{T}, cliques_cons::Vector{Vector{Int}}, g
                     map(term_sparsity.block_bases) do ts_sub_basis
                         constrain_moment_matrix!(
                             model,
-                            poly * one(Monomial),
+                            poly,
                             ts_sub_basis,
                             monomap,
                             is_eq ? Zeros() : PSDCone(), reduce_func)
@@ -62,7 +62,7 @@ function moment_relax(pop::StatePolyOpt{T}, cliques_cons::Vector{Vector{Int}}, g
                 )
             end]
 
-    @objective(model, Min, substitute_variables(mapreduce(p -> p.coef * prod(reduce_func(p.ncstate_word)), +, terms(symmetric_canonicalize(pop.objective)); init=zero(pop.objective)), monomap))
+    @objective(model, Min, substitute_variables(mapreduce(p -> p[1] * reduce_func(p[2]), +, terms(symmetric_canonicalize(pop.objective)); init=zero(pop.objective)), monomap))
 
     return StateMomentProblem(model, constraint_matrices, monomap, reduce_func)
 end
@@ -71,7 +71,7 @@ function constrain_moment_matrix!(
     model::GenericModel{T},
     poly::NCStatePolynomial{T},
     local_basis::Vector{NCStateWord},
-    monomap::Dict{NCStateWord,GenericVariableRef{T}},
+    monomap::Dict{StateWord,GenericVariableRef{T}},
     cone, # FIXME: which type should I use?
     reduce_func::Function
 ) where {T}

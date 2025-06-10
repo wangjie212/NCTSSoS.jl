@@ -29,7 +29,7 @@ function PolyOpt(objective::Polynomial{T}; constraints=Any[], is_equality=fill(f
 end
 
 struct StatePolyOpt{T} <: OptimizationProblem
-    objective::StatePolynomial{T}
+    objective::NCStatePolynomial{T}
     constraints::Vector{NCStatePolynomial{T}}
     is_equality::Vector{Bool}
     variables::Vector{Variable}
@@ -47,7 +47,7 @@ function StatePolyOpt(objective::StatePolynomial{T}; constraints=Any[], is_equal
     @assert all([isempty(intersect(gp_a, gp_b)) for gp_a in comm_gps, gp_b in comm_gps if gp_a != gp_b]) "The commutative groups must be disjoint."
     @assert sorted_union(comm_gps...) == sort(vars) "The commutative variables groups must be equivalent to all the variables"
     @assert !(is_unipotent && is_projective) "The problem cannot be both unipotent and projective."
-    return StatePolyOpt{T}(objective, cons, is_eq, vars, Set.(comm_gps), is_unipotent, is_projective)
+    return StatePolyOpt{T}(objective*one(Monomial), cons, is_eq, vars, Set.(comm_gps), is_unipotent, is_projective)
 end
 
 function Base.show(io::IO, spolyopt::StatePolyOpt)
