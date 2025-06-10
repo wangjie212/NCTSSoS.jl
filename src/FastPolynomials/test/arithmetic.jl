@@ -1,7 +1,6 @@
 using Test, NCTSSoS.FastPolynomials
 using NCTSSoS.FastPolynomials: Variable, Polynomial, Monomial
 
-
 @testset "Arithmetic" begin
     @testset "Variable Multiplication" begin
         @ncpolyvar x y z
@@ -43,9 +42,11 @@ using NCTSSoS.FastPolynomials: Variable, Polynomial, Monomial
     @testset "Polynomial Addition" begin
         @ncpolyvar x y z
         p1 = Polynomial([1.0, 2.0], [Monomial([x], [1]), Monomial([y], [2])])
-        p_sum1 = p1 + Monomial([z],[1])
-        @test p_sum1 == Polynomial([1.0, 2.0, 1.0], [Monomial([x], [1]), Monomial([y], [2]), Monomial([z], [1])])
-        p2 = Monomial([x],[1]) + Monomial([y],[2])
+        p_sum1 = p1 + Monomial([z], [1])
+        @test p_sum1 == Polynomial(
+            [1.0, 2.0, 1.0], [Monomial([x], [1]), Monomial([y], [2]), Monomial([z], [1])]
+        )
+        p2 = Monomial([x], [1]) + Monomial([y], [2])
         @test p2.coeffs == [1.0, 1.0]
         @test p2.monos == [Monomial([x], [1]), Monomial([y], [2])]
 
@@ -61,7 +62,7 @@ using NCTSSoS.FastPolynomials: Variable, Polynomial, Monomial
         @ncpolyvar x y z
         p1 = Polynomial([1.0, 2.0], [Monomial([x], [1]), Monomial([y], [2])])
         p2 = Float32(2.0) * p1
-        @test p2.coeffs == [2.0, 4.0] 
+        @test p2.coeffs == [2.0, 4.0]
         @test p2.monos == [Monomial([x], [1]), Monomial([y], [2])]
     end
 
@@ -75,6 +76,25 @@ using NCTSSoS.FastPolynomials: Variable, Polynomial, Monomial
 
         p1 = 1.0 * x^2
         p2 = 2.0 * y^2
-        @test p1 - p2 == Polynomial([-2.0, 1.0], [Monomial([y], [2]), Monomial([x], [2])]) 
+        @test p1 - p2 == Polynomial([-2.0, 1.0], [Monomial([y], [2]), Monomial([x], [2])])
+    end
+
+    @testset "*" begin
+        @ncpolyvar x y z
+
+        p1 = 1.0 * x^2
+        @test p1 isa Polynomial{Float64}
+
+        p2 = x^2 + y^3
+        @test p2 isa Polynomial{Float64}
+        @test p2 ≈ Polynomial([1.0, 1.0], [Monomial([x], [2]), Monomial([y], [3])])
+
+        m1 = x * y
+        @test m1.vars == [x, y]
+        @test m1.z == [1, 1]
+
+        m2 = x * y * z
+        @test m2.vars == [x, y, z]
+        @test m2.z == [1, 1, 1]
     end
 end

@@ -50,7 +50,7 @@ function degree(sw::StateWord)
 end
 
 function Base.show(io::IO, obj::StateWord)
-    return print_object(io, obj; multiline=false)
+    return print_object(io, obj; multiline=true)
 end
 
 function Base.show(io::IO, mime::MIME"text/plain", obj::StateWord)
@@ -192,7 +192,7 @@ Computes hash value for an NCStateWord based on both components.
 Base.hash(a::NCStateWord, u::UInt) = hash((hash(a.sw, u), hash(a.nc_word, u)))
 
 function Base.show(io::IO, obj::NCStateWord)
-    return print_object(io, obj; multiline=false)
+    return print_object(io, obj; multiline=true)
 end
 
 function Base.show(io::IO, mime::MIME"text/plain", obj::NCStateWord)
@@ -200,13 +200,14 @@ function Base.show(io::IO, mime::MIME"text/plain", obj::NCStateWord)
     return print_object(io, obj; multiline=multiline)
 end
 
-Base.string(obj::NCStateWord) = string(obj.sw) * " " * string(obj.nc_word)
+Base.string(obj::NCStateWord) = string(obj.sw) * " * " * string(obj.nc_word)
 
 function print_object(io::IO, obj::NCStateWord; multiline::Bool)
     return multiline ? print(io, string(obj)) : Base.show_default(io, obj)
 end
 
 Base.one(::Type{NCStateWord}) = NCStateWord(one(StateWord), one(Monomial))
+Base.one(_::NCStateWord) = one(NCStateWord)
 
 """
     expval(a::NCStateWord)
@@ -221,12 +222,18 @@ Computes the expectation value by combining state monomials with the non-commuta
 """
 expval(a::NCStateWord) = StateWord([a.sw.state_monos; a.nc_word])
 
-function _unipotent(ncsw::NCStateWord)
-    return NCStateWord(_unipotent.(ncsw.sw), _unipotent(ncsw.nc_word))
+function _unipotent(sw::StateWord)
+    return StateWord(_unipotent.(sw.state_monos))
 end
 
+function _unipotent(ncsw::NCStateWord)
+    return NCStateWord(_unipotent(ncsw.sw), _unipotent(ncsw.nc_word))
+end
+
+_projective(sw::StateWord) = StateWord(_projective.(sw.state_monos))
+
 function _projective(ncsw::NCStateWord)
-    return NCStateWord(_projective.(ncsw.sw), _projective(ncsw.nc_word))
+    return NCStateWord(_projective(ncsw.sw), _projective(ncsw.nc_word))
 end
 
 """
@@ -260,6 +267,8 @@ end
 variables(sp::StatePolynomial) = sorted_union(variables.(sp.state_words)...)
 
 degree(sp::StatePolynomial) = mapreduce(degree, max, sp.state_words)
+
+monomials(sp::StatePolynomial) = sp.state_words
 
 function Base.show(io::IO, obj::StatePolynomial)
     return print_object(io, obj; multiline=false)
@@ -465,6 +474,8 @@ end
 function degree(ncsp::NCStatePolynomial)
     return reduce(max, degree.(ncsp.nc_state_words))
 end
+
+monomials(ncsp::NCStatePolynomial) = ncsp.nc_state_words
 
 function get_state_basis(variables::Vector{Variable}, d::Int, reducer)
     return map(

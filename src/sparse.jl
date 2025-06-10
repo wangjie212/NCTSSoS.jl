@@ -91,7 +91,7 @@ function get_term_sparsity_graph(cons_support::Vector{Monomial}, activated_supp:
     sorted_activated_supp = sort(activated_supp)
     for i in 1:nterms, j in i+1:nterms
         for supp in cons_support
-            if symmetric_canonicalize(neat_dot(basis[i], supp * basis[j])) in activated_supp
+            if symmetric_canonicalize(neat_dot(basis[i], supp * basis[j])) in sorted_activated_supp
                 add_edge!(G, i, j)
                 continue
             end

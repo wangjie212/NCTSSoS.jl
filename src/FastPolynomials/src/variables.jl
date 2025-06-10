@@ -182,3 +182,49 @@ Returns the multiplicative identity (empty monomial) for Variable type.
 - `Monomial`: Empty monomial representing the number 1
 """
 Base.one(::Variable) = Monomial(Variable[], Int[])
+
+
+"""
+    monomials(vars::Vector{Variable}, cur_d::Int)
+
+Generates all monomials of a specific degree from given variables.
+
+# Arguments
+- `vars::Vector{Variable}`: Variables to use in monomials
+- `cur_d::Int`: Degree of monomials to generate
+
+# Returns
+- `Vector{Monomial}`: All monomials of degree `cur_d` in the given variables
+"""
+function monomials(vars::Vector{Variable}, cur_d::Int)
+    return vec(
+        map(Iterators.product(repeat([vars], cur_d)...)) do cur_vars
+            Monomial(cur_vars, ones(cur_d))
+        end,
+    )
+end
+
+"""
+    get_basis(vars::Vector{Variable}, d::Int)
+
+Generates a sorted basis of all monomials up to a given degree.
+
+# Arguments
+- `vars::Vector{Variable}`: Variables to use in the basis
+- `d::Int`: Maximum degree of monomials
+
+# Returns
+- `Vector{Monomial}`: Sorted basis containing all monomials of degrees `0` through `d`
+"""
+function get_basis(vars::Vector{Variable}, d::Int)
+    return sort(
+        mapreduce(vcat, 0:d) do dg
+            monomials(vars, dg)
+        end,
+    )
+end
+
+function Base.:(^)(a::Variable, expo::Int)
+    @assert expo >= 0 "Exponent must be non-negative."
+    return iszero(expo) ? Monomial([], []) : Monomial([a], [expo])
+end

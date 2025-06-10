@@ -63,6 +63,7 @@ function correlative_sparsity(pop::StatePolyOpt{T}, order::Int, elim_algo::Elimi
     # get the operators needed to index columns of moment/localizing mtx in each clique
     # depending on the clique's varaibles each is slightly different
     cliques_idx_basis = map(zip(cliques, cliques_cons)) do (clique, clique_cons)
+        @show get_state_basis(sort(clique, rev=true), order, reduce_func) order
         # get the basis of the moment matrix in a clique, then sort it
         [[sorted_unique(reduce_func.(get_state_basis(sort(clique, rev=true), order, reduce_func)))]; map(b -> sorted_unique(reduce_func.(b)), get_state_basis.(Ref(sort(clique, rev=true)), order .- ceil.(Int, maxdegree.(pop.constraints[clique_cons]) / 2)), Ref(reduce_func))]
     end

@@ -1,6 +1,5 @@
 using Test, NCTSSoS.FastPolynomials
-
-using NCTSSoS.FastPolynomials: StateWord, NCStateWord, ς, degree
+using NCTSSoS.FastPolynomials: StateWord, NCStateWord, ς, degree, StatePolynomial, get_state_basis
 
 @testset "NCStatePolynomial Components" begin
     @ncpolyvar x[1:2] y[1:2]
@@ -15,7 +14,7 @@ using NCTSSoS.FastPolynomials: StateWord, NCStateWord, ς, degree
         sw_sorted = StateWord([x[2]^2, x[1] * x[2]])
         @test sw_sorted == sw
 
-        sw_more = StateWord([x[1] * x[2], x[1]^2])
+        sw_less = StateWord([x[1] * x[2], x[1]^2])
         @test sw_less < sw
 
         @test unique([sw, sw_sorted]) == [sw]
@@ -35,36 +34,35 @@ using NCTSSoS.FastPolynomials: StateWord, NCStateWord, ς, degree
     end
 
     @testset "NCStateWord" begin
-        sw = NCStateWord([x[1] * x[2], x[2]^2], one(x[1]))
+        ncsw = NCStateWord(StateWord([x[1] * x[2], x[2]^2]), one(x[1]))
         sw2 = ς(x[1]*x[2]) * ς(x[2]^2)
-        @test sw == sw2
-        @test string(sw) == "<x[2]^2> * <x[1]*x[2]> * 1"
+        @test ncsw.sw == sw2
+        @test string(sw) == "<x[1]¹x[2]¹> * <x[2]²> * 1"
         @test sort(variables(sw)) == sort(x)
 
-        sw_sorted = NCStateWord([x[2]^2, x[1] * x[2]], one(x[1]))
-        @test sw_sorted == sw
+        ncsw_sorted = NCStateWord(StateWord([x[2]^2, x[1] * x[2]]), one(x[1]))
+        @test ncsw_sorted == ncsw
 
-        sw_less = NCStateWord([x[1]*x[2],x[1]^2], one(x[1]))
-        @test sw_less > sw
+        ncsw_less = NCStateWord(StateWord([x[1]*x[2],x[1]^2]), one(x[1]))
+        @test ncsw_less < ncsw
 
-        @test unique([sw,sw_sorted]) == [sw]
-        @test sw * sw_less == NCStateWord([x[2]^2, x[1] * x[2], x[1] * x[2], x[1]^2], one(x[1]))
+        @test unique([ncsw,ncsw_sorted]) == [ncsw]
+        @test ncsw * ncsw_less == NCStateWord(StateWord([x[2]^2, x[1] * x[2], x[1] * x[2], x[1]^2]), one(x[1]))
 
-        sw_partial = NCStateWord([x[1]*x[2]], one(x[1]))
-        @test sw != sw_partial
+        ncsw_partial = NCStateWord(StateWord([x[1]*x[2]]), one(x[1]))
+        @test ncsw != ncsw_partial
 
-        @test degree(sw) == 4
+        @test degree(ncsw) == 4
 
-        @test one(sw) == NCStateWord(monomial.([one(x[1])]), one(x[1]))
+        @test one(ncsw) == NCStateWord(one(StateWord), one(x[1]))
 
-        sw_rep1s = NCStateWord(monomial.(fill(one(x[1]),3)), one(x[1]))
-        @test sw_rep1s == NCStateWord([monomial(one(x[1]))], one(x[1]))
-        @test (4.0 * sw) isa NCStateTerm 
-        ncsw1 = NCStateWord([x[1] * x[2], x[2]^2], x[1] *x[2])
-        ncsw2 = NCStateWord([x[1]^2, x[1]^3],x[1]^2)
-        ncsw1'
-        @test ncsw1' == NCStateWord([x[2]*x[1],x[2]^2], x[2]*x[1])
-        @test ncsw1' * ncsw2 == NCStateWord([x[2]*x[1],x[2]^2,x[1]^2,x[1]^3], x[2] * x[1] * x[1]^2)
+        ncsw_rep1s = NCStateWord(StateWord(fill(one(Monomial),3)), one(x[1]))
+        @test ncsw_rep1s == NCStateWord(StateWord([one(x[1])]), one(x[1]))
+
+        ncsw1 = NCStateWord(StateWord([x[1] * x[2], x[2]^2]), x[1] *x[2])
+        ncsw2 = NCStateWord(StateWord([x[1]^2, x[1]^3]),x[1]^2)
+        @test ncsw1' == NCStateWord(StateWord([x[2]*x[1],x[2]^2]), x[2]*x[1])
+        @test ncsw1' * ncsw2 == NCStateWord(StateWord([x[2]*x[1],x[2]^2,x[1]^2,x[1]^3]), x[2] * x[1] * x[1]^2)
         @test neat_dot(ncsw1, ncsw2) == NCStateWord([x[2] * x[1], x[2]^2, x[1]^2, x[1]^3], x[2] * x[1]^3)
 
         @test expval(ncsw1) == NCStateWord([x[1]*x[2],x[2]^2, x[1]*x[2]],one(x[1]))

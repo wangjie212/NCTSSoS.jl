@@ -1,6 +1,7 @@
 using Test, NCTSSoS, NCTSSoS.FastPolynomials
 using JuMP
-using NCTSSoS: get_state_basis, neat_dot, NCStateWord, NCStatePolynomial, constrain_moment_matrix!, expval, substitute_variables, NCStateTerm, moment_relax
+using NCTSSoS: get_state_basis, neat_dot, NCStateWord, NCStatePolynomial, constrain_moment_matrix!, substitute_variables, moment_relax
+using NCTSSoS.FastPolynomials: expval, NCStateTerm
 using Clarabel, COSMO
 using NCTSSoS: sos_dualize
 using NCTSSoS: correlative_sparsity, iterate_term_sparse_supp, sorted_union, MinimalChordal, NoElimination
@@ -11,6 +12,8 @@ using NCTSSoS: correlative_sparsity, iterate_term_sparse_supp, sorted_union, Min
     spop = StatePolyOpt(sp; is_unipotent=true, comm_gps=[x, y])
 
     d = 1
+    # how did I implement monomials for StatePoly and NCStatePoly?
+    # graph is defined on StateWords and NCStateWords
     cr = correlative_sparsity(spop, d, NoElimination())
 
     cliques_objective = [reduce(+, [issubset(effective_variables(t.ncstate_word), clique) ? t : zero(t) for t in terms(spop.objective)]) for clique in cr.cliques]

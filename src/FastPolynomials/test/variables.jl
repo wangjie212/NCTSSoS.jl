@@ -49,4 +49,12 @@ using NCTSSoS.FastPolynomials: polyarrayvar, buildpolyvar, buildpolyvars
         @test hash(x[1]) == hash(x[1])
         @test hash(x[1]) != hash(x[2])
     end
+    @testset "^" begin
+        @ncpolyvar x y z
+
+        @test x^2 == Monomial([x], [2])
+        @test x^0 == Monomial([], [])
+
+        @test_throws AssertionError Base.:(^)(x, -1)
+    end
 end

@@ -86,45 +86,7 @@ function cyclic_canonicalize(poly::Polynomial)
     return Polynomial(poly.coeffs, cyclic_canonicalize.(poly.monos))
 end
 
-"""
-    monomials(vars::Vector{Variable}, cur_d::Int)
 
-Generates all monomials of a specific degree from given variables.
-
-# Arguments
-- `vars::Vector{Variable}`: Variables to use in monomials
-- `cur_d::Int`: Degree of monomials to generate
-
-# Returns
-- `Vector{Monomial}`: All monomials of degree `cur_d` in the given variables
-"""
-function monomials(vars::Vector{Variable}, cur_d::Int)
-    return vec(
-        map(Iterators.product(repeat([vars], cur_d)...)) do cur_vars
-            Monomial(cur_vars, ones(cur_d))
-        end,
-    )
-end
-
-"""
-    get_basis(vars::Vector{Variable}, d::Int)
-
-Generates a sorted basis of all monomials up to a given degree.
-
-# Arguments
-- `vars::Vector{Variable}`: Variables to use in the basis
-- `d::Int`: Maximum degree of monomials
-
-# Returns
-- `Vector{Monomial}`: Sorted basis containing all monomials of degrees `0` through `d`
-"""
-function get_basis(vars::Vector{Variable}, d::Int)
-    return sort(
-        mapreduce(vcat, 0:d) do dg
-            monomials(vars, dg)
-        end,
-    )
-end
 
 """
     support(poly::Polynomial{T}, canonicalize::Function) where {T}

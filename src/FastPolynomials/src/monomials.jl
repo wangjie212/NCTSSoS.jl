@@ -60,6 +60,7 @@ Monomial(a::Variable) = Monomial([a], [1])
 
 degree(m::Monomial) = sum(m.z)
 
+
 """
     variables(m::Monomial)
 
