@@ -90,7 +90,7 @@ Creates a constant polynomial from a scalar value.
 - `Polynomial`: Constant polynomial with promoted coefficient type
 """
 function Polynomial(::Type{T1}, a::T2) where {T1<:Number,T2<:Number}
-    return Polynomial(promote_type(T1, T2), Monomial([], []))
+    return Polynomial([promote_type(T1, T2)(a)], [Monomial([], [])])
 end
 
 Polynomial(a::Polynomial) = a

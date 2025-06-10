@@ -4,6 +4,7 @@ using NCTSSoS, Test
     include("pop.jl")
     include("sparse.jl")
     include("solver_utils.jl")
+    # FIXME: the following has unpassed tests
     include("moment_solver.jl")
     include("sos_solver.jl")
     include("state_moment_solver.jl")

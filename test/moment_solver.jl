@@ -79,9 +79,9 @@ end
 
     moment_problem = moment_relax(pop, corr_sparsity.cliques_cons, corr_sparsity.global_cons, cliques_term_sparsities)
 
-    # set_optimizer(moment_problem.model, Clarabel.Optimizer)
-    set_optimizer(moment_problem.model, Mosek.Optimizer)
+    set_optimizer(moment_problem.model, Clarabel.Optimizer)
     optimize!(moment_problem.model)
+    objective_value(moment_problem.model) 
     @test isapprox(objective_value(moment_problem.model), 3.011288, atol=1e-4)
 end
 
@@ -213,7 +213,6 @@ end
 
     corr_sparsity = correlative_sparsity(pop, order, NoElimination())
 
-    # FIXME
     @testset "Dense" begin
         cliques_term_sparsities = [
             [TermSparsity(Monomial[], [basis]) for basis in idx_basis]
@@ -229,7 +228,6 @@ end
         @test isapprox(objective_value(moment_problem.model), -1.0, atol=1e-6)
     end
 
-    # FIXME
     @testset "Term Sparse" begin
         ts_algo = MMD()
 
@@ -269,7 +267,6 @@ end
 
     corr_sparsity = correlative_sparsity(pop, order, cs_algo)
 
-    # FIXME
     @testset "Correlative Sparse" begin
         cliques_term_sparsities = [
             [TermSparsity(Monomial[], [basis]) for basis in idx_basis]
@@ -287,7 +284,6 @@ end
         @test isapprox(objective_value(moment_problem.model), 0.9975306427277915, atol=1e-5)
     end
 
-    # FIXME
     @testset "Term Sparse" begin
         ts_algo = MMD()
 
