@@ -22,8 +22,7 @@ m" begin
     end
 
     @testset "reducer" begin
-        obj = Polynomial([1.0, 2.0], [Monomial([x, y], [1, 2]), Monomial([y, z], [1, 1])])
-        #  1.0 * x * y + 2.0 * y * z
+        obj =1.0 * x * y + 2.0 * y * z
 
         basis = get_basis([x,y,z],3)
 
