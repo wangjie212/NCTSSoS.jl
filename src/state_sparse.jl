@@ -16,7 +16,7 @@ end
 # polys: objective + constraints, order is important
 # order: order of the moment problem
 # TODO: this can also be merged with get_correlative_graph
-function get_correlative_graph(ordered_vars::Vector{Variable}, obj::NCStatePolynomial{T}, cons::Vector{NCStatePolynomial{T}}, order::Int) where {T}
+function get_correlative_graph(ordered_vars::Vector{Variable}, obj::StatePolynomial{T}, cons::Vector{NCStatePolynomial{T}}, order::Int) where {T}
     # NOTE: code will be buggy is ordered_vars is not the same as the one reference in other functions
     # @assert issorted(ordered_vars, rev=true) "Variables must be sorted"
 
@@ -24,7 +24,7 @@ function get_correlative_graph(ordered_vars::Vector{Variable}, obj::NCStatePolyn
     G = SimpleGraph(nvars)
 
     # find index of all unique variables in polynomial/monomial p
-    vmap(p) = map(v -> findfirst(==(v), ordered_vars), unique!(effective_variables(p)))
+    vmap(p) = map(v -> findfirst(==(v), ordered_vars), unique!(variables(p)))
 
     map(mono -> add_clique!(G, vmap(mono)), monomials(obj))
 
@@ -49,7 +49,7 @@ function assign_constraint(cliques::Vector{Vector{Variable}}, cons::Vector{NCSta
 
     # clique_cons: vector of vector of constraints index, each belong to a clique
     clique_cons = map(cliques) do clique
-        findall(g -> issubset(unique!(effective_variables(g)), clique), cons)
+        findall(g -> issubset(unique!(variables(g)), clique), cons)
     end
     return clique_cons, setdiff(1:length(cons), union(clique_cons...))
 end

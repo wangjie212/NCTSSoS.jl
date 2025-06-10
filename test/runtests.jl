@@ -5,7 +5,7 @@ using NCTSSoS, Test
     include("sparse.jl")
     include("solver_utils.jl")
     include("moment_solver.jl")
-    include("state_moment_solver.jl")
     include("sos_solver.jl")
+    include("state_moment_solver.jl")
     include("interface.jl")
 end

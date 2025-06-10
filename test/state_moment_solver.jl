@@ -7,7 +7,7 @@ using NCTSSoS: correlative_sparsity, iterate_term_sparse_supp, sorted_union, Min
 
 @testset "State Polynomial Opt 7.2.0" begin
     @ncpolyvar x[1:2] y[1:2]
-    sp = NCStatePolynomial(map(a -> a[1]*NCStateWord([a[2]],a[3]), zip([-1.0, -1.0, -1.0, 1.0], [x[1] * y[1], x[1] * y[2], x[2] * y[1], x[2] * y[2]],fill(one(x[1]),4))))
+    sp =  -1.0 * ς(x[1]*y[1]) -1.0 * ς(x[1]*y[2]) -1.0 * ς(x[2]*y[1]) + 1.0 * ς(x[2]*y[2])
     spop = StatePolyOpt(sp; is_unipotent=true, comm_gps=[x, y])
 
     d = 1
@@ -74,8 +74,6 @@ end
 end
 
 @testset "State Polynomial Opt 7.2.2" begin
-
-
     using NCTSSoS, Clarabel
     using DynamicPolynomials: monomial 
     @ncpolyvar x[1:3] y[1:3]

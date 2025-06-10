@@ -53,7 +53,7 @@ end
 function Base.show(io::IO, spolyopt::StatePolyOpt)
     cons_str = join(["$(string(con)) " * (iseq ? "= 0" : ">= 0") for (con, iseq) in zip(spolyopt.constraints, spolyopt.is_equality)], " \n")
     res_str = """
-        obj: $(spolyopt.objective) \n
+        obj: $(string(spolyopt.objective)) \n
         constraints: \n
             $(cons_str) \n
         variables:
