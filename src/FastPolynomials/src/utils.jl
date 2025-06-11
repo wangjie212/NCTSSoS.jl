@@ -1,17 +1,3 @@
-"""
-    star(m::Monomial)
-
-Computes the adjoint (star) of a monomial by reversing variable order and exponents.
-
-# Arguments
-- `m::Monomial`: The monomial to compute the adjoint of
-
-# Returns
-- `Monomial`: Adjoint monomial with reversed variables and exponents
-"""
-function star(m::Monomial)
-    return Monomial(reverse(m.vars), reverse(m.z))
-end
 
 """
     symmetric_canonicalize(monomial::Monomial)
@@ -86,41 +72,6 @@ function cyclic_canonicalize(poly::Polynomial)
     return Polynomial(poly.coeffs, cyclic_canonicalize.(poly.monos))
 end
 
-
-
-"""
-    support(poly::Polynomial{T}, canonicalize::Function) where {T}
-
-Computes the support of a polynomial after canonicalization.
-
-# Arguments
-- `poly::Polynomial{T}`: The polynomial
-- `canonicalize::Function`: Function to canonicalize support
-
-# Returns
-- `Vector{Monomial}`: Unique canonicalized monomials from the polynomial
-"""
-function support(poly::Polynomial{T}, canonicalize::Function) where {T}
-    return unique!(canonicalize.(poly.monos))
-end
-
-"""
-    neat_dot(x::Monomial, y::Monomial)
-
-Computes the "neat dot" product of two monomials as star(x) * y.
-
-# Arguments
-- `x::Monomial`: First monomial
-- `y::Monomial`: Second monomial
-
-# Returns
-- `Monomial`: Product of star(x) and y
-"""
-function neat_dot(x::Monomial, y::Monomial)
-    return star(x) * y
-end
-
-
 """
     sorted_unique(xs)
 
@@ -152,6 +103,10 @@ sorted_union(xs...) = sort(union(xs...))
 
 Projects a monomial onto commutative groups of variables while maintaining the
 order of variables within each group.
+
+We kept it as separate groups because symmetric canonicalize over the product of
+groups vs product of symmetric canonicalize of each group is different
+
 
 # Arguments
 - `mono::Monomial`: The monomial to project
@@ -208,7 +163,6 @@ function _unipotent(mono::Monomial)
     end
     return cur_mono
 end
-
 
 """
     _projective(mono::Monomial)

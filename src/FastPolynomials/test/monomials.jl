@@ -1,5 +1,5 @@
 using Test, NCTSSoS.FastPolynomials
-using NCTSSoS.FastPolynomials: degree, Monomial
+using NCTSSoS.FastPolynomials: degree, Monomial, neat_dot, star
 
 @testset "Monomials" begin
     @testset "Creation" begin
@@ -14,7 +14,7 @@ using NCTSSoS.FastPolynomials: degree, Monomial
         @test mono2.vars == [x, y, z]
         @test mono2.z == [1, 2, 3]
 
-        mono3 = Monomial([x,y,z,y,z],[1,1,0,1,3])
+        mono3 = Monomial([x, y, z, y, z], [1, 1, 0, 1, 3])
         @test mono3.vars == [x, y, z]
         @test mono3.z == [1, 2, 3]
 
@@ -36,7 +36,7 @@ using NCTSSoS.FastPolynomials: degree, Monomial
         @test degree(mono1) == 33
         @test degree(mono2) == 0
 
-        @test variables(mono1) == [x,y]
+        @test variables(mono1) == [x, y]
         @test variables(mono2) == typeof(x)[]
     end
 
@@ -51,5 +51,37 @@ using NCTSSoS.FastPolynomials: degree, Monomial
 
         mono4 = Monomial([x], [0])
         @test hash(mono4) == hash(Monomial([], []))
+    end
+
+    @testset "Star Operation" begin
+        @ncpolyvar x y z
+        mono1 = Monomial([x, y, z], [2, 0, 1])
+
+        # NOTE: I am assuming all variables are Hermitian
+        mono1_star = star(mono1)
+
+        @test mono1_star.vars == [z, x]
+        @test mono1_star.z == [1, 2]
+
+        mono2 = Monomial([x, y, z], [0, 0, 0])
+        mono2_star = star(mono2)
+
+        @test isempty(mono2_star.vars)
+        @test isempty(mono2_star.z)
+
+        mono3 = Monomial([x, y, z], [1, 1, 1])
+        mono3_star = star(mono3)
+        @test mono3_star.vars == [z, y, x]
+        @test mono3_star.z == [1, 1, 1]
+    end
+
+    @testset "neat_dot" begin
+        @ncpolyvar x y z
+        mono1 = Monomial([x, y], [1, 0])
+
+        mono2 = Monomial([x, y], [1, 1])
+
+        @test neat_dot(mono1, mono2) == Monomial([x, y], [2, 1])
+        @test neat_dot(mono2, mono2) == Monomial([y, x, y], [1, 2, 1])
     end
 end

@@ -37,66 +37,16 @@ struct Polynomial{T}
     end
 end
 
-"""
-    Polynomial(a)
-
-Creates a polynomial with Float64 coefficients.
-
-# Arguments
-- `a`: Variable, monomial, or scalar to convert to polynomial
-
-# Returns
-- `Polynomial{Float64}`: Polynomial with Float64 coefficients
-"""
 Polynomial(a) = Polynomial(Float64, a)
-
-"""
-    Polynomial(::Type{T}, a::Variable) where {T}
-
-Creates a polynomial from a single variable with coefficient type T.
-
-# Arguments
-- `::Type{T}`: Coefficient type
-- `a::Variable`: Variable to convert to polynomial
-
-# Returns
-- `Polynomial{T}`: Polynomial representing the variable with coefficient 1
-"""
-Polynomial(::Type{T}, a::Variable) where {T} = Polynomial([one(T)], [Monomial([a], [1])])
-
-"""
-    Polynomial(::Type{T}, a::Monomial) where {T}
-
-Creates a polynomial from a single monomial with coefficient type T.
-
-# Arguments
-- `::Type{T}`: Coefficient type
-- `a::Monomial`: Monomial to convert to polynomial
-
-# Returns
-- `Polynomial{T}`: Polynomial representing the monomial with coefficient 1
-"""
+Polynomial(::Type{T}, a::Variable) where {T} = Polynomial([one(T)], [Monomial(a)])
 Polynomial(::Type{T}, a::Monomial) where {T} = Polynomial([one(T)], [a])
-"""
-    Polynomial(::Type{T1}, a::T2) where {T1,T2}
-
-Creates a constant polynomial from a scalar value.
-
-# Arguments
-- `::Type{T1}`: Target coefficient type
-- `a::T2`: Scalar value
-
-# Returns
-- `Polynomial`: Constant polynomial with promoted coefficient type
-"""
 function Polynomial(::Type{T1}, a::T2) where {T1<:Number,T2<:Number}
-    return Polynomial([promote_type(T1, T2)(a)], [Monomial([], [])])
+    return Polynomial([promote_type(T1, T2)(a)], [one(Monomial)])
 end
-
 Polynomial(a::Polynomial) = a
 
 function Base.convert(::Type{Polynomial{T}}, a::Variable) where {T}
-    return Polynomial([one(T)], [Monomial([a], [one(T)])])
+    return Polynomial([one(T)], [Monomial([a], [1])])
 end
 Base.convert(::Type{Polynomial{T}}, a::Monomial) where {T} = Polynomial([one(T)], [a])
 
@@ -172,10 +122,25 @@ function Base.:(^)(p::Polynomial, n::Int)
     return p * (p^(n - 1))
 end
 
-Base.one(::Polynomial{T}) where {T} = Polynomial([one(T)], [Monomial([], [])])
-Base.zero(::Polynomial{T}) where {T} = Polynomial([zero(T)], [Monomial([], [])])
+Base.one(::Polynomial{T}) where {T} = Polynomial([one(T)], [one(Monomial)])
+Base.zero(::Polynomial{T}) where {T} = Polynomial([zero(T)], [one(Monomial)])
 
 coefficients(p::Polynomial) = p.coeffs
 monomials(p::Polynomial) = p.monos
-
 terms(p::Polynomial) = zip(p.coeffs, p.monos)
+
+"""
+    support(poly::Polynomial{T}, canonicalize::Function) where {T}
+
+Computes the support of a polynomial after canonicalization.
+
+# Arguments
+- `poly::Polynomial{T}`: The polynomial
+- `canonicalize::Function`: Function to canonicalize support
+
+# Returns
+- `Vector{Monomial}`: Unique canonicalized monomials from the polynomial
+"""
+function support(poly::Polynomial{T}, canonicalize::Function) where {T}
+    return unique!(canonicalize.(poly.monos))
+end

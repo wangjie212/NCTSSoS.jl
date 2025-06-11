@@ -6,6 +6,7 @@ using Test
     include("compare.jl")
     include("monomials.jl")
     include("polynomial.jl")
+    include("state_word.jl")
     include("statepolynomial.jl")
     include("utils.jl")
     include("variables.jl")

@@ -12,9 +12,8 @@ function Base.:(+)(a::PolynomialLike, b::PolynomialLike)
     return Polynomial([ap.coeffs; bp.coeffs], [ap.monos; bp.monos])
 end
 
-Base.:(+)(a::PolynomialLike,b::Number) = a + Polynomial(b)
-Base.:(+)(a::Number,b::PolynomialLike) = Polynomial(a) + b
-
+Base.:(+)(a::PolynomialLike, b::Number) = a + Polynomial(b)
+Base.:(+)(a::Number, b::PolynomialLike) = Polynomial(a) + b
 
 function Base.:(-)(a::PolynomialLike, b::PolynomialLike)
     ap = Polynomial(a)
@@ -22,25 +21,13 @@ function Base.:(-)(a::PolynomialLike, b::PolynomialLike)
     return Polynomial([ap.coeffs; -bp.coeffs], [ap.monos; bp.monos])
 end
 
-Base.:(-)(a::PolynomialLike,b::Number) = a - Polynomial(b)
-Base.:(-)(a::Number,b::PolynomialLike) = Polynomial(a) - b
+Base.:(-)(a::PolynomialLike, b::Number) = a - Polynomial(b)
+Base.:(-)(a::Number, b::PolynomialLike) = Polynomial(a) - b
 
 function Base.:(-)(a::Polynomial)
     return Polynomial(-a.coeffs, a.monos)
 end
 
-"""
-    Base.:(*)(a::Polynomial, b::Polynomial)
-
-Multiplies two polynomials using distributive property.
-
-# Arguments
-- `a::Polynomial`: First polynomial
-- `b::Polynomial`: Second polynomial
-
-# Returns
-- `Polynomial`: Product polynomial with all pairwise coefficient and monomial products
-"""
 function Base.:(*)(a::Polynomial, b::Polynomial)
     return Polynomial(
         vec([ca * cb for (ca, cb) in Iterators.product(a.coeffs, b.coeffs)]),
@@ -48,27 +35,12 @@ function Base.:(*)(a::Polynomial, b::Polynomial)
     )
 end
 
-
 Base.promote_rule(::Type{Monomial}, ::Type{Variable}) = Monomial
 Base.promote_rule(::Type{Polynomial{T}}, ::Type{Monomial}) where {T} = Polynomial{T}
 Base.promote_rule(::Type{Variable}, ::Type{Polynomial{T}}) where {T} = Polynomial{T}
 Base.promote_rule(::Type{Polynomial{T}}, ::Type{Variable}) where {T} = Polynomial{T}
 
-
-"""
-    Base.:(*)(a::Polynomial{T}, b::PolynomialLike) where {T}
-
-Multiplies a polynomial by a variable/monomial.
-
-# Arguments
-- `a::Polynomial{T}`: Polynomial
-- `b::PolynomialLike`: Variable or monomial
-
-# Returns
-- `Polynomial{T}`: Product with coefficient type T
-"""
 Base.:(*)(a::PolynomialLike, b::PolynomialLike) = *(promote(a, b)...)
-
 Base.:(*)(a::Variable, b::Variable) = Monomial([a, b], [1, 1])
 
 function Base.:(*)(x::Monomial, y::Monomial)

@@ -15,9 +15,9 @@ include("compare.jl")
 
 include("arithmetic.jl")
 
-include("operators.jl")
-
 include("utils.jl")
+
+include("state_word.jl")
 
 include("statepolynomial.jl")
 

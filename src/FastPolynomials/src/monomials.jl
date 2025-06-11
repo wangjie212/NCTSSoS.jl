@@ -60,7 +60,6 @@ Monomial(a::Variable) = Monomial([a], [1])
 
 degree(m::Monomial) = sum(m.z)
 
-
 """
     variables(m::Monomial)
 
@@ -122,3 +121,34 @@ function Base.isone(m::Monomial)
 end
 
 Base.convert(::Type{Monomial}, a::Variable) = Monomial([a], [1])
+
+"""
+    star(m::Monomial)
+
+Computes the adjoint (star) of a monomial by reversing variable order and exponents.
+
+# Arguments
+- `m::Monomial`: The monomial to compute the adjoint of
+
+# Returns
+- `Monomial`: Adjoint monomial with reversed variables and exponents
+"""
+function star(m::Monomial)
+    return Monomial(reverse(m.vars), reverse(m.z))
+end
+
+"""
+    neat_dot(x::Monomial, y::Monomial)
+
+Computes the "neat dot" product of two monomials as star(x) * y.
+
+# Arguments
+- `x::Monomial`: First monomial
+- `y::Monomial`: Second monomial
+
+# Returns
+- `Monomial`: Product of star(x) and y
+"""
+function neat_dot(x::Monomial, y::Monomial)
+    return star(x) * y
+end

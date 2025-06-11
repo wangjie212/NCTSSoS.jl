@@ -170,19 +170,7 @@ function Base.hash(v::Variable, u::UInt)
     return hash(v.name, u)
 end
 
-"""
-    Base.one(::Variable)
-
-Returns the multiplicative identity (empty monomial) for Variable type.
-
-# Arguments
-- `::Variable`: Any Variable (type parameter only)
-
-# Returns
-- `Monomial`: Empty monomial representing the number 1
-"""
 Base.one(::Variable) = Monomial(Variable[], Int[])
-
 
 """
     monomials(vars::Vector{Variable}, cur_d::Int)
@@ -226,5 +214,5 @@ end
 
 function Base.:(^)(a::Variable, expo::Int)
     @assert expo >= 0 "Exponent must be non-negative."
-    return iszero(expo) ? Monomial([], []) : Monomial([a], [expo])
+    return iszero(expo) ? one(a) : Monomial([a], [expo])
 end
