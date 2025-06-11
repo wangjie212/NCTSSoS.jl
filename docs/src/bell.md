@@ -42,7 +42,7 @@ result.objective  # the upper bound of the CHSH inequality
 ```
 
 Here, we first declare some operators as non-commutative variables, and then construct the optimization problem. In `PolyOpt` constructor,
-- `comm_gps` argument specifies the commutative group of the variables, which means variables in different commutative groups commute with each other. (TODO: change this API.)
+- `comm_gps` argument specifies the commutative group of the variables, which means variables in different commutative groups commute with each other. 
 - `is_unipotent` argument specifies that the variables are unipotent, which means they square to 1 (e.g. Pauli operators).
 
 Here, since the variables on different qubits commute with each other, we can group them into different commutative groups.
@@ -85,6 +85,63 @@ Here, the `is_projective` argument specifies that the variables are projective, 
 
 The resulting upper bound is close to the theoretical exact value $0.25$. By increasing the order of the moment matrix, this upper bound can be improved.
 
+#### Reducing SDP Problem Size with Sparsity
+
+To reach the theoretical exact value of $0.25$, we can increase the order of the moment matrix [^Magron]. 
+
+```julia 
+using NCTSSoS, Clarabel
+
+@ncpolyvar x[1:3]
+@ncpolyvar y[1:3]
+f = 1.0 * x[1] * (y[1] + y[2] + y[3]) + x[2] * (y[1] + y[2] - y[3]) +
+    x[3] * (y[1] - y[2]) - x[1] - 2 * y[1] - y[2]  # objective function
+
+pop = PolyOpt(-f; comm_gps= [Set(x),Set(y)], is_projective=true)
+
+solver_config = SolverConfig(optimizer=Clarabel.Optimizer; mom_order=3)
+
+@time result = cs_nctssos(pop, solver_config)
+@show result.objective 
+```
+
+```julia
+73.675848 seconds (8.21 M allocations: 1.420 GiB, 0.44% gc time, 0.02% compilation time)
+result.objective = -0.25087557826010604
+```
+Indeed, by increasing the order of the moment matrix to 3, have improved the upper bound from $-0.2509397262650706$ to $-0.25087557826010604$. 
+
+However, keep increase the order can lead to a large semidefinite programming (SDP) problem size, which can be computationally expensive. To reduce the problem size, we may exploit the sparsity of the problem [^Magron]. There are two sparsity patterns that can be used to reduce the problem size:
+
+1. **Correlation Sparsity**: exploits the fact that few variable products exists in the objective function. Therefore, we could break down the objective function into smaller parts, each involving fewer variables. This reduces the moment matrix size and the number of constraints in the SDP problem, making it more tractable. 
+
+2. **Term Sparsity**: exploits the fact that not all monomials in the moment matrix are needed to represent the objective function. By identifying and removing unnecessary monomials, we can further reduce the size of the moment matrix and the SDP problem.
+
+To take advantage of these sparsity patterns, 
+
+```julia i3322_sparsity
+using NCTSSoS, Clarabel
+
+@ncpolyvar x[1:3]
+@ncpolyvar y[1:3]
+f = 1.0 * x[1] * (y[1] + y[2] + y[3]) + x[2] * (y[1] + y[2] - y[3]) +
+    x[3] * (y[1] - y[2]) - x[1] - 2 * y[1] - y[2]  # objective function
+
+pop = PolyOpt(-f; comm_gps= [Set(x),Set(y)], is_projective=true)
+
+solver_config = SolverConfig(optimizer=Clarabel.Optimizer; mom_order=6, cs_algo=MF())
+
+@time result = cs_nctssos(pop, solver_config)
+@show result.objective 
+```
+
+```julia
+46.996790 seconds (14.14 M allocations: 1.579 GiB, 0.90% gc time, 0.16% compilation time)
+-0.2508753195677618
+```
+
+Using almost half of the time, we are able to improve the $7$-th digit of the upper bound!
+
 ## Nonlinear Bell Inequalities
 
 Non-linear Bell inequalities are extensions of the standard linear Bell inequalities. Instead of being linear combinations of expectation values, they involve polynomial functions of these expectation values. These inequalities arise naturally when considering more complex scenarios, such as multi-party settings or when the parties can perform sequences of measurements.
@@ -106,7 +163,7 @@ f(A_1,A_2,A_3, B_1,B_2,B_3) = \text{Cov}(A_1, B_1) + \text{Cov}(A_1, B_2) + \tex
 
 it was shown that $f(A_1,A_2,A_3,B_1,B_2,B_3) \leq \frac{9}{2}$ in classical models, while it can attain a maximum value of $5$ in spatial quantum model of qubits and a maximally entangled state [^Pozsgay].
 
-An *open question* was whether a higher bound can be attained in a spatial quantum model of qudits, i.e., systems with more than two levels. Using State Polynomial Optimization (TODO: cite), we can certify the upper bound of this inequality:
+An *open question* was whether a higher bound can be attained in a spatial quantum model of qudits, i.e., systems with more than two levels. Using State Polynomial Optimization [^Klep], we can certify the upper bound of this inequality:
 
 ```@example covariance
 using NCTSSoS, COSMO
@@ -144,3 +201,5 @@ TODO: use sparsity to improve the performance of the algorithm.
 [^Goulart2024]: Goulart, P.J., Chen, Y., 2024. Clarabel: An interior-point solver for conic programs with quadratic objectives. https://doi.org/10.48550/arXiv.2405.12762
 [^Pal2010]: Pál, K.F., Vértesi, T., 2010. Maximal violation of the I3322 inequality using infinite dimensional quantum systems. Phys. Rev. A 82, 022116. https://doi.org/10.1103/PhysRevA.82.022116
 [^Pozsgay]: Victor Pozsgay, Flavien Hirsch, Cyril Branciard, and Nicolas Brunner. Covariance Bell inequalities. Phys. Rev. A, 96(6):062128, 13, 2017. https://doi.org/10.1103/PhysRevA.96.062128
+[^Klep]: Klep, I., Magron, V., Volčič, J. and Wang, J., 2024. State polynomials: positivity, optimization and nonlinear Bell inequalities. Mathematical Programming, 207(1), pp.645-691.
+[^Magron]: Magron, V. and Wang, J., 2023. Sparse polynomial optimization: theory and practice.

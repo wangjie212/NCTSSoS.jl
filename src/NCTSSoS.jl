@@ -17,7 +17,7 @@ export @ncpolyvar
 
 export PolyOpt, TRACE, EIGEN, StatePolyOpt
 export SolverConfig
-export NoElimination, MF, MMD
+export NoElimination, MF, MMD, AsIsElimination
 export cs_nctssos, cs_nctssos_higher
 
 include("pop.jl")
@@ -37,6 +37,4 @@ include("state_sparse.jl")
 include("state_moment_solver.jl")
 
 include("state_sos_solver.jl")
-
-
 end

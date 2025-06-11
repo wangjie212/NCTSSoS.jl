@@ -93,7 +93,9 @@ After cloning the repository, use `make init` to set up the environment to run t
 
 ## References
 [1] [Exploiting Term Sparsity in Noncommutative Polynomial Optimization](https://arxiv.org/abs/2010.06956), 2021.
+
 [2] [Sparse polynomial optimization: theory and practice](https://arxiv.org/abs/2208.11158), 2023.
+
 [3] [State polynomials: positivity, optimization and nonlinear Bell inequalities](https://arxiv.org/abs/2301.12513), 2023.
 
 ## Contact
