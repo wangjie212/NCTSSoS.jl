@@ -103,8 +103,12 @@ end
 # returns: F (the chordal graph), blocks in basis
 function iterate_term_sparse_supp(activated_supp::Vector{Monomial}, poly::Polynomial, basis::Vector{Monomial}, elim_algo::EliminationAlgorithm)
     F = get_term_sparsity_graph(poly.monos, activated_supp, basis)
-    blocks = clique_decomp(F, elim_algo)
-    map(block -> add_clique!(F, block), blocks)
+    if !(elim_algo isa AsIsElimination)
+        blocks = clique_decomp(F, elim_algo)
+        map(block -> add_clique!(F, block), blocks)
+    else
+        blocks = connected_components(F)
+    end
     return TermSparsity(term_sparsity_graph_supp(F, basis, poly), map(x -> basis[x], blocks))
 end
 
