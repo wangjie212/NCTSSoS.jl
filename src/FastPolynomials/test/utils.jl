@@ -132,9 +132,9 @@ using NCTSSoS.FastPolynomials: Monomial, Polynomial
         @ncpolyvar b[1:3]
 
         mono = a[1]^2 * b[2]^2 * a[2] * b[1]^3
-        @test prod(_comm(mono, [Set(a), Set(b)])) == a[1]^2 * a[2] * b[2]^2 * b[1]^3
+        @test prod(_comm(mono, [a, b])) == a[1]^2 * a[2] * b[2]^2 * b[1]^3
         mono = a[1]^3 * a[3]
-        @test prod(_comm(mono, [Set(a), Set(b)])) == a[1]^3 * a[3]
+        @test prod(_comm(mono, [a, b])) == a[1]^3 * a[3]
     end
 
     @testset "_projective" begin

@@ -13,13 +13,13 @@ using NCTSSoS.FastPolynomials: Variable, variables, Polynomial, Monomial, StateP
 
         @test pop.is_equality == Bool[]
         @test sort(pop.variables) == sort(x)
-        @test pop.comm_gps == [Set(x)]
+        @test pop.comm_gps == [[x]]
         @test !pop.is_unipotent
         @test !pop.is_projective
 
-        pop = PolyOpt(objective; comm_gps=[Set([x[1]]), Set(x[2:end])], obj_type=TRACE)
+        pop = PolyOpt(objective; comm_gps=[[x[1]], x[2:end]], obj_type=TRACE)
 
-        @test pop.comm_gps == [Set([x[1]]), Set(x[2:end])]
+        @test pop.comm_gps == [[x[1]], x[2:end]]
         @test pop isa PolyOpt{Float64,TRACE}
     end
 
@@ -29,7 +29,7 @@ using NCTSSoS.FastPolynomials: Variable, variables, Polynomial, Monomial, StateP
         @test pop.constraints == constraints
         @test pop.is_equality == fill(false, ncons)
 
-        pop = PolyOpt(objective; constraints=Set([constraints; sum(x)]))
+        pop = PolyOpt(objective; constraints=[constraints; sum(x)])
 
         @test length(pop.constraints) == ncons
         @test pop.is_equality == fill(false, ncons)
@@ -48,7 +48,7 @@ using NCTSSoS.FastPolynomials: Variable, variables, Polynomial, Monomial, StateP
         p1 = Polynomial([1,1],[Monomial([x[1],x[2]],[1,1]),Monomial([x[2],x[3]],[1,1])])
         @test_throws AssertionError PolyOpt(p1)
         @ncpolyvar y[1:nvars]
-        @test_throws AssertionError PolyOpt(objective; comm_gps=[Set(x),Set(y)])
+        @test_throws AssertionError PolyOpt(objective; comm_gps=[[x], [y]])
     end
 end
 
@@ -70,7 +70,7 @@ end
         @test pop.is_equality == Bool[]
         @test pop.is_unipotent == true 
         @test pop.is_projective == false
-        @test pop.comm_gps == [Set(x),Set(y)]
+        @test pop.comm_gps == [[x], [y]]
     end
     @testset "Example 7.2.2" begin
         @ncpolyvar x[1:3] y[1:3]
@@ -83,7 +83,7 @@ end
         @test pop.constraints == []
         @test pop.is_unipotent == true
         @test pop.is_equality == Bool[]
-        @test pop.comm_gps == [Set(x),Set(y)]
+        @test pop.comm_gps == [[x], [y]]
         
         @ncpolyvar z[1:3]
         @test_throws AssertionError StatePolyOpt(sp; comm_gps=[x, y, z])
@@ -104,7 +104,7 @@ end
         @test pop.constraints == []
         @test pop.is_unipotent == true
         @test pop.is_equality == Bool[]
-        @test pop.comm_gps == [Set(A),Set(B)]
+        @test pop.comm_gps == [[A], [B]]
     end
 end
 

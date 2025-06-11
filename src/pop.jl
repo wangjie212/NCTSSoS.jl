@@ -8,12 +8,12 @@ struct PolyOpt{T,OBJ} <: OptimizationProblem
     constraints::Vector{Polynomial{T}} # NOTE: assuming constraints are all simplified using comm_gp, is_unipotent, and is_projective
     is_equality::Vector{Bool} # which constraints are equality constraints
     variables::Vector{Variable}
-    comm_gps::Vector{Set{Variable}} # Vectors of Set of variables that commutes with variables not in the same set
+    comm_gps::Vector{Vector{Variable}} # Vectors of Set of variables that commutes with variables not in the same set
     is_unipotent::Bool # square to 1. Examples: Pauli Operators, SWAP Operators
     is_projective::Bool # X^2 = X. Is projective.
 end
 
-function PolyOpt(objective::Polynomial{T}; constraints=Any[], is_equality=fill(false, length(constraints)), comm_gps=Set{Variable}[], is_unipotent::Bool=false, is_projective::Bool=false, obj_type::Objective=EIGEN) where {T}
+function PolyOpt(objective::Polynomial{T}; constraints=Any[], is_equality=fill(false, length(constraints)), comm_gps=Vector{Variable}[], is_unipotent::Bool=false, is_projective::Bool=false, obj_type::Objective=EIGEN) where {T}
     @assert !(T <: Integer) "The polynomial coefficients can not be integers (not supported by JuMP solvers)."
     cons = collect(Polynomial{T}, constraints)
     is_eq = collect(Bool, is_equality)
@@ -22,7 +22,7 @@ function PolyOpt(objective::Polynomial{T}; constraints=Any[], is_equality=fill(f
     if !isempty(comm_gps)
         @assert issubset(union(comm_gps...), vars) "The commutative variables must be a subset of the variables."
     else
-        push!(comm_gps, Set(vars))
+        push!(comm_gps, vars)
     end
     @assert !(is_unipotent && is_projective) "The problem cannot be both unipotent and projective."
     return PolyOpt{T,obj_type}(objective, cons, is_eq, vars, comm_gps, is_unipotent, is_projective)
@@ -33,7 +33,7 @@ struct StatePolyOpt{T} <: OptimizationProblem
     constraints::Vector{NCStatePolynomial{T}}
     is_equality::Vector{Bool}
     variables::Vector{Variable}
-    comm_gps::Vector{Set{Variable}} # Set of variables that commutes with variables not in the set
+    comm_gps::Vector{Vector{Variable}} # Set of variables that commutes with variables not in the set
     is_unipotent::Bool # square to 1. Examples: Pauli Operators, SWAP Operators
     is_projective::Bool # X^2 = X. Is projective.
 end
@@ -47,7 +47,7 @@ function StatePolyOpt(objective::StatePolynomial{T}; constraints=Any[], is_equal
     @assert all([isempty(intersect(gp_a, gp_b)) for gp_a in comm_gps, gp_b in comm_gps if gp_a != gp_b]) "The commutative groups must be disjoint."
     @assert sorted_union(comm_gps...) == sort(vars) "The commutative variables groups must be equivalent to all the variables"
     @assert !(is_unipotent && is_projective) "The problem cannot be both unipotent and projective."
-    return StatePolyOpt{T}(objective*one(Monomial), cons, is_eq, vars, Set.(comm_gps), is_unipotent, is_projective)
+    return StatePolyOpt{T}(objective*one(Monomial), cons, is_eq, vars, comm_gps, is_unipotent, is_projective)
 end
 
 function Base.show(io::IO, spolyopt::StatePolyOpt)

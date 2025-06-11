@@ -185,11 +185,14 @@ Generates all monomials of a specific degree from given variables.
 - `Vector{Monomial}`: All monomials of degree `cur_d` in the given variables
 """
 function monomials(vars::Vector{Variable}, cur_d::Int)
-    return vec(
-        map(Iterators.product(repeat([vars], cur_d)...)) do cur_vars
-            Monomial(cur_vars, ones(cur_d))
-        end,
-    )
+    itr = Iterators.product(repeat([vars], cur_d)...)   # this is type unstable, maybe switch to a loop?
+    return _monomial_loop(itr)
+end
+
+function _monomial_loop(itr)
+    return vec(map(itr) do cur_vars
+            monomial(collect(Variable, cur_vars), ones(Int, length(cur_vars)))
+        end)
 end
 
 """
@@ -214,5 +217,5 @@ end
 
 function Base.:(^)(a::Variable, expo::Int)
     @assert expo >= 0 "Exponent must be non-negative."
-    return iszero(expo) ? one(a) : Monomial([a], [expo])
+    return iszero(expo) ? Monomial(Variable[], Int[]) : Monomial([a], [expo])
 end

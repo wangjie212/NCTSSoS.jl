@@ -83,7 +83,8 @@ Returns sorted unique elements from a collection.
 # Returns
 - Sorted vector of unique elements
 """
-sorted_unique(xs) = sort(unique(xs))
+sorted_unique(xs) = sort!(unique(xs))
+sorted_unique!(xs) = sort!(unique!(xs))
 
 """
     sorted_union(xs...)
@@ -99,7 +100,7 @@ Returns sorted union of multiple collections.
 sorted_union(xs...) = sort(union(xs...))
 
 """
-    _comm(mono::Monomial, comm_gps::Vector{Set{Variable}})
+    _comm(mono::Monomial, comm_gps::Vector{Vector{Variable}})
 
 Projects a monomial onto commutative groups of variables while maintaining the
 order of variables within each group.
@@ -110,17 +111,17 @@ groups vs product of symmetric canonicalize of each group is different
 
 # Arguments
 - `mono::Monomial`: The monomial to project
-- `comm_gps::Vector{Set{Variable}}`: Vector of sets defining commutative variable groups
+- `comm_gps::Vector{Vector{Variable}}`: Vector of sets defining commutative variable groups
 
 # Returns
 - `Vector{Monomial}`: Projections of the monomial onto each commutative group
 
 # Example
 ```jldoctest; setup=:(using NCTSSoS.FastPolynomials; using NCTSSoS.FastPolynomials: _comm)
-julia> @ncpolyvar x y; comm_gps = [Set([x]),Set([y])]
-2-element Vector{Set{Variable}}:
- Set([x])
- Set([y])
+julia> @ncpolyvar x y; comm_gps = [[x], [y]]
+2-element Vector{Vector{Variable}}:
+ [x]
+ [y]
 
 julia> mono1 = x*y*x*y
 x¹y¹x¹y¹
@@ -131,12 +132,40 @@ julia> _comm(mono1, comm_gps)
  y²
 ```
 """
-function _comm(mono::Monomial, comm_gps::Vector{Set{Variable}})
+function _comm(mono::Monomial, comm_gps::Vector{Vector{Variable}})
     map(comm_gps) do vars
-        prod(zip(mono.vars, mono.z); init=Monomial([], [])) do (var, expon)
-            var in vars ? var^expon : var^(zero(expon))
+        result = one(Monomial)
+        for (var, expon) in zip(mono.vars, mono.z)
+            if var in vars
+                _mul_var!(result, var, expon, false)
+            end
+        end
+        result
+    end
+end
+
+# multiply a variable to a monomial
+@inline function _mul_var!(result::Monomial, var::Variable, expo::Int, is_unipotent::Bool)
+    # Q: do we need to consider commutative case?
+    if is_unipotent
+        iseven(expo) && return result
+        if length(result.vars) == 0 || var != result.vars[end]   # new variable
+            push!(result.vars, var)
+            push!(result.z, expo)
+        else
+            pop!(result.vars)
+            pop!(result.z)
+        end
+    else
+        iszero(expo) && return result
+        if length(result.vars) == 0 || var != result.vars[end]   # new variable
+            push!(result.vars, var)
+            push!(result.z, expo)
+        else
+            result.z[end] += expo
         end
     end
+    return result
 end
 
 """
@@ -152,16 +181,11 @@ Applies unipotent transformation to a monomial by reducing exponents modulo 2 it
 """
 function _unipotent(mono::Monomial)
     isempty(mono.vars) && return mono
-    prev_mono = mono
-    local cur_mono
-    while true
-        cur_mono = prod(zip(prev_mono.vars, prev_mono.z); init=one(Monomial)) do (var, expo)
-            var^(expo % 2)
-        end
-        cur_mono == prev_mono && break
-        prev_mono = cur_mono
+    result = one(Monomial)
+    for (var, expo) in zip(mono.vars, mono.z)
+        _mul_var!(result, var, expo, true)
     end
-    return cur_mono
+    return result
 end
 
 """

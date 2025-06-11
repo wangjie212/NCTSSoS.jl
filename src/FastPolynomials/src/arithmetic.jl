@@ -44,17 +44,18 @@ Base.:(*)(a::PolynomialLike, b::PolynomialLike) = *(promote(a, b)...)
 Base.:(*)(a::Variable, b::Variable) = Monomial([a, b], [1, 1])
 
 function Base.:(*)(x::Monomial, y::Monomial)
+    # Q: can z be negative?
     i = findlast(z -> z > 0, x.z)
     isnothing(i) && return y
     j = findfirst(z -> z > 0, y.z)
     isnothing(j) && return x
 
     if x.vars[i] == y.vars[j]
-        w = [x.vars[1:i]; y.vars[(j + 1):end]]
-        z = [x.z[1:(i - 1)]; x.z[i] + y.z[j]; y.z[(j + 1):end]]
+        w = [view(x.vars, 1:i); view(y.vars, (j + 1):length(y.vars))]
+        z = [view(x.z, 1:(i - 1)); x.z[i] + y.z[j]; view(y.z, (j + 1):length(y.z))]
     else
-        w = [x.vars[1:i]; y.vars[j:end]]
-        z = [x.z[1:i]; y.z[j:end]]
+        w = [view(x.vars, 1:i); view(y.vars, j:length(y.vars))]
+        z = [view(x.z, 1:i); view(y.z, j:length(y.z))]
     end
     return Monomial(w, z)
 end

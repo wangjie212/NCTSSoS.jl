@@ -16,28 +16,37 @@ Automatically consolidates consecutive identical variables and removes zero expo
 struct Monomial
     vars::Vector{Variable}
     z::Vector{Int}
-
     function Monomial(vars::Vector{Variable}, z::Vector{Int})
-        if length(vars) != length(z)
-            throw(ArgumentError("There should be as many variables as exponents"))
-        end
-        nz_idcs = filter(x -> !iszero(z[x]), 1:length(z))
-        isempty(nz_idcs) && return new(Variable[], Int[])
-
-        nonconseq_rep_vars = [vars[nz_idcs[1]]]
-        nonconseq_rep_z = [z[nz_idcs[1]]]
-        for nz_idx in view(nz_idcs, 2:length(nz_idcs))
-            if nonconseq_rep_vars[end] == vars[nz_idx]
-                nonconseq_rep_z[end] += z[nz_idx]
-                continue
-            else
-                push!(nonconseq_rep_vars, vars[nz_idx])
-                push!(nonconseq_rep_z, z[nz_idx])
-            end
-        end
-
-        return new(nonconseq_rep_vars, nonconseq_rep_z)
+        @assert length(vars) == length(z) "There should be as many variables as exponents, got $(length(vars)) and $(length(z))"
+        @assert consecutive_unique(vars) "Variables should be consecutive unique, got $(vars)"
+        return new(vars, z)
     end
+end
+
+function consecutive_unique(vars::Vector{Variable})
+    return all(i -> vars[i] != vars[i+1], 1:length(vars)-1)
+end
+
+function monomial(vars::Vector{Variable}, z::Vector{Int})
+    if length(vars) != length(z)
+        throw(ArgumentError("There should be as many variables as exponents"))
+    end
+    nz_idcs = filter(x -> !iszero(z[x]), 1:length(z))
+    isempty(nz_idcs) && return Monomial(Variable[], Int[])
+
+    nonconseq_rep_vars = [vars[nz_idcs[1]]]
+    nonconseq_rep_z = [z[nz_idcs[1]]]
+    for nz_idx in view(nz_idcs, 2:length(nz_idcs))
+        if nonconseq_rep_vars[end] == vars[nz_idx]
+            nonconseq_rep_z[end] += z[nz_idx]
+            continue
+        else
+            push!(nonconseq_rep_vars, vars[nz_idx])
+            push!(nonconseq_rep_z, z[nz_idx])
+        end
+    end
+
+    return Monomial(nonconseq_rep_vars, nonconseq_rep_z)
 end
 
 """

@@ -13,7 +13,7 @@ using NCTSSoS: substitute_variables, correlative_sparsity, TermSparsity, sorted_
         @ncpolyvar y[1:2]
 
         f = 1.0 * x[1] * y[1] + x[1] * y[2] + x[2] * y[1] - x[2] * y[2]
-        pop = PolyOpt(f; comm_gps=[Set(x), Set(y)], is_unipotent=true)
+        pop = PolyOpt(f; comm_gps=[[x], [y]], is_unipotent=true)
 
         solver_config = SolverConfig(optimizer=Clarabel.Optimizer; mom_order=1)
 
@@ -27,7 +27,7 @@ using NCTSSoS: substitute_variables, correlative_sparsity, TermSparsity, sorted_
         @ncpolyvar y[1:3]
         f = 1.0 * x[1] * (y[1] + y[2] + y[3]) + x[2] * (y[1] + y[2] - y[3]) + x[3] * (y[1] - y[2]) - x[1] - 2 * y[1] - y[2]
         -f
-        pop = PolyOpt(-f; comm_gps=[Set(x), Set(y)], is_projective=true)
+        pop = PolyOpt(-f; comm_gps=[[x], [y]], is_projective=true)
 
         solver_config = SolverConfig(optimizer=Clarabel.Optimizer; mom_order=3)
 
