@@ -191,6 +191,6 @@ solver_config = SolverConfig(; optimizer=Mosek.Optimizer, mom_order=2)
 Profile.clear()
 @profile for _ in 1:20 result_cs_ts = cs_nctssos(spop, solver_config) end
 Profile.print(mincount=100, format=:tree)
-
-
 ```
+
+
