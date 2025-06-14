@@ -33,10 +33,7 @@ SUITE["Polynomial Creation"] = @benchmarkable poly_create(x, n)
 
 p1 = x[1]^2 + 2x[2]*x[3] + 3x[3]*x[1] + 4x[4]^100*x[5]^2
 
-SUITE["Polynomial get variables"] = variables(p1)
-
-
-
+SUITE["Polynomial get variables"] = @benchmarkable variables(p1)
 
 end
 
