@@ -29,4 +29,12 @@ format-FastPoly:
 test-FastPoly:
 	$(JL) -e 'using Pkg; Pkg.status(); include("src/FastPolynomials/test/runtests.jl")'
 
+init-bench:
+	$(JL) -e 'using Pkg; Pkg.activate("benchmark"); Pkg.instantiate()'
+
+bench-FastPoly:
+	$(JL) -e 'using Pkg; cd("benchmark") ; Pkg.activate("."); include("run_benchmarks.jl")' 
+format-Bench:
+	$(JL) -e 'using JuliaFormatter; JuliaFormatter.format("benchmark")'
+
 .PHONY: init test

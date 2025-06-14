@@ -117,7 +117,7 @@ julia> sw = ς(x^2*y)
 <x²y¹>
 
 julia> ncsw = sw * (x*z)
-<x²y¹> x¹z¹
+<x²y¹> * x¹z¹
 ```
 """
 struct NCStateWord

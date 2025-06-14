@@ -1,8 +1,14 @@
-# cliques: grouping of variables into sets of variables
-# cliques_cons: groups constraints according to cliques,
-# constraints in a clique only has support on corresponding variables
-# discarded_cons: constraints that are not in any clique
-# cliques_idcs_bases: within each clique, the vectors of monomials used to index moment/localizing matrices
+"""
+    CorrelativeSparsity
+
+Structure representing the correlative sparsity pattern of a polynomial optimization problem.
+
+# Fields
+- `cliques::Vector{Vector{Variable}}`: Groups of variables that form cliques in the sparsity graph
+- `cliques_cons::Vector{Vector{Int}}`: Constraint indices assigned to each clique
+- `global_cons::Vector{Int}`: Constraint indices not captured by any single clique
+- `cliques_idcs_bases::Vector{Vector{Vector{Monomial}}}`: Monomial bases for indexing moment/localizing matrices within each clique
+"""
 struct CorrelativeSparsity
     cliques::Vector{Vector{Variable}}
     cliques_cons::Vector{Vector{Int}}
@@ -11,9 +17,20 @@ struct CorrelativeSparsity
     cliques_idcs_bases::Vector{Vector{Vector{Monomial}}}
 end
 
-# ordered_vars: variables in the order to be appeared in graph
-# polys: objective + constraints, order is important
-# order: order of the moment problem
+"""
+    get_correlative_graph(ordered_vars::Vector{Variable}, obj::Polynomial{T}, cons::Vector{Polynomial{T}}, order::Int) where {T}
+
+Constructs a correlative sparsity graph from polynomial optimization problem components.
+
+# Arguments
+- `ordered_vars::Vector{Variable}`: Variables in the order to appear in the graph
+- `obj::Polynomial{T}`: Objective polynomial
+- `cons::Vector{Polynomial{T}}`: Constraint polynomials
+- `order::Int`: Order of the moment relaxation
+
+# Returns
+- `SimpleGraph`: Graph representing variable correlations
+"""
 function get_correlative_graph(ordered_vars::Vector{Variable}, obj::Polynomial{T}, cons::Vector{Polynomial{T}}, order::Int) where {T}
     # NOTE: code will be buggy is ordered_vars is not the same as the one reference in other functions
     # @assert issorted(ordered_vars, rev=true) "Variables must be sorted"
@@ -40,11 +57,37 @@ function get_correlative_graph(ordered_vars::Vector{Variable}, obj::Polynomial{T
     return G
 end
 
+"""
+    clique_decomp(G::SimpleGraph, clique_alg::EliminationAlgorithm)
+
+Decomposes a graph into cliques using the specified elimination algorithm.
+
+# Arguments
+- `G::SimpleGraph`: Input graph to decompose
+- `clique_alg::EliminationAlgorithm`: Algorithm for clique tree elimination
+
+# Returns
+- `Vector{Vector{Int}}`: Vector of cliques, each containing vertex indices
+"""
 function clique_decomp(G::SimpleGraph, clique_alg::EliminationAlgorithm)
     label, tree = cliquetree(G, alg=clique_alg)
     return map(x -> label[x], collect(Vector{Int}, tree))
 end
 
+"""
+    assign_constraint(cliques::Vector{Vector{Variable}}, cons::Vector{Polynomial{T}}) where {T}
+
+Assigns constraints to cliques based on variable support.
+
+# Arguments
+- `cliques::Vector{Vector{Variable}}`: Variable cliques
+- `cons::Vector{Polynomial{T}}`: Constraint polynomials
+
+# Returns
+- `Tuple{Vector{Vector{Int}}, Vector{Int}}`: Tuple containing:
+  - Constraint indices for each clique
+  - Global constraint indices not captured by any single clique
+"""
 function assign_constraint(cliques::Vector{Vector{Variable}}, cons::Vector{Polynomial{T}}) where {T}
     # assign each constraint to a clique
     # there might be constraints that are not captured by any single clique,
@@ -57,6 +100,24 @@ function assign_constraint(cliques::Vector{Vector{Variable}}, cons::Vector{Polyn
     return clique_cons, setdiff(1:length(cons), union(clique_cons...))
 end
 
+"""
+    correlative_sparsity(pop::PolyOpt{T}, order::Int, elim_algo::EliminationAlgorithm) where {T}
+
+Decomposes a polynomial optimization problem into a correlative sparsity pattern by identifying 
+variable cliques and assigning constraints to cliques, enabling block-structured semidefinite relaxations.
+
+# Arguments
+- `pop::PolyOpt{T}`: Polynomial optimization problem containing objective, constraints, and variables
+- `order::Int`: Order of the moment relaxation
+- `elim_algo::EliminationAlgorithm`: Algorithm for clique tree elimination
+
+# Returns
+- `CorrelativeSparsity`: Structure containing:
+  - `cliques`: Groups of variables that form cliques in the sparsity graph
+  - `cliques_cons`: Constraint indices assigned to each clique
+  - `global_cons`: Constraint indices not captured by any single clique
+  - `cliques_idcs_bases`: Monomial bases for indexing moment/localizing matrices within each clique
+"""
 function correlative_sparsity(pop::PolyOpt{T}, order::Int, elim_algo::EliminationAlgorithm) where {T}
     cliques = map(x -> pop.variables[x], clique_decomp(get_correlative_graph(pop.variables, pop.objective, pop.constraints, order), elim_algo))
 
@@ -74,17 +135,33 @@ function correlative_sparsity(pop::PolyOpt{T}, order::Int, elim_algo::Eliminatio
 end
 
 
-# term_sparse_graph_supp: support of the current term sparsity graph for an obj/cons
-# block_bases: the bases of the moment/localizing matrix in each clique of term sparse graph
+"""
+    TermSparsity
+
+Structure representing term sparsity information for polynomial optimization.
+
+# Fields
+- `term_sparse_graph_supp::Vector{Monomial}`: Support of the term sparsity graph
+- `block_bases::Vector{Vector{Monomial}}`: Bases of moment/localizing matrices in each block
+"""
 struct TermSparsity
     term_sparse_graph_supp::Vector{Monomial}
     block_bases::Vector{Vector{Monomial}}
 end
 
-# porting nccpop.jl's  get_graph
-# constructs the graph according to (7.5) and (7.14) together
-# activated_supp: support of objective, constraint and their corresponding term sparsity graph in previous iteration (7.14)
-# basis: basis used to index the moment matrix
+"""
+    get_term_sparsity_graph(cons_support::Vector{Monomial}, activated_supp::Vector{Monomial}, basis::Vector{Monomial})
+
+Constructs a term sparsity graph for polynomial constraints.
+
+# Arguments
+- `cons_support::Vector{Monomial}`: Support monomials of constraints
+- `activated_supp::Vector{Monomial}`: Support from previous iterations
+- `basis::Vector{Monomial}`: Basis used to index the moment matrix
+
+# Returns
+- `SimpleGraph`: Term sparsity graph
+"""
 function get_term_sparsity_graph(cons_support::Vector{Monomial}, activated_supp::Vector{Monomial}, basis::Vector{Monomial})
     nterms = length(basis)
     G = SimpleGraph(nterms)
@@ -100,16 +177,44 @@ function get_term_sparsity_graph(cons_support::Vector{Monomial}, activated_supp:
     return G
 end
 
-# returns: F (the chordal graph), blocks in basis
+"""
+    iterate_term_sparse_supp(activated_supp::Vector{Monomial}, poly::Polynomial, basis::Vector{Monomial}, elim_algo::EliminationAlgorithm)
+
+Iteratively computes term sparsity support for a polynomial.
+
+# Arguments
+- `activated_supp::Vector{Monomial}`: Currently activated support monomials
+- `poly::Polynomial`: Input polynomial
+- `basis::Vector{Monomial}`: Basis monomials
+- `elim_algo::EliminationAlgorithm`: Elimination algorithm for clique decomposition
+
+# Returns
+- `TermSparsity`: Term sparsity structure containing graph support and block bases
+"""
 function iterate_term_sparse_supp(activated_supp::Vector{Monomial}, poly::Polynomial, basis::Vector{Monomial}, elim_algo::EliminationAlgorithm)
     F = get_term_sparsity_graph(poly.monos, activated_supp, basis)
-    blocks = clique_decomp(F, elim_algo)
-    map(block -> add_clique!(F, block), blocks)
+    if !(elim_algo isa AsIsElimination)
+        blocks = clique_decomp(F, elim_algo)
+        map(block -> add_clique!(F, block), blocks)
+    else
+        blocks = connected_components(F)
+    end
     return TermSparsity(term_sparsity_graph_supp(F, basis, poly), map(x -> basis[x], blocks))
 end
 
-# supp(G,g): monomials that are either v^† g_supp v where v is a vertex in G, or β^† g_supp γ where {β,γ} is an edge in G following (10,4)
-# given term sparsity graph G, which terms needs to be considered as a variable for describing the localizing/moment matrix with respect to g
+"""
+    term_sparsity_graph_supp(G::SimpleGraph, basis::Vector{Monomial}, g::Polynomial)
+
+Computes the support of a term sparsity graph for a given polynomial.
+
+# Arguments
+- `G::SimpleGraph`: Term sparsity graph
+- `basis::Vector{Monomial}`: Basis monomials
+- `g::Polynomial`: Input polynomial
+
+# Returns
+- `Vector{Monomial}`: Support monomials for the term sparsity graph
+"""
 function term_sparsity_graph_supp(G::SimpleGraph, basis::Vector{Monomial}, g::Polynomial)
     # following (10.4) in Sparse Polynomial Optimization: Theory and Practise
     # NOTE: Do I need to symmetric canonicalize it?

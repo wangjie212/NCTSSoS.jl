@@ -84,9 +84,18 @@ To exploit higher iteration of term sparsity, do
 result_cs_ts_higher = cs_nctssos_higher(pop, result_cs_ts, SolverConfig(optimizer=Clarabel.Optimizer, mom_order=2, cs_algo=MF(), ts_algo=MMD()))
 ```
 
+## How to Contribute
+We welcome contributions to NCTSSoS.jl! Here are the steps to get started:
+
+After cloning the repository, use `make init` to set up the environment to run tests and examples.
+
+`make init-docs servedocs` to set up the environment to build and serve the documentation.
+
 ## References
 [1] [Exploiting Term Sparsity in Noncommutative Polynomial Optimization](https://arxiv.org/abs/2010.06956), 2021.
+
 [2] [Sparse polynomial optimization: theory and practice](https://arxiv.org/abs/2208.11158), 2023.
+
 [3] [State polynomials: positivity, optimization and nonlinear Bell inequalities](https://arxiv.org/abs/2301.12513), 2023.
 
 ## Contact
