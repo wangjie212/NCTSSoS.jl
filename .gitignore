@@ -23,6 +23,10 @@ docs/site/
 # environment.
 Manifest.toml
 
+# Benchmark Results
+benchmark/tune.json
+benchmark/result.json
+
 # Garbage Generate by MacOS and VSCode
 */.DS_Store
 .DS_Store
