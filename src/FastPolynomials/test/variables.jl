@@ -63,7 +63,7 @@ using NCTSSoS.FastPolynomials:
     @testset "Get basis" begin
         @ncpolyvar x y z
 
-        monomials_deg2 = monomials([x, y, z], 2)
+        monomials_deg2 = monomials([x, y, z], Val(2))
         @test sort(monomials_deg2) == sort([
             Monomial([x], [2]),
             Monomial([y], [2]),

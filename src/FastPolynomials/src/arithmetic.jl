@@ -41,7 +41,7 @@ Base.promote_rule(::Type{Variable}, ::Type{Polynomial{T}}) where {T} = Polynomia
 Base.promote_rule(::Type{Polynomial{T}}, ::Type{Variable}) where {T} = Polynomial{T}
 
 Base.:(*)(a::PolynomialLike, b::PolynomialLike) = *(promote(a, b)...)
-Base.:(*)(a::Variable, b::Variable) = Monomial([a, b], [1, 1])
+Base.:(*)(a::Variable, b::Variable) = monomial([a, b], [1, 1])
 
 function Base.:(*)(x::Monomial, y::Monomial)
     # Q: can z be negative?
@@ -57,7 +57,7 @@ function Base.:(*)(x::Monomial, y::Monomial)
         w = [view(x.vars, 1:i); view(y.vars, j:length(y.vars))]
         z = [view(x.z, 1:i); view(y.z, j:length(y.z))]
     end
-    return Monomial(w, z)
+    return monomial(w, z)
 end
 
 Base.:(*)(a::Number, b::Polynomial) = Polynomial(a .* b.coeffs, b.monos)

@@ -50,7 +50,7 @@ function monomial(vars::Vector{Variable}, z::Vector{Int})
 end
 
 """
-    Monomial(vars, z)
+    monomial(vars, z)
 
 Creates a monomial by converting inputs to proper Vector types.
 
@@ -61,11 +61,11 @@ Creates a monomial by converting inputs to proper Vector types.
 # Returns
 - `Monomial`: Monomial with collected variables and exponents
 """
-Monomial(vars, z) = Monomial(collect(Variable, vars), collect(Int, z))
+monomial(vars, z) = monomial(collect(Variable, vars), collect(Int, z))
 
-Monomial(a::Monomial) = a
+monomial(a::Monomial) = a
 
-Monomial(a::Variable) = Monomial([a], [1])
+monomial(a::Variable) = monomial([a], [1])
 
 degree(m::Monomial) = sum(m.z)
 
