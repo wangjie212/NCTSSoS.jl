@@ -34,14 +34,14 @@ m" begin
         reducer_func = reducer(pop)
         @test prod(reducer_func(y*x^2*y)) == y*x*y
 
-        pop = PolyOpt(obj; comm_gps = [Set([x]),Set([y,z])], is_unipotent=true)
+        pop = PolyOpt(obj; comm_gps = [[x], [y,z]], is_unipotent=true)
         reducer_func = reducer(pop)
         @test prod(reducer_func(y*x^2*y)) == one(y)
 
         @test sorted_unique(map(prod, reducer_func.(basis))) == 
         sort([one(x * y), Monomial([z], [1]), Monomial([y], [1]), Monomial([x], [1]), z * y, x * y, y * z, x * z, x * z * y, z * y * z, y * z * y, x * y * z])
 
-        pop = PolyOpt(obj; comm_gps=[Set([x]), Set([y, z])], is_projective=true)
+        pop = PolyOpt(obj; comm_gps=[[x], [y, z]], is_projective=true)
         reducer_func = reducer(pop)
         @test prod(reducer_func(y*x^2*y)) == x*y
 

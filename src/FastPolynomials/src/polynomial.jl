@@ -38,7 +38,7 @@ struct Polynomial{T}
 end
 
 Polynomial(a) = Polynomial(Float64, a)
-Polynomial(::Type{T}, a::Variable) where {T} = Polynomial([one(T)], [Monomial(a)])
+Polynomial(::Type{T}, a::Variable) where {T} = Polynomial([one(T)], [monomial(a)])
 Polynomial(::Type{T}, a::Monomial) where {T} = Polynomial([one(T)], [a])
 function Polynomial(::Type{T1}, a::T2) where {T1<:Number,T2<:Number}
     return Polynomial([promote_type(T1, T2)(a)], [one(Monomial)])
@@ -46,7 +46,7 @@ end
 Polynomial(a::Polynomial) = a
 
 function Base.convert(::Type{Polynomial{T}}, a::Variable) where {T}
-    return Polynomial([one(T)], [Monomial([a], [1])])
+    return Polynomial([one(T)], [monomial([a], [1])])
 end
 Base.convert(::Type{Polynomial{T}}, a::Monomial) where {T} = Polynomial([one(T)], [a])
 

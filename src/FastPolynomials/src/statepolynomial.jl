@@ -150,19 +150,23 @@ Creates an NCStatePolynomial by combining coefficients for identical NC state wo
 struct NCStatePolynomial{T}
     coeffs::Vector{T}
     nc_state_words::Vector{NCStateWord}
-
-    function NCStatePolynomial(
-        coeffs::Vector{T}, nc_state_words::Vector{NCStateWord}
-    ) where {T}
-        uniq_nc_state_words = sorted_unique(nc_state_words)
-        uniq_coeffs = zeros(T, length(uniq_nc_state_words))
-        for (coef, sw) in zip(coeffs, nc_state_words)
-            idx = searchsortedfirst(uniq_nc_state_words, sw)
-            uniq_coeffs[idx] += coef
-        end
-        nz_idcs = filter(a -> !iszero(uniq_coeffs[a]), 1:length(uniq_coeffs))
-        return new{T}(uniq_coeffs[nz_idcs], uniq_nc_state_words[nz_idcs])
+    function NCStatePolynomial(coeffs::Vector{T}, nc_state_words::Vector{NCStateWord}) where {T}
+        @assert length(coeffs) == length(nc_state_words) "length of coeffs and nc_state_words must be the same, got $(length(coeffs)) and $(length(nc_state_words))"
+        @assert issorted(nc_state_words) "nc_state_words must be sorted, got: $(nc_state_words)"
+        @assert allunique(nc_state_words) "nc_state_words must be unique, got: $(nc_state_words)"
+        return new{T}(coeffs, nc_state_words)
     end
+end
+# the safer way to construct an NCStatePolynomial
+function ncstatepoly(coeffs::Vector{T}, nc_state_words::Vector{NCStateWord}) where {T}
+    uniq_nc_state_words = sorted_unique(nc_state_words)
+    uniq_coeffs = zeros(T, length(uniq_nc_state_words))
+    for (coef, sw) in zip(coeffs, nc_state_words)
+        idx = searchsortedfirst(uniq_nc_state_words, sw)
+        uniq_coeffs[idx] += coef
+    end
+    nz_idcs = filter(a -> !iszero(uniq_coeffs[a]), 1:length(uniq_coeffs))
+    return NCStatePolynomial(uniq_coeffs[nz_idcs], uniq_nc_state_words[nz_idcs])
 end
 
 function Base.show(io::IO, obj::NCStatePolynomial)
@@ -211,22 +215,22 @@ end
 
 function Base.:(+)(a::NCStatePolynomial{T1}, b::NCStatePolynomial{T2}) where {T1,T2}
     T = promote_type(T1, T2)
-    return NCStatePolynomial(T[a.coeffs; b.coeffs], [a.nc_state_words; b.nc_state_words])
+    return ncstatepoly(T[a.coeffs; b.coeffs], [a.nc_state_words; b.nc_state_words])
 end
 
 function Base.:(+)(a::NCStatePolynomial{T}, b::NCStateWord) where {T}
-    return NCStatePolynomial(T[a.coeffs; one(T)], [a.nc_state_words; b])
+    return ncstatepoly(T[a.coeffs; one(T)], [a.nc_state_words; b])
 end
 
 function Base.:(-)(a::NCStatePolynomial{T1}, b::NCStatePolynomial{T2}) where {T1,T2}
     T = promote_type(T1, T2)
-    return NCStatePolynomial(
+    return ncstatepoly(
         T[a.coeffs; -one(T); b.coeffs], [a.nc_state_words; b.nc_state_words]
     )
 end
 
 function Base.:(-)(a::NCStatePolynomial{T}, b::NCStateWord) where {T}
-    return NCStatePolynomial(T[a.coeffs; -one(T)], [a.nc_state_words; b])
+    return ncstatepoly(T[a.coeffs; -one(T)], [a.nc_state_words; b])
 end
 
 Base.one(::NCStatePolynomial{T}) where {T} = NCStatePolynomial([one(T)], [one(NCStateWord)])

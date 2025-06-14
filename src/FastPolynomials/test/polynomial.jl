@@ -6,10 +6,10 @@ using NCTSSoS.FastPolynomials: support, cyclic_canonicalize
         @ncpolyvar x[1:5]
         coeffs = [1.0, 0.0, 2.0, -3.0]
         monos = [
-            Monomial(x, [2, 0, 1, 0, 0]),
-            Monomial(x, [0, 0, 1, 0, 0]),
-            Monomial(x, [0, 1, 0, 0, 0]),
-            Monomial(x, [0, 0, 0, 1, 0]),
+            monomial(x, [2, 0, 1, 0, 0]),
+            monomial(x, [0, 0, 1, 0, 0]),
+            monomial(x, [0, 1, 0, 0, 0]),
+            monomial(x, [0, 0, 0, 1, 0]),
         ]
 
         p = Polynomial(coeffs, monos)
@@ -21,16 +21,16 @@ using NCTSSoS.FastPolynomials: support, cyclic_canonicalize
 
         p_rep_mono = Polynomial(
             [1.0, 2.0],
-            [Monomial([x[1], x[2]], [1, 2]), Monomial([x[1], x[2], x[2]], [1, 1, 1])],
+            [monomial([x[1], x[2]], [1, 2]), monomial([x[1], x[2], x[2]], [1, 1, 1])],
         )
 
         @test p_rep_mono.coeffs == [3.0]
-        @test p_rep_mono.monos == [Monomial([x[1], x[2]], [1, 2])]
+        @test p_rep_mono.monos == [monomial([x[1], x[2]], [1, 2])]
 
         p_const = Polynomial(Float32, 1)
         @test p_const isa Polynomial{Float32}
         @test p_const.coeffs == [1.0]
-        @test p_const.monos == [Monomial([], [])]
+        @test p_const.monos == [monomial([], [])]
     end
 
     @testset "creation2" begin
@@ -119,7 +119,7 @@ using NCTSSoS.FastPolynomials: support, cyclic_canonicalize
         ]
 
         f_monos = [
-            Monomial(x[var_idcs], var_zs) for (var_idcs, var_zs) in zip(mono_vars, mono_zs)
+            monomial(x[var_idcs], var_zs) for (var_idcs, var_zs) in zip(mono_vars, mono_zs)
         ]
         f_dynamic = mapreduce(+, zip(coeffs, f_monos)) do (coef, mono)
             coef * mono
@@ -140,13 +140,13 @@ using NCTSSoS.FastPolynomials: support, cyclic_canonicalize
     end
     @testset "Promotion" begin
         @ncpolyvar x
-        @test Polynomial(0.0) == Polynomial([0.0], [Monomial([x], [0])])
+        @test Polynomial(0.0) == Polynomial([0.0], [monomial([x], [0])])
     end
     @testset "utils" begin
         @ncpolyvar x y z
         p = Polynomial(
             [1.0, 2.0, 3.0],
-            [Monomial([x, y], [1, 2]), Monomial([y, z], [2, 3]), Monomial([z, x], [3, 4])],
+            [monomial([x, y], [1, 2]), monomial([y, z], [2, 3]), monomial([z, x], [3, 4])],
         )
         @test variables(p) == [x, y, z]
     end
@@ -156,16 +156,17 @@ using NCTSSoS.FastPolynomials: support, cyclic_canonicalize
         poly = Polynomial(
             [0.1, 0.2, -0.2, 0.3],
             [
-                Monomial([x, y], [2, 1]),
-                Monomial([], []),
-                Monomial([x, y, x], [1, 1, 1]),
-                Monomial([z], [1]),
+                monomial([x, y], [2, 1]),
+                monomial([], []),
+                monomial([x, y, x], [1, 1, 1]),
+                monomial([z], [1]),
             ],
         )
 
         @test sort(support(poly, identity)) ==
-            sort([one(x), Monomial([z], [1]), x^2 * y, x * y * x])
+            sort([one(x), monomial([z], [1]), x^2 * y, x * y * x])
+
         @test sort(support(poly, cyclic_canonicalize)) ==
-            sort([x * y * x, Monomial([z], [1]), one(x)])
+            sort([x * y * x, monomial([z], [1]), one(x)])
     end
 end

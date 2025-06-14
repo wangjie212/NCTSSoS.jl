@@ -66,7 +66,7 @@ using NCTSSoS.FastPolynomials: Polynomial
         p3 = Polynomial(
             [1.00000001, 2.0], [Monomial([x, y], [1, 2]), Monomial([x, y], [1, 1])]
         )
-        p_set = Set([p1,p2,p1,p3])
+        p_set = unique!([p1,p2,p1,p3])
         @test length(p_set) == 2
     end
 end

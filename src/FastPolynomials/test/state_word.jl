@@ -6,6 +6,7 @@ using NCTSSoS.FastPolynomials:
     _unipotent,
     get_state_basis,
     expval,
+    neat_dot,
     StatePolynomial
 
 @testset "StateWord and NCStateWord" begin
@@ -31,11 +32,11 @@ using NCTSSoS.FastPolynomials:
 
         @test degree(sw) == 4
 
-        @test one(sw) == ς(Monomial([], []))
+        @test one(sw) == ς(monomial([], []))
 
-        sw_rep1s = StateWord(Monomial.(fill(one(x[1]), 3)))
-        @test sw_rep1s == StateWord([Monomial([], [])])
-        @test one(StateWord) == ς(Monomial([], []))
+        sw_rep1s = StateWord(monomial.(fill(one(x[1]), 3)))
+        @test sw_rep1s == StateWord([monomial([], [])])
+        @test one(StateWord) == ς(monomial([], []))
         @test (4.0 * sw) isa StatePolynomial{Float64}
     end
 
@@ -99,7 +100,7 @@ using NCTSSoS.FastPolynomials:
             [one(x[1])],
         ]
         nc_words =
-            Monomial.(
+            monomial.(
                 [
                     fill(one(x[1]), 6)
                     fill(x[2], 3)

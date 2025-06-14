@@ -7,7 +7,6 @@ using NCTSSoS.FastPolynomials:
     get_state_basis,
     neat_dot,
     expval,
-    NCStatePolynomial,
     monomials,
     _unipotent,
     _projective
@@ -17,7 +16,7 @@ using NCTSSoS.FastPolynomials:
 
     @testset "NCStatePolynomial" begin
         sws = NCStateWord.([[x[1] * x[2], x[2]^2], [x[1] * x[2]], [x[2]^3]], Ref(one(x[1])))
-        sp = NCStatePolynomial([1.0, 2.0, 5.0], sws)
+        sp = ncstatepoly([1.0, 2.0, 5.0], sws)
         @test string(sp) ==
             "2.0 * <x[1]¹x[2]¹> * 1 + 5.0 * <x[2]³> * 1 + 1.0 * <x[1]¹x[2]¹> * <x[2]²> * 1"
         sws_rep =
@@ -25,19 +24,19 @@ using NCTSSoS.FastPolynomials:
                 [[x[1] * x[2], x[2]^2], [x[1] * x[2]], [x[2]^2, x[1] * x[2]], [x[2]^3]],
                 Ref(one(x[1])),
             )
-        sp_rep = NCStatePolynomial([0.5, 2.0, 0.5, 5.0], sws_rep)
+        sp_rep = ncstatepoly([0.5, 2.0, 0.5, 5.0], sws_rep)
         @test sp == sp_rep
 
         sws_diff =
             NCStateWord.(
                 [[x[1] * x[2], x[2]^2], [x[1] * x[2]], [x[2]^3, x[1]]], Ref(one(x[1]))
             )
-        sp_diff = NCStatePolynomial([1.0, 2.0, 5.0], sws_diff)
+        sp_diff = ncstatepoly([1.0, 2.0, 5.0], sws_diff)
         @test sp_diff != sp
 
         @test degree(sp) == 4
 
-        @test one(sp) == NCStatePolynomial([1.0], [one(sws[1])])
+        @test one(sp) == ncstatepoly([1.0], [one(sws[1])])
 
         @test sort(monomials(sp)) == sort(
             NCStateWord.([[x[2]^2, x[1] * x[2]], [x[1] * x[2]], [x[2]^3]], Ref(one(x[1])))
@@ -78,7 +77,7 @@ end
             zip([[x[1] * x[2], x[2]^2], [x[1] * x[2]], [x[2]^3]], [x[1], x[2]^2, one(x[1])])
         ]
 
-        spop = NCStatePolynomial([1.0, 2.0, 3.0], ncsws)
+        spop = ncstatepoly([1.0, 2.0, 3.0], ncsws)
 
         @test string(spop) ==
             "3.0 * <x[2]³> * 1 + 2.0 * <x[1]¹x[2]¹> * x[2]² + 1.0 * <x[1]¹x[2]¹> * <x[2]²> * x[1]¹"
@@ -86,7 +85,7 @@ end
         @test degree(spop) == 5
         @test sort(monomials(spop)) == sort(
             map(
-                a -> NCStateWord(a[1], Monomial(a[2])),
+                a -> NCStateWord(a[1], monomial(a[2])),
                 [
                     ([x[2]^3], one(x[1])),
                     ([x[2]^2, x[1] * x[2]], x[1]),
@@ -120,7 +119,7 @@ end
         sp = 1.0 * (ς(x[4] * x[5]) * ς(x[6] * x[7])) + 2.0 * ς(x[8]) + 3.0 * ς(x[9] * x[10])
         @test sort(variables(sp)) == sort(x[4:10])
 
-        words = Monomial.([x[1], x[2], x[3]])
+        words = monomial.([x[1], x[2], x[3]])
         spop =
             1.0 * NCStateWord([x[4] * x[5], x[6] * x[7]], x[1]) +
             2.0 * NCStateWord([x[8]], x[2]) +
@@ -134,8 +133,8 @@ end
         words_order2 = [b * c, c^2, a * b]
         state_word_order1 = NCStateWord.([[a^2], [b^2], [c^2]], Ref(one(a)))
         state_word_order2 = NCStateWord.([[b^2], [c^2], [a^2]], Ref(one(a)))
-        state_poly_order1 = NCStatePolynomial([1.0, 2.0, 3.0], state_word_order1)
-        state_poly_order2 = NCStatePolynomial([2.0, 3.0, 1.0], state_word_order2)
+        state_poly_order1 = ncstatepoly([1.0, 2.0, 3.0], state_word_order1)
+        state_poly_order2 = ncstatepoly([2.0, 3.0, 1.0], state_word_order2)
         @test state_poly_order1 == state_poly_order2
     end
 end

@@ -29,7 +29,7 @@ f = 1.0 * x[1] * y[1] + x[1] * y[2] + x[2] * y[1] - x[2] * y[2]  # objective fun
 
 pop = PolyOpt(             # the optimization problem
         f;
-        comm_gps= [Set(x), Set(y)],   # commutative group
+        comm_gps= [x, y],   # commutative group
         is_unipotent=true  # the variables are unipotent
     )
 
@@ -73,7 +73,7 @@ using NCTSSoS, Clarabel
 f = 1.0 * x[1] * (y[1] + y[2] + y[3]) + x[2] * (y[1] + y[2] - y[3]) +
     x[3] * (y[1] - y[2]) - x[1] - 2 * y[1] - y[2]  # objective function
 
-pop = PolyOpt(-f; comm_gps= [Set(x),Set(y)], is_projective=true)
+pop = PolyOpt(-f; comm_gps= [[x], [y]], is_projective=true)
 
 solver_config = SolverConfig(optimizer=Clarabel.Optimizer; mom_order=2)
 
