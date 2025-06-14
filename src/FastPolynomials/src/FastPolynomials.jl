@@ -5,10 +5,10 @@ export variables, ς
 export @ncpolyvar, Variable
 include("variables.jl")
 
-export Monomial
+export Monomial, monomial
 include("monomials.jl")
 
-export Polynomial
+export Polynomial, degree
 include("polynomial.jl")
 
 include("compare.jl")
@@ -19,6 +19,7 @@ include("utils.jl")
 
 include("state_word.jl")
 
+export ncstatepoly
 include("statepolynomial.jl")
 
 end

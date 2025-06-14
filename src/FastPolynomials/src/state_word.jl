@@ -41,7 +41,7 @@ julia> ς(x^2*y)
 <x²y¹>
 ```
 """
-ς(m::Union{Monomial,Variable}) = StateWord([Monomial(m)])
+ς(m::Union{Monomial,Variable}) = StateWord([monomial(m)])
 
 variables(sw::StateWord) = sorted_union(variables.(sw.state_monos)...)
 
@@ -125,7 +125,7 @@ struct NCStateWord
     nc_word::Monomial
 end
 
-NCStateWord(sw::Vector, nc_word) = NCStateWord(StateWord(Monomial.(sw)), nc_word)
+NCStateWord(sw::Vector, nc_word) = NCStateWord(StateWord(monomial.(sw)), nc_word)
 NCStateWord(sw::StateWord) = NCStateWord(sw, one(Monomial))
 
 degree(ncsw::NCStateWord) = degree(ncsw.nc_word) + degree(ncsw.sw)
@@ -223,7 +223,7 @@ function get_state_basis(variables::Vector{Variable}, d::Int, reducer)
         map(
             a -> NCStateWord(StateWord(a[1]), a[2]),
             mapreduce(vcat, 0:d) do nc_deg
-                nc_basis = monomials(variables, nc_deg)
+                nc_basis = monomials(variables, Val(nc_deg))
                 cw_deg = d - nc_deg
                 cw_basis = unique!([
                     begin

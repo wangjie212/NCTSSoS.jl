@@ -54,8 +54,8 @@ using NCTSSoS.FastPolynomials:
     @testset "^" begin
         @ncpolyvar x
 
-        @test x^2 == Monomial([x], [2])
-        @test x^0 == Monomial([], [])
+        @test x^2 == monomial([x], [2])
+        @test x^0 == monomial([], [])
 
         @test_throws AssertionError Base.:(^)(x, -1)
     end
@@ -65,24 +65,24 @@ using NCTSSoS.FastPolynomials:
 
         monomials_deg2 = monomials([x, y, z], Val(2))
         @test sort(monomials_deg2) == sort([
-            Monomial([x], [2]),
-            Monomial([y], [2]),
-            Monomial([z], [2]),
-            Monomial([x, y], [1, 1]),
-            Monomial([x, z], [1, 1]),
-            Monomial([y, z], [1, 1]),
-            Monomial([z, y], [1, 1]),
-            Monomial([z, x], [1, 1]),
-            Monomial([y, x], [1, 1]),
+            monomial([x], [2]),
+            monomial([y], [2]),
+            monomial([z], [2]),
+            monomial([x, y], [1, 1]),
+            monomial([x, z], [1, 1]),
+            monomial([y, z], [1, 1]),
+            monomial([z, y], [1, 1]),
+            monomial([z, x], [1, 1]),
+            monomial([y, x], [1, 1]),
         ])
 
         nc_basis_deg2 = get_basis([x, y, z], 2)
 
         @test sort(nc_basis_deg2) == sort([
             one(x),
-            Monomial([x], [1]),
-            Monomial([y], [1]),
-            Monomial([z], [1]),
+            monomial([x], [1]),
+            monomial([y], [1]),
+            monomial([z], [1]),
             x^2,
             y^2,
             z^2,

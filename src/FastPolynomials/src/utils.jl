@@ -1,18 +1,18 @@
 
 """
-    symmetric_canonicalize(monomial::Monomial)
+    symmetric_canonicalize(mono::Monomial)
 
-Canonicalizes a monomial by taking the minimum between itself and its adjoint.
+Canonicalizes a mono by taking the minimum between itself and its adjoint.
 
 # Arguments
-- `monomial::Monomial`: The monomial to canonicalize
+- `mono::Monomial`: The mono to canonicalize
 
 # Returns
 - `Monomial`: Canonicalized monomial (minimum of original and its star)
 """
-function symmetric_canonicalize(monomial::Monomial)
-    isempty(monomial.vars) && return monomial
-    return min(monomial, star(monomial))
+function symmetric_canonicalize(mono::Monomial)
+    isempty(mono.vars) && return mono
+    return min(mono, star(mono))
 end
 
 """
@@ -31,27 +31,27 @@ function symmetric_canonicalize(poly::Polynomial)
 end
 
 """
-    cyclic_canonicalize(monomial::Monomial)
+    cyclic_canonicalize(mono::Monomial)
 
 Canonicalizes a monomial using both cyclic and symmetric operations.
 Finds the minimum among all cyclic shifts and their adjoints.
 Chclic canonical is both cyclic and symmetric
 
 # Arguments
-- `monomial::Monomial`: The monomial to canonicalize
+- `mono::Monomial`: The mono to canonicalize
 
 # Returns
 - `Monomial`: Canonicalized monomial (minimum across all cyclic shifts and their stars)
 """
-function cyclic_canonicalize(monomial::Monomial)
-    isempty(monomial.vars) && return monomial
+function cyclic_canonicalize(mono::Monomial)
+    isempty(mono.vars) && return mono
     flatten_vars = mapreduce(
-        idx -> fill(monomial.vars[idx], monomial.z[idx]), vcat, eachindex(monomial.z)
+        idx -> fill(mono.vars[idx], mono.z[idx]), vcat, eachindex(mono.z)
     )
-    flatten_z = ones(Int, sum(monomial.z))
+    flatten_z = ones(Int, sum(mono.z))
     return minimum(
-        mapreduce(vcat, 1:sum(monomial.z)) do shift
-            shifted_mono = Monomial(circshift!(flatten_vars, 1), circshift!(flatten_z, 1))
+        mapreduce(vcat, 1:sum(mono.z)) do shift
+            shifted_mono = monomial(circshift!(flatten_vars, 1), circshift!(flatten_z, 1))
             [shifted_mono, star(shifted_mono)]
         end,
     )
