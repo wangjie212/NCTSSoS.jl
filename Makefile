@@ -30,6 +30,9 @@ test-FastPoly:
 	$(JL) -e 'using Pkg; Pkg.status(); include("src/FastPolynomials/test/runtests.jl")'
 
 bench-FastPoly:
-	$(JL) -e 'using Pkg; Pkg.status(); include("benchmark/benchmarks.jl")'
+	$(JL) -e 'using Pkg; Pkg.activate("benchmark"); using PkgBenchmark; import NCTSSoS; benchmarkpkg(NCTSSoS, script="./benchmark/benchmarks.jl")'
+
+format-Bench:
+	$(JL) -e 'using JuliaFormatter; JuliaFormatter.format("benchmark")'
 
 .PHONY: init test
