@@ -30,7 +30,8 @@ function PolyOpt(objective::P; eq_constraints=Any[], ineq_constraints=Any[], com
 end
 
 function Base.show(io::IO, pop::PolyOpt)
-    cons_str(cons::Vector{P}, iseq::Bool) where {P} = join(["$(string(c)) " * (iseq ? "= 0" : ">= 0") for c in cons], " \n")
+    cons_str(cons::Vector{P}, iseq::Bool) where {P} =
+        join(["$(string(c)) " * (iseq ? "= 0" : ">= 0") for c in cons], " \n")
     res_str = """
         obj: \n
             $(string(pop.objective)) \n

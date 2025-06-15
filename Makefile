@@ -8,7 +8,7 @@ init:
 init-docs:
 	$(JL) -e 'using Pkg; Pkg.activate("docs"); Pkg.develop(path="."); Pkg.precompile()'
 
-update: 
+update:
 	$(JL) -e 'using Pkg; Pkg.update(); Pkg.precompile()'
 
 update-docs:
@@ -20,12 +20,16 @@ test:
 servedocs:
 	$(JL) -e 'using Pkg; Pkg.activate("docs"); using LiveServer; servedocs(;skip_dirs = ["docs/src/assets", "docs/src/generated"])'
 
+format:
+	$(JL) -e 'using JuliaFormatter; JuliaFormatter.format("src"); JuliaFormatter.format("test")'
+
 clean:
 	rm -rf docs/build
 	find . -name "*.cov" -type f -print0 | xargs -0 /bin/rm -f
 
 format-FastPoly:
 	$(JL) -e 'using JuliaFormatter; JuliaFormatter.format("src/FastPolynomials")'
+
 test-FastPoly:
 	$(JL) -e 'using Pkg; Pkg.status(); include("src/FastPolynomials/test/runtests.jl")'
 
@@ -33,7 +37,8 @@ init-bench:
 	$(JL) -e 'using Pkg; Pkg.activate("benchmark"); Pkg.instantiate()'
 
 bench-FastPoly:
-	$(JL) -e 'using Pkg; cd("benchmark") ; Pkg.activate("."); include("run_benchmarks.jl")' 
+	$(JL) -e 'using Pkg; cd("benchmark") ; Pkg.activate("."); include("run_benchmarks.jl")'
+
 format-Bench:
 	$(JL) -e 'using JuliaFormatter; JuliaFormatter.format("benchmark")'
 

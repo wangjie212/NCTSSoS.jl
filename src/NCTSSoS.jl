@@ -8,8 +8,16 @@ import CliqueTrees.cliquetree
 include("FastPolynomials/src/FastPolynomials.jl")
 using .FastPolynomials
 using .FastPolynomials: AbstractPolynomial
-using .FastPolynomials: Variable, Monomial, Polynomial, StateWord, NCStateWord, StatePolynomial, NCStatePolynomial
-using .FastPolynomials: sorted_union, monomials, _comm, sorted_unique, _projective, _unipotent
+using .FastPolynomials:
+    Variable,
+    Monomial,
+    Polynomial,
+    StateWord,
+    NCStateWord,
+    StatePolynomial,
+    NCStatePolynomial
+using .FastPolynomials:
+    sorted_union, monomials, _comm, sorted_unique, _projective, _unipotent
 using .FastPolynomials: monomials, maxdegree, get_basis, symmetric_canonicalize, neat_dot
 using .FastPolynomials: monomials, coefficients, terms, get_state_basis
 using .FastPolynomials: expval
