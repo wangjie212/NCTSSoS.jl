@@ -21,7 +21,7 @@ servedocs:
 	$(JL) -e 'using Pkg; Pkg.activate("docs"); using LiveServer; servedocs(;skip_dirs = ["docs/src/assets", "docs/src/generated"])'
 
 format:
-	$(JL) -e 'using JuliaFormatter; JuliaFormatter.format("src"); JuliaFormatter.format("test")'
+	$(JL) -e 'using JuliaFormatter; JuliaFormatter.format("test")'
 
 clean:
 	rm -rf docs/build

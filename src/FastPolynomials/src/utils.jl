@@ -151,7 +151,7 @@ end
         iseven(expo) && return result
         if length(result.vars) == 0 || var != result.vars[end]   # new variable
             push!(result.vars, var)
-            push!(result.z, expo)
+            push!(result.z, 1)
         else
             pop!(result.vars)
             pop!(result.z)

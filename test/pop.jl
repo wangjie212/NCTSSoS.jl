@@ -1,13 +1,4 @@
-using Pkg;
-Pkg.activate("..");
 using Test, NCTSSoS, NCTSSoS.FastPolynomials
-using NCTSSoS.FastPolynomials:
-    variables,
-    StatePolynomial,
-    StateWord,
-    coefficients,
-    NCStateWord,
-    expval
 
 @testset "PolyOpt Constructor" begin
     nvars = 10

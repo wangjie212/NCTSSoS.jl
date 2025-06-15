@@ -17,6 +17,20 @@ struct CorrelativeSparsity
     cliques_idcs_bases::Vector{Vector{Vector{Monomial}}}
 end
 
+function show(io::IO, cs::CorrelativeSparsity)
+    max_size = maximum(length.(cliques))
+    println(io, "Correlative Sparsity: \n")
+    println(io, "   maximum size: $max_size")
+    for clique_i in 1:length(cs.cliques)
+        println(io, "   Clique $clique_i: ")
+        println(io, "       Variables: ", cs.cliques[clique_i])
+        println(io, "       Constraints: ")
+        for con_j in 1:length(cs.cliques_cons[clique_i])
+            println(io, "           ", cs.cliques_cons[clique_i][con_j], " :  with $(length(cs.cliques_idcs_bases[clique_i][con_j])) basis monomials")
+        end
+    end
+end
+
 """
     get_correlative_graph(ordered_vars::Vector{Variable}, obj::Polynomial{T}, cons::Vector{Polynomial{T}}, order::Int) where {T}
 

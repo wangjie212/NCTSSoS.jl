@@ -2,8 +2,7 @@ using Test, NCTSSoS
 using JuMP
 using NCTSSoS.FastPolynomials
 using NCTSSoS: get_dim, reducer, sorted_unique
-
-using NCTSSoS.FastPolynomials: Monomial, Polynomial, sorted_union, get_basis
+using NCTSSoS.FastPolynomials: Polynomial, sorted_union, get_basis
 
 @testset "Utilities" begin
     @ncpolyvar x y z
@@ -40,9 +39,9 @@ m" begin
 
         @test sorted_unique(map(prod, reducer_func.(basis))) == sort([
             one(x * y),
-            Monomial([z], [1]),
-            Monomial([y], [1]),
-            Monomial([x], [1]),
+            monomial([z], [1]),
+            monomial([y], [1]),
+            monomial([x], [1]),
             z * y,
             x * y,
             y * z,
@@ -59,9 +58,9 @@ m" begin
 
         @test sorted_unique(map(prod, reducer_func.(basis))) == sort([
             one(x * y * z),
-            Monomial([z], [1]),
-            Monomial([y], [1]),
-            Monomial([x], [1]),
+            monomial([z], [1]),
+            monomial([y], [1]),
+            monomial([x], [1]),
             z * y,
             x * z,
             x * y,
