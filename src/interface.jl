@@ -46,7 +46,7 @@ end
 # consider obtaining enough information on Moment matrix etc to check if problem solved correctly
 # prev_ans::Union{Nothing,PolyOptResult{C,T}}=nothing
 function cs_nctssos(pop::PolyOpt{T}, solver_config::SolverConfig) where {T}
-    mom_order = iszero(solver_config.mom_order) ? maximum([ceil(Int, maxdegree(poly) / 2) for poly in [pop.objective; pop.constraints]]) : solver_config.mom_order
+    mom_order = iszero(solver_config.mom_order) ? maximum([ceil(Int, maxdegree(poly) / 2) for poly in [pop.objective; pop.eq_constraints; pop.ineq_constraints]]) : solver_config.mom_order
 
     corr_sparsity = correlative_sparsity(pop, mom_order, solver_config.cs_algo)
 

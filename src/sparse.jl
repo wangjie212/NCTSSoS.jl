@@ -18,7 +18,7 @@ struct CorrelativeSparsity
 end
 
 function show(io::IO, cs::CorrelativeSparsity)
-    max_size = maximum(length.(cliques))
+    max_size = maximum(length.(cs.cliques))
     println(io, "Correlative Sparsity: \n")
     println(io, "   maximum size: $max_size")
     for clique_i in 1:length(cs.cliques)
@@ -47,7 +47,7 @@ Constructs a correlative sparsity graph from polynomial optimization problem com
 """
 function get_correlative_graph(ordered_vars::Vector{Variable}, obj::Polynomial{T}, cons::Vector{Polynomial{T}}, order::Int) where {T}
     # NOTE: code will be buggy is ordered_vars is not the same as the one reference in other functions
-    # @assert issorted(ordered_vars, rev=true) "Variables must be sorted"
+    @assert issorted(ordered_vars) "Variables must be sorted"
 
     nvars = length(ordered_vars)
     G = SimpleGraph(nvars)
@@ -117,7 +117,7 @@ end
 """
     correlative_sparsity(pop::PolyOpt{T}, order::Int, elim_algo::EliminationAlgorithm) where {T}
 
-Decomposes a polynomial optimization problem into a correlative sparsity pattern by identifying 
+Decomposes a polynomial optimization problem into a correlative sparsity pattern by identifying
 variable cliques and assigning constraints to cliques, enabling block-structured semidefinite relaxations.
 
 # Arguments
@@ -133,7 +133,7 @@ variable cliques and assigning constraints to cliques, enabling block-structured
   - `cliques_idcs_bases`: Monomial bases for indexing moment/localizing matrices within each clique
 """
 function correlative_sparsity(pop::PolyOpt{T}, order::Int, elim_algo::EliminationAlgorithm) where {T}
-    cliques = map(x -> pop.variables[x], clique_decomp(get_correlative_graph(pop.variables, pop.objective, pop.constraints, order), elim_algo))
+    cliques = map(x -> pop.variables[x], clique_decomp(get_correlative_graph(pop.variables, pop.objective, [pop.eq_constraints, pop.ineq_constraints], order), elim_algo))
 
     cliques_cons, global_cons = assign_constraint(cliques, pop.constraints)
 

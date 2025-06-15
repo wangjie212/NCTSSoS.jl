@@ -7,6 +7,12 @@ using NCTSSoS:
     get_term_sparsity_graph,
     term_sparsity_graph_supp
 
+@testset "Correlative Sparsity" begin
+
+
+
+end
+
 @testset "Term Sparsity Graph" begin
     # Example 10.2
     @ncpolyvar x y

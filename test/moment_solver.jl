@@ -20,7 +20,7 @@ using NCTSSoS:
         @ncpolyvar y[1:2]
 
         f = 1.0 * x[1] * y[1] + x[1] * y[2] + x[2] * y[1] - x[2] * y[2]
-        pop = PolyOpt(f; comm_gps = [[x], [y]], is_unipotent = true)
+        pop = PolyOpt(f; comm_gps = [x, y], is_unipotent = true)
 
         solver_config = SolverConfig(optimizer = Clarabel.Optimizer; mom_order = 1)
 
