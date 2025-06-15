@@ -24,7 +24,7 @@ struct Monomial
 end
 
 function consecutive_unique(vars::Vector{Variable})
-    return all(i -> vars[i] != vars[i+1], 1:length(vars)-1)
+    return all(i -> vars[i] != vars[i + 1], 1:(length(vars) - 1))
 end
 
 function monomial(vars::Vector{Variable}, z::Vector{Int})

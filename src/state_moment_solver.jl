@@ -16,7 +16,7 @@ end
 # global_cons: constraints that are not in any single clique
 # cliques_term_sparsities: each clique, each obj/constraint, each ts_clique, each basis needed to index moment matrix
 # FIXME: should I use CorrelativeSparsity here instead of cliques_cons and global_cons
-function moment_relax(pop::StatePolyOpt{T}, cliques_cons::Vector{Vector{Int}}, global_cons::Vector{Int}, cliques_term_sparsities::Vector{Vector{StateTermSparsity}}) where {T}
+function moment_relax(pop::PolyOpt{NCStatePolynomial{T},OBJ}, cliques_cons::Vector{Vector{Int}}, global_cons::Vector{Int}, cliques_term_sparsities::Vector{Vector{StateTermSparsity}}) where {T,OBJ}
     # NOTE: objective and constraints may have integer coefficients, but popular JuMP solvers does not support integer coefficients
     # left type here to support BigFloat model for higher precision
     model = GenericModel{T}()

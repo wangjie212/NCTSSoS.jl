@@ -54,7 +54,7 @@ function assign_constraint(cliques::Vector{Vector{Variable}}, cons::Vector{NCSta
     return clique_cons, setdiff(1:length(cons), union(clique_cons...))
 end
 
-function correlative_sparsity(pop::StatePolyOpt{T}, order::Int, elim_algo::EliminationAlgorithm) where {T}
+function correlative_sparsity(pop::PolyOpt{NCStatePolynomial{T},OBJ}, order::Int, elim_algo::EliminationAlgorithm) where {T,OBJ}
     cliques = map(x -> pop.variables[x], clique_decomp(get_correlative_graph(pop.variables, pop.objective, pop.constraints, order), elim_algo))
 
     cliques_cons, global_cons = assign_constraint(cliques, pop.constraints)

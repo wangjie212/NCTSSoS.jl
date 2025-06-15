@@ -1,3 +1,4 @@
+abstract type AbstractPolynomial{T} end
 """
     Polynomial{T}
 
@@ -13,7 +14,7 @@ Maintains sorted, unique monomials with non-zero coefficients.
 - `coeffs` are always non-zero
 - Length of `coeffs` equals length of `monos`
 """
-struct Polynomial{T}
+struct Polynomial{T} <: AbstractPolynomial{T}
     coeffs::Vector{T}
     # perhaps make it into an ordered set?
     monos::Vector{Monomial}

@@ -19,18 +19,16 @@ using NCTSSoS.FastPolynomials:
         sp = ncstatepoly([1.0, 2.0, 5.0], sws)
         @test string(sp) ==
             "2.0 * <x[1]¹x[2]¹> * 1 + 5.0 * <x[2]³> * 1 + 1.0 * <x[1]¹x[2]¹> * <x[2]²> * 1"
-        sws_rep =
-            NCStateWord.(
-                [[x[1] * x[2], x[2]^2], [x[1] * x[2]], [x[2]^2, x[1] * x[2]], [x[2]^3]],
-                Ref(one(x[1])),
-            )
+        sws_rep = NCStateWord.(
+            [[x[1] * x[2], x[2]^2], [x[1] * x[2]], [x[2]^2, x[1] * x[2]], [x[2]^3]],
+            Ref(one(x[1])),
+        )
         sp_rep = ncstatepoly([0.5, 2.0, 0.5, 5.0], sws_rep)
         @test sp == sp_rep
 
-        sws_diff =
-            NCStateWord.(
-                [[x[1] * x[2], x[2]^2], [x[1] * x[2]], [x[2]^3, x[1]]], Ref(one(x[1]))
-            )
+        sws_diff = NCStateWord.(
+            [[x[1] * x[2], x[2]^2], [x[1] * x[2]], [x[2]^3, x[1]]], Ref(one(x[1]))
+        )
         sp_diff = ncstatepoly([1.0, 2.0, 5.0], sws_diff)
         @test sp_diff != sp
 

@@ -14,7 +14,7 @@ Automatically combines like terms and maintains sorted unique state words.
 # Constructor
 Creates a StatePolynomial by combining coefficients for identical state words.
 """
-struct StatePolynomial{T}
+struct StatePolynomial{T} <: AbstractPolynomial{T}
     coeffs::Vector{T}
     state_words::Vector{StateWord}
     function StatePolynomial(coeffs::Vector{T}, state_words::Vector{StateWord}) where {T}
@@ -147,10 +147,12 @@ Automatically combines like terms and maintains sorted unique NC state words.
 Creates an NCStatePolynomial by combining coefficients for identical NC state words.
 """
 # T: type of coefficient
-struct NCStatePolynomial{T}
+struct NCStatePolynomial{T} <: AbstractPolynomial{T}
     coeffs::Vector{T}
     nc_state_words::Vector{NCStateWord}
-    function NCStatePolynomial(coeffs::Vector{T}, nc_state_words::Vector{NCStateWord}) where {T}
+    function NCStatePolynomial(
+        coeffs::Vector{T}, nc_state_words::Vector{NCStateWord}
+    ) where {T}
         @assert length(coeffs) == length(nc_state_words) "length of coeffs and nc_state_words must be the same, got $(length(coeffs)) and $(length(nc_state_words))"
         @assert issorted(nc_state_words) "nc_state_words must be sorted, got: $(nc_state_words)"
         @assert allunique(nc_state_words) "nc_state_words must be unique, got: $(nc_state_words)"
@@ -224,9 +226,7 @@ end
 
 function Base.:(-)(a::NCStatePolynomial{T1}, b::NCStatePolynomial{T2}) where {T1,T2}
     T = promote_type(T1, T2)
-    return ncstatepoly(
-        T[a.coeffs; -one(T); b.coeffs], [a.nc_state_words; b.nc_state_words]
-    )
+    return ncstatepoly(T[a.coeffs; -one(T); b.coeffs], [a.nc_state_words; b.nc_state_words])
 end
 
 function Base.:(-)(a::NCStatePolynomial{T}, b::NCStateWord) where {T}

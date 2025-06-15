@@ -91,12 +91,12 @@ end
 # consider adding Solver Interface
 # consider obtaining enough information on Moment matrix etc to check if problem solved correctly
 # prev_ans::Union{Nothing,PolyOptResult{C,T}}=nothing
-function cs_nctssos(spop::StatePolyOpt{T}, solver_config::SolverConfig) where {T}
+function cs_nctssos(spop::PolyOpt{NCStatePolynomial{T},OBJ}, solver_config::SolverConfig) where {T,OBJ}
     mom_order = iszero(solver_config.mom_order) ? maximum([ceil(Int, maxdegree(poly) / 2) for poly in [spop.objective; spop.constraints]]) : solver_config.mom_order
 
     cr = correlative_sparsity(spop, mom_order, solver_config.cs_algo)
 
-    cliques_objective = [reduce(+, [issubset(sort!(variables(t[2])), clique) ? t[1]*t[2] : zero(t[2]) for t in terms(spop.objective)]) for clique in cr.cliques]
+    cliques_objective = [reduce(+, [issubset(sort!(variables(t[2])), clique) ? t[1] * t[2] : zero(t[2]) for t in terms(spop.objective)]) for clique in cr.cliques]
 
     initial_activated_supp = [sorted_union(symmetric_canonicalize.(monomials(obj_part)), mapreduce(a -> monomials(a), vcat, spop.constraints[cons_idx]; init=typeof(monomials(spop.objective)[1])[]))
                               for (obj_part, cons_idx, idcs_bases) in zip(cliques_objective, cr.cliques_cons, cr.cliques_idcs_bases)]

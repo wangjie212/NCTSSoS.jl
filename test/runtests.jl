@@ -7,6 +7,5 @@ using NCTSSoS, Test
     include("moment_solver.jl")
     include("sos_solver.jl")
     include("interface.jl")
-    # FIXME: the following has unpassed tests
     include("state_moment_solver.jl")
 end
