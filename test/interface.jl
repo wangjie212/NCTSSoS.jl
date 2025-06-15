@@ -71,30 +71,42 @@ end
     )
 
     result = cs_nctssos(pop, solver_config)
-    @test isapprox(result.objective, -1.0; atol=1e-4)
+    @test isapprox(result.objective, -1.0; atol = 1e-4)
 
     result_higher = cs_nctssos_higher(pop, result, solver_config)
-    @test isapprox(result.objective, result_higher.objective; atol=1e-4)
+    @test isapprox(result.objective, result_higher.objective; atol = 1e-4)
 end
 
 
 @testset "README Example Unconstrained" begin
     @ncpolyvar x[1:3]
-    f = 1.0 + x[1]^4 + x[2]^4 + x[3]^4 + x[1] * x[2] + x[2] * x[1] + x[2] * x[3] + x[3] * x[2]
+    f =
+        1.0 +
+        x[1]^4 +
+        x[2]^4 +
+        x[3]^4 +
+        x[1] * x[2] +
+        x[2] * x[1] +
+        x[2] * x[3] +
+        x[3] * x[2]
 
     pop = PolyOpt(f)
 
-    solver_config_dense = SolverConfig(optimizer=Clarabel.Optimizer)
+    solver_config_dense = SolverConfig(optimizer = Clarabel.Optimizer)
 
     result_dense = cs_nctssos(pop, solver_config_dense)
 
-    result_cs = cs_nctssos(pop, SolverConfig(optimizer=Clarabel.Optimizer; cs_algo=MF()))
+    result_cs =
+        cs_nctssos(pop, SolverConfig(optimizer = Clarabel.Optimizer; cs_algo = MF()))
 
-    @test isapprox(result_dense.objective, result_cs.objective, atol=1e-4)
+    @test isapprox(result_dense.objective, result_cs.objective, atol = 1e-4)
 
-    result_cs_ts = cs_nctssos(pop, SolverConfig(optimizer=Clarabel.Optimizer; cs_algo=MF(), ts_algo=MMD()))
+    result_cs_ts = cs_nctssos(
+        pop,
+        SolverConfig(optimizer = Clarabel.Optimizer; cs_algo = MF(), ts_algo = MMD()),
+    )
 
-    @test isapprox(result_cs.objective, result_cs_ts.objective, atol=1e-4)
+    @test isapprox(result_cs.objective, result_cs_ts.objective, atol = 1e-4)
 end
 
 @testset "README Example Constrained" begin
@@ -103,19 +115,27 @@ end
     g = 4.0 - x[1]^2 - x[2]^2
     h1 = x[1] * x[2] + x[2] * x[1] - 2.0
 
-    pop = PolyOpt(f; constraints=[g, h1], is_equality=[false, true])
+    pop = PolyOpt(f; constraints = [g, h1], is_equality = [false, true])
 
-    result_dense = cs_nctssos(pop, SolverConfig(optimizer=Clarabel.Optimizer))
+    result_dense = cs_nctssos(pop, SolverConfig(optimizer = Clarabel.Optimizer))
 
-    result_cs = cs_nctssos(pop, SolverConfig(optimizer=Clarabel.Optimizer; cs_algo=MF()))
+    result_cs =
+        cs_nctssos(pop, SolverConfig(optimizer = Clarabel.Optimizer; cs_algo = MF()))
 
-    @test isapprox(result_dense.objective, result_cs.objective, atol=1e-4)
+    @test isapprox(result_dense.objective, result_cs.objective, atol = 1e-4)
 
-    result_cs_ts = cs_nctssos(pop, SolverConfig(optimizer=Clarabel.Optimizer; cs_algo=MF(), ts_algo=MMD()))
+    result_cs_ts = cs_nctssos(
+        pop,
+        SolverConfig(optimizer = Clarabel.Optimizer; cs_algo = MF(), ts_algo = MMD()),
+    )
 
-    @test isapprox(result_cs.objective, result_cs_ts.objective, atol=1e-4)
+    @test isapprox(result_cs.objective, result_cs_ts.objective, atol = 1e-4)
 
-    result_cs_ts_higher = cs_nctssos_higher(pop, result_cs_ts, SolverConfig(optimizer=Clarabel.Optimizer; cs_algo=MF(), ts_algo=MMD()))
+    result_cs_ts_higher = cs_nctssos_higher(
+        pop,
+        result_cs_ts,
+        SolverConfig(optimizer = Clarabel.Optimizer; cs_algo = MF(), ts_algo = MMD()),
+    )
 
-    @test isapprox(result_dense.objective, result_cs_ts_higher.objective, atol=1e-4)
+    @test isapprox(result_dense.objective, result_cs_ts_higher.objective, atol = 1e-4)
 end
