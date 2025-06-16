@@ -184,14 +184,14 @@ Generates all monomials of a specific degree from given variables.
 # Returns
 - `Vector{Monomial}`: All monomials of degree `cur_d` in the given variables
 """
-function monomials(vars::Vector{Variable}, ::Val{d}) where {d}
-    return map(cartesian_product(vars, Val{d}())) do cur_vars
+function monomials(vars::Vector{Variable}, ::Val{D}) where {D}
+    return map(cartesian_product(vars, Val{D}())) do cur_vars
         monomial(collect(Variable, cur_vars), ones(Int, length(cur_vars)))
     end
 end
 
-function cartesian_product(vars::Vector{T}, ::Val{d}) where {T,d}
-    iterable = Iterators.product(ntuple(_ -> vars, Val{d}())...)
+function cartesian_product(vars::Vector{T}, ::Val{D}) where {T,D}
+    iterable = Iterators.product(ntuple(_ -> vars, Val{D}())...)
     a = collect(iterable)
     return reshape(a, :)
 end
@@ -209,11 +209,11 @@ Generates a sorted basis of all monomials up to a given degree.
 - `Vector{Monomial}`: Sorted basis containing all monomials of degrees `0` through `d`
 """
 function get_basis(vars::Vector{Variable}, d::Int)
-    return sort(
-        mapreduce(vcat, 0:d) do dg
-            monomials(vars, Val(dg))
-        end,
-    )
+    vec_of_monos = Vector{Vector{Monomial}}(undef, d + 1)
+    for i in 0:d
+        vec_of_monos[i + 1] = monomials(vars, Val(i))
+    end
+    return sort!(reduce(vcat, vec_of_monos))
 end
 
 function Base.:(^)(a::Variable, expo::Int)

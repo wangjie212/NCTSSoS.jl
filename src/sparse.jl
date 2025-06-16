@@ -18,7 +18,7 @@ struct CorrelativeSparsity{P}
     clq_mtx_basis::Vector{Vector{Vector{Monomial}}}
 end
 
-function show(io::IO, cs::CorrelativeSparsity)
+function Base.show(io::IO, cs::CorrelativeSparsity)
     max_size = maximum(length.(cs.cliques))
     println(io, "Correlative Sparsity: \n")
     println(io, "   maximum size: $max_size")
@@ -52,7 +52,7 @@ Constructs a correlative sparsity graph from polynomial optimization problem com
 """
 function get_correlative_graph(ordered_vars::Vector{Variable}, obj::P, cons::Vector{P}, order::Int) where {T,P<:AbstractPolynomial{T}}
     # NOTE: code will be buggy is ordered_vars is not the same as the one reference in other functions
-    @assert issorted(ordered_vars, rev=true) "Variables must be sorted"
+    @assert issorted(ordered_vars) "Variables must be sorted"
 
     nvars = length(ordered_vars)
     G = SimpleGraph(nvars)
@@ -122,20 +122,22 @@ variable cliques and assigning constraints to cliques, enabling block-structured
 """
 function correlative_sparsity(pop::PolyOpt{P,OBJ}, order::Int, elim_algo::EliminationAlgorithm) where {T,P<:AbstractPolynomial{T},OBJ}
     all_cons = vcat(pop.eq_constraints, pop.ineq_constraints)
-    cliques = map(x -> pop.variables[x], clique_decomp(get_correlative_graph(pop.variables, pop.objective, all_cons, order), elim_algo))
+    cliques = map(x -> sort(pop.variables[x]), clique_decomp(get_correlative_graph(pop.variables, pop.objective, all_cons, order), elim_algo))
 
-    cliques_cons, global_cons = assign_constraint(cliques, pop.eq_constraints)
+    cliques_cons, global_cons = assign_constraint(cliques, all_cons)
 
-
-    reduce_func = prod ∘ reducer(pop)
+    reduce_func = reducer(pop)
     # get the operators needed to index columns of moment/localizing mtx in each clique
     # depending on the clique's varaibles each is slightly different
     cliques_idx_basis = map(zip(cliques, cliques_cons)) do (clique, clique_cons)
         # get the basis of the moment matrix in a clique, then sort it
-        [[sorted_unique(reduce_func.(get_basis(sort(clique, rev=true), order)))]; map(b -> sorted_unique(reduce_func.(b)), get_basis.(Ref(sort(clique, rev=true)), order .- ceil.(Int, maxdegree.(pop.constraints[clique_cons]) / 2)))]
+        cur_orders = [order; order .- cld.(maxdegree.(all_cons[clique_cons]), 2)]
+        # map(b -> sorted_unique(prod.(reduce_func.(b))), get_basis.(Ref(clique), cur_orders))
+        cur_bases = map(b -> prod.(reduce_func.(b)), get_basis.(Ref(clique), cur_orders))
+        [sorted_unique(b) for b in cur_bases]
     end
 
-    return CorrelativeSparsity(cliques, cliques_cons, global_cons, cliques_idx_basis)
+    return CorrelativeSparsity(cliques, all_cons, cliques_cons, global_cons, cliques_idx_basis)
 end
 
 
