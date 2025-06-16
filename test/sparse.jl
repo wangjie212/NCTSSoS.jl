@@ -8,7 +8,23 @@ using NCTSSoS:
     term_sparsity_graph_supp
 
 @testset "Correlative Sparsity" begin
+    n = 10
+	@ncpolyvar x[1:n]
+	f = 0.
+	for i = 1:n
+	    jset = max(1, i-5) : min(n, i+1)
+	    jset = setdiff(jset, i)
+	    g = sum(x[j] + x[j]^2 for j in jset)
+	    f += (2*x[i] + 5*x[i]^3 + 1 - g)^2
+	end
 
+	pop = PolyOpt(f)
+
+    mom_order = 3
+
+    cs_algo = NoElimination() 
+
+    corr_sparsity = correlative_sparsity(pop, mom_order, cs_algo)
 
 
 end

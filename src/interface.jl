@@ -5,14 +5,6 @@ struct PolyOptResult{T}
     # should contain objective and moment matrix or gram matrix for manually checking what happened
 end
 
-# implement NoElimination on clique_decomp
-struct NoElimination <: EliminationAlgorithm end
-struct AsIsElimination <: EliminationAlgorithm end
-
-# FIXME: how do I properly create a CliqueTree for complete graph?
-function cliquetree(graph, alg::NoElimination, snd::SupernodeType)
-    return cliquetree(complete_graph(nv(graph)), BFS(), snd)
-end
 
 """
     SolverConfig(; optimizer, mom_order, cs_algo=NoElimination(), ts_algo=NoElimination())

@@ -31,6 +31,8 @@ export cs_nctssos, cs_nctssos_higher
 
 include("pop.jl")
 
+include("elimination.jl")
+
 include("solver_utils.jl")
 
 include("sparse.jl")

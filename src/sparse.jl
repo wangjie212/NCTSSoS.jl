@@ -5,16 +5,17 @@ Structure representing the correlative sparsity pattern of a polynomial optimiza
 
 # Fields
 - `cliques::Vector{Vector{Variable}}`: Groups of variables that form cliques in the sparsity graph
-- `cliques_cons::Vector{Vector{Int}}`: Constraint indices assigned to each clique
+- `cons::Vector{P}`: All constraints in the problem
+- `clq_cons::Vector{Vector{Int}}`: Constraint indices assigned to each clique, regardless of equality or inequality
 - `global_cons::Vector{Int}`: Constraint indices not captured by any single clique
-- `cliques_idcs_bases::Vector{Vector{Vector{Monomial}}}`: Monomial bases for indexing moment/localizing matrices within each clique
+- `clq_mtx_basis::Vector{Vector{Monomial}}`: Monomial bases for moment/localizing matrices within each clique
 """
-struct CorrelativeSparsity
+struct CorrelativeSparsity{P}
     cliques::Vector{Vector{Variable}}
-    cliques_cons::Vector{Vector{Int}}
-    # FIXME: add test case for difference
+    cons::Vector{P} # making sure context of `Int` in following variables are clear
+    clq_cons::Vector{Vector{Int}}
     global_cons::Vector{Int}
-    cliques_idcs_bases::Vector{Vector{Vector{Monomial}}}
+    clq_mtx_basis::Vector{Vector{Vector{Monomial}}}
 end
 
 function show(io::IO, cs::CorrelativeSparsity)
@@ -25,9 +26,13 @@ function show(io::IO, cs::CorrelativeSparsity)
         println(io, "   Clique $clique_i: ")
         println(io, "       Variables: ", cs.cliques[clique_i])
         println(io, "       Constraints: ")
-        for con_j in 1:length(cs.cliques_cons[clique_i])
-            println(io, "           ", cs.cliques_cons[clique_i][con_j], " :  with $(length(cs.cliques_idcs_bases[clique_i][con_j])) basis monomials")
+        for cons_j in eachindex(cs.clq_cons[clique_i])
+            println(io, "           Constraints", cs.clq_cons[clique_i][cons_j], " :  with $(length(cs.clq_mtx_basis[clique_i][cons_j])) basis monomials")
         end
+    end
+    println(io, "   Global Constraints: ")
+    for geq_cons in cs.global_cons
+        println(io, "     $(geq_cons)")
     end
 end
 
@@ -45,9 +50,9 @@ Constructs a correlative sparsity graph from polynomial optimization problem com
 # Returns
 - `SimpleGraph`: Graph representing variable correlations
 """
-function get_correlative_graph(ordered_vars::Vector{Variable}, obj::Polynomial{T}, cons::Vector{Polynomial{T}}, order::Int) where {T}
+function get_correlative_graph(ordered_vars::Vector{Variable}, obj::P, cons::Vector{P}, order::Int) where {T,P<:AbstractPolynomial{T}}
     # NOTE: code will be buggy is ordered_vars is not the same as the one reference in other functions
-    @assert issorted(ordered_vars) "Variables must be sorted"
+    @assert issorted(ordered_vars, rev=true) "Variables must be sorted"
 
     nvars = length(ordered_vars)
     G = SimpleGraph(nvars)
@@ -72,37 +77,20 @@ function get_correlative_graph(ordered_vars::Vector{Variable}, obj::Polynomial{T
 end
 
 """
-    clique_decomp(G::SimpleGraph, clique_alg::EliminationAlgorithm)
-
-Decomposes a graph into cliques using the specified elimination algorithm.
-
-# Arguments
-- `G::SimpleGraph`: Input graph to decompose
-- `clique_alg::EliminationAlgorithm`: Algorithm for clique tree elimination
-
-# Returns
-- `Vector{Vector{Int}}`: Vector of cliques, each containing vertex indices
-"""
-function clique_decomp(G::SimpleGraph, clique_alg::EliminationAlgorithm)
-    label, tree = cliquetree(G, alg=clique_alg)
-    return map(x -> label[x], collect(Vector{Int}, tree))
-end
-
-"""
     assign_constraint(cliques::Vector{Vector{Variable}}, cons::Vector{Polynomial{T}}) where {T}
 
 Assigns constraints to cliques based on variable support.
 
 # Arguments
 - `cliques::Vector{Vector{Variable}}`: Variable cliques
-- `cons::Vector{Polynomial{T}}`: Constraint polynomials
+- `cons::Vector{P}`: Constraint polynomials
 
 # Returns
 - `Tuple{Vector{Vector{Int}}, Vector{Int}}`: Tuple containing:
   - Constraint indices for each clique
   - Global constraint indices not captured by any single clique
 """
-function assign_constraint(cliques::Vector{Vector{Variable}}, cons::Vector{Polynomial{T}}) where {T}
+function assign_constraint(cliques::Vector{Vector{Variable}}, cons::Vector{P}) where {T,P<:AbstractPolynomial{T}}
     # assign each constraint to a clique
     # there might be constraints that are not captured by any single clique,
     # NOTE: we ignore this constraint. This should only occur at lower order of relaxation.
@@ -132,10 +120,12 @@ variable cliques and assigning constraints to cliques, enabling block-structured
   - `global_cons`: Constraint indices not captured by any single clique
   - `cliques_idcs_bases`: Monomial bases for indexing moment/localizing matrices within each clique
 """
-function correlative_sparsity(pop::PolyOpt{T}, order::Int, elim_algo::EliminationAlgorithm) where {T}
-    cliques = map(x -> pop.variables[x], clique_decomp(get_correlative_graph(pop.variables, pop.objective, [pop.eq_constraints, pop.ineq_constraints], order), elim_algo))
+function correlative_sparsity(pop::PolyOpt{P,OBJ}, order::Int, elim_algo::EliminationAlgorithm) where {T,P<:AbstractPolynomial{T},OBJ}
+    all_cons = vcat(pop.eq_constraints, pop.ineq_constraints)
+    cliques = map(x -> pop.variables[x], clique_decomp(get_correlative_graph(pop.variables, pop.objective, all_cons, order), elim_algo))
 
-    cliques_cons, global_cons = assign_constraint(cliques, pop.constraints)
+    cliques_cons, global_cons = assign_constraint(cliques, pop.eq_constraints)
+
 
     reduce_func = prod ∘ reducer(pop)
     # get the operators needed to index columns of moment/localizing mtx in each clique
