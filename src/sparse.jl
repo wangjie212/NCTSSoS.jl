@@ -111,7 +111,7 @@ variable cliques and assigning constraints to cliques, enabling block-structured
 """
 function correlative_sparsity(pop::PolyOpt{P,OBJ}, order::Int, elim_algo::EliminationAlgorithm) where {T,P<:AbstractPolynomial{T},OBJ}
     all_cons = vcat(pop.eq_constraints, pop.ineq_constraints)
-    cliques = map(x -> sort(pop.variables[x]), clique_decomp(get_correlative_graph(pop.variables, pop.objective, all_cons, order), elim_algo))
+    cliques = map(x -> sort(pop.variables[x]), clique_decomp(get_correlative_graph(pop.variables, pop.objective, all_cons), elim_algo))
 
     cliques_cons, global_cons = assign_constraint(cliques, all_cons)
 

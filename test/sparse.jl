@@ -10,38 +10,35 @@ using NCTSSoS:
 
 @testset "Correlative Sparsity" begin
     n = 10
-	@ncpolyvar x[1:n]
-	f = 0.
-	for i = 1:n
-	    jset = max(1, i-5) : min(n, i+1)
-	    jset = setdiff(jset, i)
-	    g = sum(x[j] + x[j]^2 for j in jset)
-	    f += (2*x[i] + 5*x[i]^3 + 1 - g)^2
-	end
+    @ncpolyvar x[1:n]
+    f = 0.
+    for i = 1:n
+        jset = max(1, i - 5):min(n, i + 1)
+        jset = setdiff(jset, i)
+        g = sum(x[j] + x[j]^2 for j in jset)
+        f += (2 * x[i] + 5 * x[i]^3 + 1 - g)^2
+    end
 
-	pop = PolyOpt(f)
+    pop = PolyOpt(f)
 
     mom_order = 3
 
     @testset "No Elimination" begin
         cs_algo = NoElimination()
-
         corr_sparsity = correlative_sparsity(pop, mom_order, cs_algo)
+        @test maximum(length.(corr_sparsity.cliques)) == 10
     end
 
     @testset "MF" begin
-
-        cs_algo = MF() 
-
+        cs_algo = MF()
         corr_sparsity = correlative_sparsity(pop, mom_order, cs_algo)
+        @test maximum(length.(corr_sparsity.cliques)) ==  7
     end
 
     @testset "AsIS" begin
-
-        cs_algo = AsISElimination() 
-
+        cs_algo = AsIsElimination()
         corr_sparsity = correlative_sparsity(pop, mom_order, cs_algo)
-
+        @test maximum(length.(corr_sparsity.cliques)) ==  7
     end
 end
 
@@ -55,11 +52,11 @@ end
         f = sum(x[i] * x[mod1(i + 1, n)] for i = 1:n)
 
         G = get_correlative_graph(sort(x), f, typeof(f)[])
-        
+
         savegraph("example1.lgz", G)
 
         @test var2vars_dict(sort(x), G.fadjlist) == Dict(
-            x[1] => [x[2],x[4]],
+            x[1] => [x[2], x[4]],
             x[2] => [x[1], x[3]],
             x[3] => [x[2], x[4]],
             x[4] => [x[1], x[3]],
@@ -75,7 +72,7 @@ end
             9x[3] * x[2]^2 - 54x[3] * x[2] * x[3] + 142x[3] * x[2]^2 * x[3]
 
         G = get_correlative_graph(sort(x), f, typeof(f)[])
-        @test var2vars_dict(sort(x),G.fadjlist) == Dict(
+        @test var2vars_dict(sort(x), G.fadjlist) == Dict(
             x[1] => [x[2]],
             x[2] => [x[1], x[3]],
             x[3] => [x[2]],
