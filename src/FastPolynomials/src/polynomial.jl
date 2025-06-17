@@ -123,6 +123,7 @@ function Base.:(^)(p::Polynomial, n::Int)
     return p * (p^(n - 1))
 end
 
+Base.one(::Type{Polynomial{T}}) where {T} = Polynomial([one(T)], [one(Monomial)])
 Base.one(::Polynomial{T}) where {T} = Polynomial([one(T)], [one(Monomial)])
 Base.zero(::Polynomial{T}) where {T} = Polynomial([zero(T)], [one(Monomial)])
 

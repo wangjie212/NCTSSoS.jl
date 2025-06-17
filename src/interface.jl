@@ -44,17 +44,14 @@ function cs_nctssos(pop::PolyOpt{T}, solver_config::SolverConfig) where {T}
 
     cliques_objective = [reduce(+, [issubset(sort!(variables(mono)), clique) ? coef * mono : zero(mono) for (coef, mono) in zip(pop.objective.coeffs, pop.objective.monos)]) for clique in corr_sparsity.cliques]
 
-    # prepare the support for each term sparse localizing moment
-    # TODO init activated supp
-    initial_activated_supps = map(zip(cliques_objective, corr_sparsity.clq_cons, corr_sparsity.mom_mtx_bases)) do (partial_obj, cons_idx, mom_mtx_base)
+    initial_activated_supps = map(zip(cliques_objective, corr_sparsity.clq_cons, corr_sparsity.clq_mom_mtx_bases)) do (partial_obj, cons_idx, mom_mtx_base)
         init_activated_supp(partial_obj, corr_sparsity.cons[cons_idx], mom_mtx_base)
     end
 
     cliques_term_sparsities = map(zip(initial_activated_supps, corr_sparsity.clq_cons, corr_sparsity.clq_mom_mtx_bases, corr_sparsity.clq_localizing_mtx_bases)) do (init_act_supp, cons_idx, mom_mtx_bases, localizing_mtx_bases)
-        term_sparsities(init_act_supp, corr_sparsity.cons(cons_idx), mom_mtx_bases, localizing_mtx_bases, solver_config.ts_algo)
+        term_sparsities(init_act_supp, corr_sparsity.cons[cons_idx], mom_mtx_bases, localizing_mtx_bases, solver_config.ts_algo)
     end
 
-    # TODO: improve 1.5s
     moment_problem = moment_relax(pop, corr_sparsity, cliques_term_sparsities)
     sos_problem = sos_dualize(moment_problem)
     set_optimizer(sos_problem.model, solver_config.optimizer)

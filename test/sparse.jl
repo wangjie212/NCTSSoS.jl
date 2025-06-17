@@ -8,7 +8,7 @@ using NCTSSoS:
     term_sparsity_graph_supp,
     correlative_sparsity
 
-@testset "Correlative Sparsity" begin
+@testset "Correlative Sparsity without constraints" begin
     n = 10
     @ncpolyvar x[1:n]
     f = 0.
@@ -24,21 +24,49 @@ using NCTSSoS:
     mom_order = 3
 
     @testset "No Elimination" begin
-        cs_algo = NoElimination()
-        corr_sparsity = correlative_sparsity(pop, mom_order, cs_algo)
+        corr_sparsity = correlative_sparsity(pop, mom_order, NoElimination())
         @test maximum(length.(corr_sparsity.cliques)) == 10
     end
 
     @testset "MF" begin
-        cs_algo = MF()
-        corr_sparsity = correlative_sparsity(pop, mom_order, cs_algo)
+        corr_sparsity = correlative_sparsity(pop, mom_order, MF())
         @test maximum(length.(corr_sparsity.cliques)) ==  7
     end
 
     @testset "AsIS" begin
-        cs_algo = AsIsElimination()
-        corr_sparsity = correlative_sparsity(pop, mom_order, cs_algo)
+        corr_sparsity = correlative_sparsity(pop, mom_order, AsIsElimination())
         @test maximum(length.(corr_sparsity.cliques)) ==  7
+    end
+end
+
+@testset "Correlative Sparsity with constrains" begin
+    n = 2
+    @ncpolyvar x[1:n]
+    f = 2.0 - x[1]^2 + x[1] * x[2]^2 * x[1] - x[2]^2
+    g = 4.0 - x[1]^2 - x[2]^2
+    h1 = x[1] * x[2] + x[2] * x[1] - 2.0
+    pop = PolyOpt(f; ineq_constraints = [g], eq_constraints=[h1])
+    mom_order = 2
+
+    @testset "No Elimination" begin
+        corr_sparsity = correlative_sparsity(pop, mom_order, NoElimination())
+        @test maximum(length.(corr_sparsity.cliques)) == 2
+        @test length.(corr_sparsity.clq_mom_mtx_bases) == [7]
+        @test length.(corr_sparsity.clq_localizing_mtx_bases[1]) == [1,1]
+    end
+
+    @testset "MF" begin
+        corr_sparsity = correlative_sparsity(pop, mom_order, MF())
+        @test maximum(length.(corr_sparsity.cliques)) == 2
+        @test length.(corr_sparsity.clq_mom_mtx_bases) == [7]
+        @test length.(corr_sparsity.clq_localizing_mtx_bases[1]) == [1,1]
+    end
+
+    @testset "AsIS" begin
+        corr_sparsity = correlative_sparsity(pop, mom_order, AsIsElimination())
+        @test maximum(length.(corr_sparsity.cliques)) == 2
+        @test length.(corr_sparsity.clq_mom_mtx_bases) == [7]
+        @test length.(corr_sparsity.clq_localizing_mtx_bases[1]) == [1,1]
     end
 end
 
@@ -121,7 +149,6 @@ end
         )))
 
         savegraph("example4.lgz", G)
-
     end
 
     @testset "Clique Decomposition" begin

@@ -29,7 +29,7 @@ function Base.show(io::IO, cs::CorrelativeSparsity)
         println(io, "       Bases length: ", length(cs.clq_mom_mtx_bases[clique_i]))
         println(io, "       Constraints: ")
         for cons_j in eachindex(cs.clq_cons[clique_i])
-            println(io, "           Constraints", cs.clq_cons[clique_i][cons_j], " :  with $(length(cs.clq_localizing_mtx_bases[clique_i][cons_j])) basis monomials")
+            println(io, "           ", cs.cons[cons_j], " :  with $(length(cs.clq_localizing_mtx_bases[clique_i][cons_j])) basis monomials")
         end
     end
     println(io, "   Global Constraints: ")
@@ -125,8 +125,8 @@ function correlative_sparsity(pop::PolyOpt{P,OBJ}, order::Int, elim_algo::Elimin
 
     cliques_idx_bases = map(zip(eachindex(cliques), cliques_cons)) do (clique_idx, clique_cons)
         # get the basis of the moment matrix in a clique, then sort it
-        cur_orders = [order .- cld.(maxdegree.(all_cons[clique_cons]), 2)]
-        cur_lengths = map(o -> searchsortedfirst(cliques_moment_matrix_bases_dg, o) - 1, cur_orders)
+        cur_orders = order .- cld.(maxdegree.(all_cons[clique_cons]), 2)
+        cur_lengths = map(o -> searchsortedfirst(cliques_moment_matrix_bases_dg[clique_idx], o) - 1, cur_orders)
         map(cur_lengths) do len
             cliques_moment_matrix_bases[clique_idx][1:len]
         end
@@ -155,9 +155,12 @@ function init_activated_supp(partial_obj::P, cons::Vector{P}, mom_mtx_bases::Vec
 end
 
 function term_sparsities(initial_activated_supp::Vector{Monomial}, cons::Vector{P}, mom_mtx_bases::Vector{Monomial}, localizing_mtx_bases::Vector{Vector{Monomial}}, ts_algo::EliminationAlgorithm) where {T,P<:AbstractPolynomial{T}}
-    map(zip(cons, localizing_mtx_bases); init=iterate_term_sparse_supp(initial_activated_supp, one(P), mom_mtx_bases, ts_algo)) do (poly, basis)
-        iterate_term_sparse_supp(initial_activated_supp, poly, basis, ts_algo)
-    end
+    [
+        [iterate_term_sparse_supp(initial_activated_supp, one(P), mom_mtx_bases, ts_algo)];
+        map(zip(cons, localizing_mtx_bases)) do (poly, basis)
+            iterate_term_sparse_supp(initial_activated_supp, poly, basis, ts_algo)
+        end
+    ]
 end
 
 """
