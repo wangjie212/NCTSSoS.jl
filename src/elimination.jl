@@ -1,8 +1,9 @@
 # implement NoElimination on clique_decomp
 struct NoElimination <: EliminationAlgorithm end
 struct AsIsElimination <: EliminationAlgorithm end
+struct MaximalElimination <: EliminationAlgorithm end
 
-function cliquetree(graph, alg::NoElimination, snd::SupernodeType)
+function cliquetree(graph, ::NoElimination, snd::SupernodeType)
     return cliquetree(complete_graph(nv(graph)), BFS(), snd)
 end
 
@@ -23,4 +24,12 @@ function clique_decomp(G::SimpleGraph, clique_alg::EliminationAlgorithm)
     return map(x -> label[x], collect(Vector{Int}, tree))
 end
 
-# TODO: https://github.com/wangjie212/NCTSSoS.jl/issues/45
+function clique_decomp(G::SimpleGraph, ::MaximalElimination)
+    return connected_components(G)
+end
+
+function clique_decomp(G::SimpleGraph, ::AsIsElimination)
+    return maximal_cliques(G)
+end
+
+# TODO: https://github.com/wangjie212/NCTSSoS.jl/issues/45, this only applied to TS

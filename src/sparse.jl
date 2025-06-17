@@ -50,29 +50,18 @@ Constructs a correlative sparsity graph from polynomial optimization problem com
 # Returns
 - `SimpleGraph`: Graph representing variable correlations
 """
-function get_correlative_graph(ordered_vars::Vector{Variable}, obj::P, cons::Vector{P}, order::Int) where {T,P<:AbstractPolynomial{T}}
+function get_correlative_graph(ordered_vars::Vector{Variable}, obj::P, cons::Vector{P}) where {T,P<:AbstractPolynomial{T}}
     # NOTE: code will be buggy is ordered_vars is not the same as the one reference in other functions
     @assert issorted(ordered_vars) "Variables must be sorted"
 
     nvars = length(ordered_vars)
     G = SimpleGraph(nvars)
 
-    # find index of all unique variables in polynomial/monomial p
-    vmap(p) = map(v -> findfirst(==(v), ordered_vars), unique!(variables(p)))
+    findvar(v) = searchsortedfirst(ordered_vars, v)
 
-    map(mono -> add_clique!(G, vmap(mono)), obj.monos)
+    map(mono -> add_clique!(G, findvar.(variables(mono))), obj.monos)
 
-    for poly in cons
-        # for clearer logic, I didn't combine the two branches
-        if order == ceil(Int, maxdegree(poly) // 2)
-            # if objective or order too large, each term forms a clique
-            map(mono -> add_clique!(G, vmap(mono)), poly.monos)
-        else
-            # NOTE: if is constraint and order not too large, all variables in the constraint forms a clique
-            # this ensures each "small" constraint is in a clique ?
-            add_clique!(G, vmap(poly))
-        end
-    end
+    map(con -> add_clique!(G, findvar.(variables(con))), cons)
     return G
 end
 
