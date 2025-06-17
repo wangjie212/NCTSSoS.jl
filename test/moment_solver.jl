@@ -37,7 +37,7 @@ using NCTSSoS:
             x[2] * (y[1] + y[2] - y[3]) +
             x[3] * (y[1] - y[2]) - x[1] - 2 * y[1] - y[2]
         -f
-        pop = PolyOpt(-f; comm_gps = [[x], [y]], is_projective = true)
+        pop = PolyOpt(-f; comm_gps = [x, y], is_projective = true)
 
         solver_config = SolverConfig(optimizer = Clarabel.Optimizer; mom_order = 3)
 
@@ -74,7 +74,7 @@ end
     # take away some support in the polynomial
     cons = vcat([(1 - x[i]^2) for i = 1:n], [(x[i] - 1 / 3) for i = 1:n])
 
-    pop = PolyOpt(f; constraints = cons)
+    pop = PolyOpt(f; ineq_constraints = cons)
 
     solver_config =
         SolverConfig(optimizer = Clarabel.Optimizer; cs_algo = MF(), ts_algo = MMD())

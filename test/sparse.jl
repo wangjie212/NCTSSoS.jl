@@ -27,18 +27,6 @@ using NCTSSoS:
 
     corr_sparsity = correlative_sparsity(pop, mom_order, cs_algo)
 
-    @code_warntype correlative_sparsity(pop, mom_order, cs_algo)
-
-    clique = x
-    cur_order = collect(1:10)
-
-    @code_warntype NCTSSoS.FastPolynomials.get_basis(clique, 2)
-    NCTSSoS.FastPolynomials.get_basis(clique, 2)
-
-    using JET
-    @report_opt NCTSSoS.FastPolynomials.get_basis(clique, 2)
-
-    @code_warntype NCTSSoS.FastPolynomials.get_basis(clique, collect(ntuple(x -> Val(x), 2)))
 end
 
 @testset "Term Sparsity Graph" begin

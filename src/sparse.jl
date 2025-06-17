@@ -15,7 +15,7 @@ struct CorrelativeSparsity{P}
     cons::Vector{P} # making sure context of `Int` in following variables are clear
     clq_cons::Vector{Vector{Int}}
     global_cons::Vector{Int}
-    clq_mtx_basis::Vector{Vector{Vector{Monomial}}}
+    clq_idcs_bases::Vector{Vector{Vector{Monomial}}}
 end
 
 function Base.show(io::IO, cs::CorrelativeSparsity)
@@ -27,7 +27,7 @@ function Base.show(io::IO, cs::CorrelativeSparsity)
         println(io, "       Variables: ", cs.cliques[clique_i])
         println(io, "       Constraints: ")
         for cons_j in eachindex(cs.clq_cons[clique_i])
-            println(io, "           Constraints", cs.clq_cons[clique_i][cons_j], " :  with $(length(cs.clq_mtx_basis[clique_i][cons_j])) basis monomials")
+            println(io, "           Constraints", cs.clq_cons[clique_i][cons_j], " :  with $(length(cs.clq_idcs_bases[clique_i][cons_j])) basis monomials")
         end
     end
     println(io, "   Global Constraints: ")
@@ -129,7 +129,7 @@ function correlative_sparsity(pop::PolyOpt{P,OBJ}, order::Int, elim_algo::Elimin
     reduce_func = reducer(pop)
     # get the operators needed to index columns of moment/localizing mtx in each clique
     # depending on the clique's varaibles each is slightly different
-    cliques_idx_basis = map(zip(cliques, cliques_cons)) do (clique, clique_cons)
+    cliques_idx_bases = map(zip(cliques, cliques_cons)) do (clique, clique_cons)
         # get the basis of the moment matrix in a clique, then sort it
         cur_orders = [order; order .- cld.(maxdegree.(all_cons[clique_cons]), 2)]
         # map(b -> sorted_unique(prod.(reduce_func.(b))), get_basis.(Ref(clique), cur_orders))
@@ -137,7 +137,7 @@ function correlative_sparsity(pop::PolyOpt{P,OBJ}, order::Int, elim_algo::Elimin
         [sorted_unique(b) for b in cur_bases]
     end
 
-    return CorrelativeSparsity(cliques, all_cons, cliques_cons, global_cons, cliques_idx_basis)
+    return CorrelativeSparsity(cliques, all_cons, cliques_cons, global_cons, cliques_idx_bases)
 end
 
 

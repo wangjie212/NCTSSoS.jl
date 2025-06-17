@@ -45,16 +45,16 @@ function cs_nctssos(pop::PolyOpt{T}, solver_config::SolverConfig) where {T}
     cliques_objective = [reduce(+, [issubset(sort!(variables(mono)), clique) ? coef * mono : zero(mono) for (coef, mono) in zip(pop.objective.coeffs, pop.objective.monos)]) for clique in corr_sparsity.cliques]
 
     # prepare the support for each term sparse localizing moment
-    initial_activated_supp = [sorted_union(symmetric_canonicalize.(obj_part.monos), mapreduce(a -> a.monos, vcat, pop.constraints[cons_idx]; init=Monomial[]), [neat_dot(b, b) for b in idcs_bases[1]])
-                              for (obj_part, cons_idx, idcs_bases) in zip(cliques_objective, corr_sparsity.cliques_cons, corr_sparsity.cliques_idcs_bases)]
+    initial_activated_supp = [sorted_union(symmetric_canonicalize.(obj_part.monos), mapreduce(a -> a.monos, vcat, corr_sparsity.cons[cons_idx]; init=Monomial[]), [neat_dot(b, b) for b in idcs_bases[1]])
+                              for (obj_part, cons_idx, idcs_bases) in zip(cliques_objective, corr_sparsity.clq_cons, corr_sparsity.clq_idcs_bases)]
 
     # TODO: check here 2.6s
-    cliques_term_sparsities = map(zip(initial_activated_supp, corr_sparsity.cliques_cons, corr_sparsity.cliques_idcs_bases)) do (activated_supp, cons_idx, idcs_bases)
-        [iterate_term_sparse_supp(activated_supp, poly, basis, solver_config.ts_algo) for (poly, basis) in zip([one(pop.objective); pop.constraints[cons_idx]], idcs_bases)]
+    cliques_term_sparsities = map(zip(initial_activated_supp, corr_sparsity.clq_cons, corr_sparsity.clq_idcs_bases)) do (activated_supp, cons_idx, idcs_bases)
+        [iterate_term_sparse_supp(activated_supp, poly, basis, solver_config.ts_algo) for (poly, basis) in zip([one(pop.objective); corr_sparsity.cons[cons_idx]], idcs_bases)]
     end
 
     # TODO: improve 1.5s
-    moment_problem = moment_relax(pop, corr_sparsity.cliques_cons, corr_sparsity.global_cons, cliques_term_sparsities)
+    moment_problem = moment_relax(pop, corr_sparsity, cliques_term_sparsities)
     sos_problem = sos_dualize(moment_problem)
     set_optimizer(sos_problem.model, solver_config.optimizer)
 
@@ -66,11 +66,11 @@ function cs_nctssos_higher(pop::PolyOpt{T}, prev_res::PolyOptResult, solver_conf
     initial_activated_supp = [sorted_union([poly_term_sparsity.term_sparse_graph_supp for poly_term_sparsity in term_sparsities]...)
                               for term_sparsities in prev_res.cliques_term_sparsities]
 
-    cliques_term_sparsities = map(zip(initial_activated_supp, prev_res.corr_sparsity.cliques_cons, prev_res.corr_sparsity.cliques_idcs_bases)) do (activated_supp, cons_idx, idcs_bases)
-        [iterate_term_sparse_supp(activated_supp, poly, basis, solver_config.ts_algo) for (poly, basis) in zip([one(pop.objective); pop.constraints[cons_idx]], idcs_bases)]
+    cliques_term_sparsities = map(zip(initial_activated_supp, prev_res.corr_sparsity.clq_cons, prev_res.corr_sparsity.clq_idcs_bases)) do (activated_supp, cons_idx, idcs_bases)
+        [iterate_term_sparse_supp(activated_supp, poly, basis, solver_config.ts_algo) for (poly, basis) in zip([one(pop.objective); prev_res.corr_sparsity.cons[cons_idx]], idcs_bases)]
     end
 
-    moment_problem = moment_relax(pop, prev_res.corr_sparsity.cliques_cons, prev_res.corr_sparsity.global_cons, cliques_term_sparsities)
+    moment_problem = moment_relax(pop, prev_res.corr_sparsity, cliques_term_sparsities)
     sos_problem = sos_dualize(moment_problem)
     set_optimizer(sos_problem.model, solver_config.optimizer)
     optimize!(sos_problem.model)

@@ -42,8 +42,7 @@ using Clarabel
 
     pop = PolyOpt(
         -objective;
-        constraints = gs,
-        is_equality = [true for _ in gs],
+        eq_constraints = gs,
         is_projective = true,
     )
 
@@ -61,7 +60,7 @@ end
     g = 4.0 - x[1]^2 - x[2]^2
     h1 = x[1] * x[2] + x[2] * x[1] - 2.0
     # change struct name
-    pop = PolyOpt(f; constraints = [g, h1], is_equality = [false, true])
+    pop = PolyOpt(f; ineq_constraints = [g], eq_constraints=[h1])
 
     solver_config = SolverConfig(
         optimizer = Clarabel.Optimizer;
@@ -115,7 +114,7 @@ end
     g = 4.0 - x[1]^2 - x[2]^2
     h1 = x[1] * x[2] + x[2] * x[1] - 2.0
 
-    pop = PolyOpt(f; constraints = [g, h1], is_equality = [false, true])
+    pop = PolyOpt(f; ineq_constraints = [g], eq_constraints= [h1])
 
     result_dense = cs_nctssos(pop, SolverConfig(optimizer = Clarabel.Optimizer))
 
