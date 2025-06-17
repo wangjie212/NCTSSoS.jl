@@ -84,4 +84,15 @@ using NCTSSoS.FastPolynomials: degree, Monomial, neat_dot, star, monomial
         @test neat_dot(mono1, mono2) == monomial([x, y], [2, 1])
         @test neat_dot(mono2, mono2) == monomial([y, x, y], [1, 2, 1])
     end
+
+    @testset "degree" begin
+        @ncpolyvar x y z
+        mono1 = monomial([x, y, z], [1, 2, 3])
+        mono2 = monomial([x, y], [0, 0])
+        mono3 = monomial([x, y, z], [0, 0, 0])
+
+        @test degree(mono1) == 6
+        @test degree(mono2) == 0
+        @test degree(mono3) == 0
+    end
 end

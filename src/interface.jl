@@ -45,12 +45,13 @@ function cs_nctssos(pop::PolyOpt{T}, solver_config::SolverConfig) where {T}
     cliques_objective = [reduce(+, [issubset(sort!(variables(mono)), clique) ? coef * mono : zero(mono) for (coef, mono) in zip(pop.objective.coeffs, pop.objective.monos)]) for clique in corr_sparsity.cliques]
 
     # prepare the support for each term sparse localizing moment
-    initial_activated_supp = [sorted_union(symmetric_canonicalize.(obj_part.monos), mapreduce(a -> a.monos, vcat, corr_sparsity.cons[cons_idx]; init=Monomial[]), [neat_dot(b, b) for b in idcs_bases[1]])
-                              for (obj_part, cons_idx, idcs_bases) in zip(cliques_objective, corr_sparsity.clq_cons, corr_sparsity.clq_idcs_bases)]
+    # TODO init activated supp
+    initial_activated_supps = map(zip(cliques_objective, corr_sparsity.clq_cons, corr_sparsity.mom_mtx_bases)) do (partial_obj, cons_idx, mom_mtx_base)
+        init_activated_supp(partial_obj, corr_sparsity.cons[cons_idx], mom_mtx_base)
+    end
 
-    # TODO: check here 2.6s
-    cliques_term_sparsities = map(zip(initial_activated_supp, corr_sparsity.clq_cons, corr_sparsity.clq_idcs_bases)) do (activated_supp, cons_idx, idcs_bases)
-        [iterate_term_sparse_supp(activated_supp, poly, basis, solver_config.ts_algo) for (poly, basis) in zip([one(pop.objective); corr_sparsity.cons[cons_idx]], idcs_bases)]
+    cliques_term_sparsities = map(zip(initial_activated_supps, corr_sparsity.clq_cons, corr_sparsity.clq_mom_mtx_bases, corr_sparsity.clq_localizing_mtx_bases)) do (init_act_supp, cons_idx, mom_mtx_bases, localizing_mtx_bases)
+        term_sparsities(init_act_supp, corr_sparsity.cons(cons_idx), mom_mtx_bases, localizing_mtx_bases, solver_config.ts_algo)
     end
 
     # TODO: improve 1.5s

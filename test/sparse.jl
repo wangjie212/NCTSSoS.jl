@@ -185,6 +185,15 @@ end
 
 end
 
+@testset "Term Sparsity" begin
+
+    @testset "Initialize Activated Support" begin
+
+    end
+
+
+end
+
 @testset "Term Sparsity Graph" begin
     # Example 10.2
     @ncpolyvar x y

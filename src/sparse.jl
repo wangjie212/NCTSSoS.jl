@@ -15,7 +15,8 @@ struct CorrelativeSparsity{P}
     cons::Vector{P} # making sure context of `Int` in following variables are clear
     clq_cons::Vector{Vector{Int}}
     global_cons::Vector{Int}
-    clq_idcs_bases::Vector{Vector{Vector{Monomial}}}
+    clq_mom_mtx_bases::Vector{Vector{Monomial}}
+    clq_localizing_mtx_bases::Vector{Vector{Vector{Monomial}}}
 end
 
 function Base.show(io::IO, cs::CorrelativeSparsity)
@@ -25,9 +26,10 @@ function Base.show(io::IO, cs::CorrelativeSparsity)
     for clique_i in 1:length(cs.cliques)
         println(io, "   Clique $clique_i: ")
         println(io, "       Variables: ", cs.cliques[clique_i])
+        println(io, "       Bases length: ", length(cs.clq_mom_mtx_bases[clique_i]))
         println(io, "       Constraints: ")
         for cons_j in eachindex(cs.clq_cons[clique_i])
-            println(io, "           Constraints", cs.clq_cons[clique_i][cons_j], " :  with $(length(cs.clq_idcs_bases[clique_i][cons_j])) basis monomials")
+            println(io, "           Constraints", cs.clq_cons[clique_i][cons_j], " :  with $(length(cs.clq_localizing_mtx_bases[clique_i][cons_j])) basis monomials")
         end
     end
     println(io, "   Global Constraints: ")
@@ -60,7 +62,6 @@ function get_correlative_graph(ordered_vars::Vector{Variable}, obj::P, cons::Vec
     findvar(v) = searchsortedfirst(ordered_vars, v)
 
     map(mono -> add_clique!(G, findvar.(variables(mono))), obj.monos)
-
     map(con -> add_clique!(G, findvar.(variables(con))), cons)
     return G
 end
@@ -116,17 +117,22 @@ function correlative_sparsity(pop::PolyOpt{P,OBJ}, order::Int, elim_algo::Elimin
     cliques_cons, global_cons = assign_constraint(cliques, all_cons)
 
     reduce_func = reducer(pop)
-    # get the operators needed to index columns of moment/localizing mtx in each clique
-    # depending on the clique's varaibles each is slightly different
-    cliques_idx_bases = map(zip(cliques, cliques_cons)) do (clique, clique_cons)
-        # get the basis of the moment matrix in a clique, then sort it
-        cur_orders = [order; order .- cld.(maxdegree.(all_cons[clique_cons]), 2)]
-        # map(b -> sorted_unique(prod.(reduce_func.(b))), get_basis.(Ref(clique), cur_orders))
-        cur_bases = map(b -> prod.(reduce_func.(b)), get_basis.(Ref(clique), cur_orders))
-        [sorted_unique(b) for b in cur_bases]
+    cliques_moment_matrix_bases = map(cliques) do clique
+        sorted_unique(map(b -> prod(reduce_func(b)), get_basis(clique, order)))
     end
 
-    return CorrelativeSparsity(cliques, all_cons, cliques_cons, global_cons, cliques_idx_bases)
+    cliques_moment_matrix_bases_dg = map(bs -> NCTSSoS.FastPolynomials.degree.(bs), cliques_moment_matrix_bases)
+
+    cliques_idx_bases = map(zip(eachindex(cliques), cliques_cons)) do (clique_idx, clique_cons)
+        # get the basis of the moment matrix in a clique, then sort it
+        cur_orders = [order .- cld.(maxdegree.(all_cons[clique_cons]), 2)]
+        cur_lengths = map(o -> searchsortedfirst(cliques_moment_matrix_bases_dg, o) - 1, cur_orders)
+        map(cur_lengths) do len
+            cliques_moment_matrix_bases[clique_idx][1:len]
+        end
+    end
+
+    return CorrelativeSparsity(cliques, all_cons, cliques_cons, global_cons, cliques_moment_matrix_bases, cliques_idx_bases)
 end
 
 
@@ -144,6 +150,16 @@ struct TermSparsity
     block_bases::Vector{Vector{Monomial}}
 end
 
+function init_activated_supp(partial_obj::P, cons::Vector{P}, mom_mtx_bases::Vector{Monomial}) where {T,P<:AbstractPolynomial{T}}
+    return sorted_union(symmetric_canonicalize.(partial_obj.monos), mapreduce(a -> a.monos, vcat, cons; init=Monomial[]), [neat_dot(b, b) for b in mom_mtx_bases])
+end
+
+function term_sparsities(initial_activated_supp::Vector{Monomial}, cons::Vector{P}, mom_mtx_bases::Vector{Monomial}, localizing_mtx_bases::Vector{Vector{Monomial}}, ts_algo::EliminationAlgorithm) where {T,P<:AbstractPolynomial{T}}
+    map(zip(cons, localizing_mtx_bases); init=iterate_term_sparse_supp(initial_activated_supp, one(P), mom_mtx_bases, ts_algo)) do (poly, basis)
+        iterate_term_sparse_supp(initial_activated_supp, poly, basis, ts_algo)
+    end
+end
+
 """
     get_term_sparsity_graph(cons_support::Vector{Monomial}, activated_supp::Vector{Monomial}, basis::Vector{Monomial})
 
@@ -152,18 +168,18 @@ Constructs a term sparsity graph for polynomial constraints.
 # Arguments
 - `cons_support::Vector{Monomial}`: Support monomials of constraints
 - `activated_supp::Vector{Monomial}`: Support from previous iterations
-- `basis::Vector{Monomial}`: Basis used to index the moment matrix
+- `bases::Vector{Monomial}`: Basis used to index the moment matrix
 
 # Returns
 - `SimpleGraph`: Term sparsity graph
 """
-function get_term_sparsity_graph(cons_support::Vector{Monomial}, activated_supp::Vector{Monomial}, basis::Vector{Monomial})
-    nterms = length(basis)
+function get_term_sparsity_graph(cons_support::Vector{Monomial}, activated_supp::Vector{Monomial}, bases::Vector{Monomial})
+    nterms = length(bases)
     G = SimpleGraph(nterms)
     sorted_activated_supp = sort(activated_supp)
     for i in 1:nterms, j in i+1:nterms
         for supp in cons_support
-            if symmetric_canonicalize(neat_dot(basis[i], supp * basis[j])) in sorted_activated_supp
+            if symmetric_canonicalize(neat_dot(bases[i], supp * bases[j])) in sorted_activated_supp
                 add_edge!(G, i, j)
                 continue
             end
@@ -188,12 +204,8 @@ Iteratively computes term sparsity support for a polynomial.
 """
 function iterate_term_sparse_supp(activated_supp::Vector{Monomial}, poly::Polynomial, basis::Vector{Monomial}, elim_algo::EliminationAlgorithm)
     F = get_term_sparsity_graph(poly.monos, activated_supp, basis)
-    if !(elim_algo isa AsIsElimination)
-        blocks = clique_decomp(F, elim_algo)
-        map(block -> add_clique!(F, block), blocks)
-    else
-        blocks = connected_components(F)
-    end
+    blocks = clique_decomp(F, elim_algo)
+    map(block -> add_clique!(F, block), blocks)
     return TermSparsity(term_sparsity_graph_supp(F, basis, poly), map(x -> basis[x], blocks))
 end
 
