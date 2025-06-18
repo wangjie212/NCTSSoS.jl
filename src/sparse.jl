@@ -10,13 +10,13 @@ Structure representing the correlative sparsity pattern of a polynomial optimiza
 - `global_cons::Vector{Int}`: Constraint indices not captured by any single clique
 - `clq_mtx_basis::Vector{Vector{Monomial}}`: Monomial bases for moment/localizing matrices within each clique
 """
-struct CorrelativeSparsity{P}
+struct CorrelativeSparsity{P,M}
     cliques::Vector{Vector{Variable}}
     cons::Vector{P} # making sure context of `Int` in following variables are clear
     clq_cons::Vector{Vector{Int}}
     global_cons::Vector{Int}
-    clq_mom_mtx_bases::Vector{Vector{Monomial}}
-    clq_localizing_mtx_bases::Vector{Vector{Vector{Monomial}}}
+    clq_mom_mtx_bases::Vector{Vector{M}}
+    clq_localizing_mtx_bases::Vector{Vector{Vector{M}}}
 end
 
 function Base.show(io::IO, cs::CorrelativeSparsity)
@@ -61,7 +61,7 @@ function get_correlative_graph(ordered_vars::Vector{Variable}, obj::P, cons::Vec
 
     findvar(v) = searchsortedfirst(ordered_vars, v)
 
-    map(mono -> add_clique!(G, findvar.(variables(mono))), obj.monos)
+    map(mono -> add_clique!(G, findvar.(variables(mono))), monomials(obj))
     map(con -> add_clique!(G, findvar.(variables(con))), cons)
     return G
 end
@@ -145,9 +145,14 @@ Structure representing term sparsity information for polynomial optimization.
 - `term_sparse_graph_supp::Vector{Monomial}`: Support of the term sparsity graph
 - `block_bases::Vector{Vector{Monomial}}`: Bases of moment/localizing matrices in each block
 """
-struct TermSparsity
-    term_sparse_graph_supp::Vector{Monomial}
-    block_bases::Vector{Vector{Monomial}}
+struct TermSparsity{M}
+    term_sparse_graph_supp::Vector{M}
+    block_bases::Vector{Vector{M}}
+end
+
+function Base.show(io::IO, sparsity::TermSparsity)
+    println(io, "Number of Activated supp:   ", length(sparsity.term_sparse_graph_supp))
+    println(io, "Number of Bases Activated in each sub-block", length.(sparsity.block_bases))
 end
 
 function init_activated_supp(partial_obj::P, cons::Vector{P}, mom_mtx_bases::Vector{Monomial}) where {T,P<:AbstractPolynomial{T}}

@@ -1,13 +1,3 @@
-# T: type of the coefficients
-# monomap: map from monomials in DynamicPolynomials to variables in JuMP
-# TODO: move StateWord{V,M} to parameter of MomentProblem
-struct StateMomentProblem{T,CR<:ConstraintRef} <: OptimizationProblem
-    model::GenericModel{T}
-    constraints::Vector{CR}
-    monomap::Dict{StateWord,GenericVariableRef{T}}  # TODO: maybe refactor.
-    reduce_func::Function
-end
-
 function substitute_variables(poly::NCStatePolynomial{T}, wordmap::Dict{StateWord,GenericVariableRef{T}}) where {T}
     mapreduce(x -> (x[1] * wordmap[expval(x[2])]), +, terms(poly))
 end
@@ -16,22 +6,24 @@ end
 # global_cons: constraints that are not in any single clique
 # cliques_term_sparsities: each clique, each obj/constraint, each ts_clique, each basis needed to index moment matrix
 # FIXME: should I use CorrelativeSparsity here instead of cliques_cons and global_cons
-function moment_relax(pop::PolyOpt{NCStatePolynomial{T},OBJ}, cliques_cons::Vector{Vector{Int}}, global_cons::Vector{Int}, cliques_term_sparsities::Vector{Vector{StateTermSparsity}}) where {T,OBJ}
+function moment_relax(pop::PolyOpt{NCStatePolynomial{T},OBJ}, cliques_cons::Vector{Vector{Int}}, global_cons::Vector{Int}, cliques_term_sparsities::Vector{Vector{TermSparsity{M}}}) where {T,M,OBJ}
     # NOTE: objective and constraints may have integer coefficients, but popular JuMP solvers does not support integer coefficients
     # left type here to support BigFloat model for higher precision
     model = GenericModel{T}()
 
     reduce_func = reducer(pop)
 
+
     # the union of clique_total_basis
-    total_basis = sorted_union(map(zip(cliques_cons, cliques_term_sparsities)) do (cons_idx, term_sparsities)
+    total_basis = sorted_union(map(zip(corr_sparsity.clq_cons, cliques_term_sparsities)) do (cons_idx, term_sparsities)
         union(vec(reduce(vcat, [
-            map(monomials(poly)) do m
+            map(poly.monos) do m
                 expval(reduce_func(neat_dot(rol_idx, m * col_idx)))
             end
-            for (poly, term_sparsity) in zip([one(pop.objective); pop.constraints[cons_idx]], term_sparsities) for basis in term_sparsity.block_bases for rol_idx in basis for col_idx in basis
+            for (poly, term_sparsity) in zip([one(pop.objective); corr_sparsity.cons[cons_idx]], term_sparsities) for basis in term_sparsity.block_bases for rol_idx in basis for col_idx in basis
         ])))
     end...)
+
 
     # # map the monomials to JuMP variables, the first variable must be 1
     @variable(model, y[1:length(total_basis)])
@@ -39,32 +31,32 @@ function moment_relax(pop::PolyOpt{NCStatePolynomial{T},OBJ}, cliques_cons::Vect
     monomap = Dict(zip(total_basis, y))
 
     constraint_matrices =
-        [mapreduce(vcat, zip(cliques_term_sparsities, cliques_cons)) do (term_sparsities, cons_idx)
-                mapreduce(vcat, zip(term_sparsities, [one(pop.objective), pop.constraints[cons_idx]...], [false; pop.is_equality[cons_idx]])) do (term_sparsity, poly, is_eq)
+        [mapreduce(vcat, zip(cliques_term_sparsities, corr_sparsity.clq_cons)) do (term_sparsities, cons_idx)
+                mapreduce(vcat, zip(term_sparsities, [one(pop.objective), corr_sparsity.cons[cons_idx]...])) do (term_sparsity, poly)
                     map(term_sparsity.block_bases) do ts_sub_basis
                         constrain_moment_matrix!(
                             model,
                             poly,
                             ts_sub_basis,
                             monomap,
-                            is_eq ? Zeros() : PSDCone(), reduce_func)
+                            poly in pop.eq_constraints ? Zeros() : PSDCone(), prod ∘ reduce_func)
                     end
                 end
             end
-            map(global_cons) do global_con
+            map(corr_sparsity.global_cons) do global_con
                 constrain_moment_matrix!(
                     model,
-                    pop.constraints[global_con],
+                    corr_sparsity.cons[global_con],
                     [one(pop.objective)],
                     monomap,
-                    pop.is_equality[global_con] ? Zeros() : PSDCone(),
-                    reduce_func
+                    global_con <= length(pop.eq_constraints) ? Zeros() : PSDCone(),
+                    prod ∘ reduce_func
                 )
             end]
 
     @objective(model, Min, substitute_variables(mapreduce(p -> p[1] * reduce_func(p[2]), +, terms(symmetric_canonicalize(pop.objective)); init=zero(pop.objective)), monomap))
 
-    return StateMomentProblem(model, constraint_matrices, monomap, reduce_func)
+    return MomentProblem(model, constraint_matrices, monomap, reduce_func)
 end
 
 function constrain_moment_matrix!(

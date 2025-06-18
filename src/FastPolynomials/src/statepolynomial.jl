@@ -256,6 +256,7 @@ monomials(ncsp::NCStatePolynomial) = ncsp.nc_state_words
 terms(ncsp::NCStatePolynomial) = zip(ncsp.coeffs, ncsp.nc_state_words)
 
 for symb in [:symmetric_canonicalize, :cyclic_canonicalize]
+    # assuming this is always reduced
     take_adj = (symb == :symmetric_canonicalize ? :adjoint : :identity)
     eval(
         quote
@@ -276,4 +277,12 @@ for symb in [:symmetric_canonicalize, :cyclic_canonicalize]
             end
         end,
     )
+end
+
+function _comm(sw::StateWord, comm_gps::Vector{Vector{Variable}})
+    StateWord.(prod.(_comm.(sw.state_monos, Ref(comm_gps))))
+end
+
+function _comm(ncsw::NCStateWord, comm_gps::Vector{Vector{Variable}})
+    NCStateWord.(_comm(ncsw.sw, comm_gps), prod(_comm(ncsw.nc_word, comm_gps)))
 end

@@ -1,5 +1,31 @@
 using Test, NCTSSoS
-using Clarabel
+if Sys.isapple()
+    using MosekTools
+    const SOLVER = Mosek.Optimizer
+else
+    using Clarabel
+    const SOLVER = Clarabel.Optimizer
+end
+
+@testset "Failed Example" begin
+    @ncpolyvar x[1:3]
+    @ncpolyvar y[1:3]
+    f = 1.0 * x[1] * (y[1] + y[2] + y[3]) + x[2] * (y[1] + y[2] - y[3]) +
+        x[3] * (y[1] - y[2]) - x[1] - 2 * y[1] - y[2]  # objective function
+
+    pop = PolyOpt(-f; comm_gps=[x, y], is_projective=true)
+
+    solver_config = SolverConfig(optimizer=SOLVER; mom_order=3, cs_algo=MF(), ts_algo=MMD())
+    result = cs_nctssos(pop, solver_config)
+
+    for (cs_algo, ts_algo, ans) in zip([NoElimination(), MF(), MF()],
+        [NoElimination(), MMD(),  MaximalElimination()],
+        [-0.2508755573198166, -0.9999999892255513,  -0.2512780696727863])
+        solver_config = SolverConfig(optimizer=Mosek.Optimizer; mom_order=3, cs_algo=cs_algo, ts_algo=ts_algo)
+        result = cs_nctssos(pop, solver_config)
+        @test isapprox(result.objective, ans; atol=1e-5)
+    end
+end
 
 @testset "Majumdar Gosh Model" begin
     num_sites = 12
@@ -46,7 +72,7 @@ using Clarabel
         is_projective = true,
     )
 
-    solver_config = SolverConfig(optimizer = Clarabel.Optimizer; mom_order = 1)
+    solver_config = SolverConfig(optimizer = SOLVER; mom_order = 1)
 
     result = cs_nctssos(pop, solver_config)
 
@@ -63,7 +89,7 @@ end
     pop = PolyOpt(f; ineq_constraints = [g], eq_constraints=[h1])
 
     solver_config = SolverConfig(
-        optimizer = Clarabel.Optimizer;
+        optimizer = SOLVER;
         mom_order = 2,
         cs_algo = MF(),
         ts_algo = MMD(),
@@ -91,18 +117,18 @@ end
 
     pop = PolyOpt(f)
 
-    solver_config_dense = SolverConfig(optimizer = Clarabel.Optimizer)
+    solver_config_dense = SolverConfig(optimizer = SOLVER)
 
     result_dense = cs_nctssos(pop, solver_config_dense)
 
     result_cs =
-        cs_nctssos(pop, SolverConfig(optimizer = Clarabel.Optimizer; cs_algo = MF()))
+        cs_nctssos(pop, SolverConfig(optimizer = SOLVER; cs_algo = MF()))
 
     @test isapprox(result_dense.objective, result_cs.objective, atol = 1e-4)
 
     result_cs_ts = cs_nctssos(
         pop,
-        SolverConfig(optimizer = Clarabel.Optimizer; cs_algo = MF(), ts_algo = MMD()),
+        SolverConfig(optimizer = SOLVER; cs_algo = MF(), ts_algo = MMD()),
     )
 
     @test isapprox(result_cs.objective, result_cs_ts.objective, atol = 1e-4)
@@ -116,16 +142,16 @@ end
 
     pop = PolyOpt(f; ineq_constraints = [g], eq_constraints= [h1])
 
-    result_dense = cs_nctssos(pop, SolverConfig(optimizer = Clarabel.Optimizer))
+    result_dense = cs_nctssos(pop, SolverConfig(optimizer = SOLVER))
 
     result_cs =
-        cs_nctssos(pop, SolverConfig(optimizer = Clarabel.Optimizer; cs_algo = MF()))
+        cs_nctssos(pop, SolverConfig(optimizer = SOLVER; cs_algo = MF()))
 
     @test isapprox(result_dense.objective, result_cs.objective, atol = 1e-4)
 
     result_cs_ts = cs_nctssos(
         pop,
-        SolverConfig(optimizer = Clarabel.Optimizer; cs_algo = MF(), ts_algo = MMD()),
+        SolverConfig(optimizer = SOLVER; cs_algo = MF(), ts_algo = MMD()),
     )
 
     @test isapprox(result_cs.objective, result_cs_ts.objective, atol = 1e-4)
@@ -133,7 +159,7 @@ end
     result_cs_ts_higher = cs_nctssos_higher(
         pop,
         result_cs_ts,
-        SolverConfig(optimizer = Clarabel.Optimizer; cs_algo = MF(), ts_algo = MMD()),
+        SolverConfig(optimizer = SOLVER; cs_algo = MF(), ts_algo = MMD()),
     )
 
     @test isapprox(result_dense.objective, result_cs_ts_higher.objective, atol = 1e-4)

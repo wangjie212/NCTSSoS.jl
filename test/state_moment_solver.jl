@@ -23,8 +23,8 @@ using NCTSSoS:
     @ncpolyvar x[1:2] y[1:2]
     sp =
         -1.0 * ς(x[1] * y[1]) - 1.0 * ς(x[1] * y[2]) - 1.0 * ς(x[2] * y[1]) +
-        1.0 * ς(x[2] * y[2])
-    spop = PolyOpt(sp; is_unipotent = true, comm_gps = [x, y])
+        1.0 * ς(x[2] * y[2]) 
+    spop = PolyOpt(sp * one(Monomial); is_unipotent = true, comm_gps = [x, y])
 
     d = 1
     # how did I implement monomials for StatePoly and NCStatePoly?

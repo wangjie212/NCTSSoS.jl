@@ -9,35 +9,61 @@ using NCTSSoS:
     correlative_sparsity
 
 @testset "Correlative Sparsity without constraints" begin
-    n = 10
-    @ncpolyvar x[1:n]
-    f = 0.
-    for i = 1:n
-        jset = max(1, i - 5):min(n, i + 1)
-        jset = setdiff(jset, i)
-        g = sum(x[j] + x[j]^2 for j in jset)
-        f += (2 * x[i] + 5 * x[i]^3 + 1 - g)^2
+    @testset "Example 2" begin
+        @ncpolyvar x[1:3]
+        @ncpolyvar y[1:3]
+        f = 1.0 * x[1] * (y[1] + y[2] + y[3]) + x[2] * (y[1] + y[2] - y[3]) +
+            x[3] * (y[1] - y[2]) - x[1] - 2 * y[1] - y[2]  # objective function
+        pop = PolyOpt(-f)
+        mom_order = 3
+        @testset "No Elimination" begin
+            corr_sparsity = correlative_sparsity(pop, mom_order, NoElimination())
+            @test maximum(length.(corr_sparsity.cliques)) == 6
+        end
+
+        @testset "MF" begin
+            corr_sparsity = correlative_sparsity(pop, mom_order, MF())
+            @test maximum(length.(corr_sparsity.cliques)) == 4
+        end
+
+        @testset "AsIS" begin
+            corr_sparsity = correlative_sparsity(pop, mom_order, AsIsElimination())
+            @test maximum(length.(corr_sparsity.cliques)) == 2
+        end
     end
 
-    pop = PolyOpt(f)
+    @testset "Example 1" begin
+        n = 10
+        @ncpolyvar x[1:n]
+        f = 0.
+        for i = 1:n
+            jset = max(1, i - 5):min(n, i + 1)
+            jset = setdiff(jset, i)
+            g = sum(x[j] + x[j]^2 for j in jset)
+            f += (2 * x[i] + 5 * x[i]^3 + 1 - g)^2
+        end
 
-    mom_order = 3
+        pop = PolyOpt(f)
 
-    @testset "No Elimination" begin
-        corr_sparsity = correlative_sparsity(pop, mom_order, NoElimination())
-        @test maximum(length.(corr_sparsity.cliques)) == 10
-    end
+        mom_order = 3
 
-    @testset "MF" begin
-        corr_sparsity = correlative_sparsity(pop, mom_order, MF())
-        @test maximum(length.(corr_sparsity.cliques)) == 7
-    end
+        @testset "No Elimination" begin
+            corr_sparsity = correlative_sparsity(pop, mom_order, NoElimination())
+            @test maximum(length.(corr_sparsity.cliques)) == 10
+        end
 
-    @testset "AsIS" begin
-        corr_sparsity = correlative_sparsity(pop, mom_order, AsIsElimination())
-        @test maximum(length.(corr_sparsity.cliques)) == 7
+        @testset "MF" begin
+            corr_sparsity = correlative_sparsity(pop, mom_order, MF())
+            @test maximum(length.(corr_sparsity.cliques)) == 7
+        end
+
+        @testset "AsIS" begin
+            corr_sparsity = correlative_sparsity(pop, mom_order, AsIsElimination())
+            @test maximum(length.(corr_sparsity.cliques)) == 7
+        end
     end
 end
+
 
 @testset "Correlative Sparsity with constrains" begin
     n = 2
@@ -149,6 +175,23 @@ end
         )))
 
         savegraph("example4.lgz", G)
+
+        @ncpolyvar x[1:3] y[1:3]
+        f = 1.0 * x[1] * (y[1] + y[2] + y[3]) + x[2] * (y[1] + y[2] - y[3]) +
+            x[3] * (y[1] - y[2]) - x[1] - 2 * y[1] - y[2]  # objective function
+
+        G = get_correlative_graph(sort(vcat(x, y)), f, typeof(f)[])
+        @test var2vars_dict(sort(vcat(x, y)), G.fadjlist) == Dict(
+            x[1] => [y[1], y[2], y[3]],
+            x[2] => [y[1], y[2], y[3]],
+            x[3] => [y[1], y[2]],
+            y[1] => [x[1], x[2], x[3]],
+            y[2] => [x[1], x[2], x[3]],
+            y[3] => [x[1], x[2]],
+        )
+
+        savegraph("example5.lgz", G)
+
     end
 
     @testset "Clique Decomposition" begin
@@ -187,6 +230,16 @@ end
 
         @test sort(sort.(clique_decomp(G, MF()))) == [[1, 2], [2, 3]]
         rm("example4.lgz")
+
+        G = loadgraph("example5.lgz")
+
+        @test sort.(clique_decomp(G, NoElimination())) == [collect(1:6)]
+        @test sort.(clique_decomp(G, AsIsElimination())) == [[0x0002, 0x0005], [0x0002, 0x0004], [0x0002, 0x0006], [0x0003, 0x0005], [0x0003, 0x0004], [0x0001, 0x0005], [0x0001, 0x0004], [0x0001, 0x0006]]
+        
+        @test sort.(clique_decomp(G, MF())) == [[0x0003, 0x0004, 0x0005], [0x0001, 0x0002, 0x0006],[0x0001, 0x0002, 0x0004, 0x0005]]
+
+        rm("example5.lgz")
+
     end
 
     @testset "Assign Constraint" begin
@@ -209,7 +262,6 @@ end
 
         @test assign_constraint(cliques, cons) == ([[1, 2, 3]], Int[])
     end
-
 end
 
 @testset "Term Sparsity" begin

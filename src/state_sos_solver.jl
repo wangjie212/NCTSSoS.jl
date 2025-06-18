@@ -1,4 +1,4 @@
-function sos_dualize(moment_problem::StateMomentProblem{T}) where {T}
+function sos_dualize(moment_problem::MomentProblem{T,StateWord}) where {T}
     dual_model = GenericModel{T}()
 
     # Initialize Gj as variables

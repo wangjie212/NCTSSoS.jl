@@ -14,10 +14,3 @@ function reducer(spop::PolyOpt{NCStatePolynomial{T},OBJ}) where {T,OBJ}
     end
 end
 
-function FastPolynomials._comm(sw::StateWord, comm_gps::Vector{Vector{Variable}})
-    StateWord(prod.(_comm.(sw.state_monos, Ref(comm_gps))))
-end
-
-function FastPolynomials._comm(ncsw::NCStateWord, comm_gps::Vector{Vector{Variable}})
-    NCStateWord(_comm(ncsw.sw, comm_gps), prod(_comm(ncsw.nc_word, comm_gps)))
-end

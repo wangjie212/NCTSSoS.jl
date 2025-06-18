@@ -1,10 +1,24 @@
-struct PolyOptResult{T}
+struct PolyOptResult{T,P,M}
     objective::T # support for high precision solution
-    corr_sparsity::CorrelativeSparsity
-    cliques_term_sparsities::Vector{Vector{TermSparsity}}
+    corr_sparsity::CorrelativeSparsity{P,M}
+    cliques_term_sparsities::Vector{Vector{TermSparsity{M}}}
     # should contain objective and moment matrix or gram matrix for manually checking what happened
 end
 
+function Base.show(io::IO, result::PolyOptResult)
+    println(io, "Objective: ", result.objective)
+    show(io, result.corr_sparsity)
+    println(io, "Term Sparsity:")
+    for (i, sparsities) in enumerate(result.cliques_term_sparsities)
+        println(io, "Clique $i:")
+        println(io, "   Moment Matrix:")
+        println(io, sparsities[1])
+        println(io, "   Localizing Matrix:")
+        for sparsity in sparsities[2:end]
+            show(io, sparsity)
+        end
+    end
+end
 
 """
     SolverConfig(; optimizer, mom_order, cs_algo=NoElimination(), ts_algo=NoElimination())

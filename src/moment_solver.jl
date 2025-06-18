@@ -1,9 +1,9 @@
 # T: type of the coefficients
 # monomap: map from monomials in DynamicPolynomials to variables in JuMP
-struct MomentProblem{T,CR<:ConstraintRef} <: OptimizationProblem
+struct MomentProblem{T,M,CR<:ConstraintRef} <: OptimizationProblem
     model::GenericModel{T}
     constraints::Vector{CR}
-    monomap::Dict{Monomial,GenericVariableRef{T}}  # TODO: maybe refactor.
+    monomap::Dict{M,GenericVariableRef{T}}  # TODO: maybe refactor.
     reduce_func::Function
 end
 
@@ -21,7 +21,7 @@ end
 # cliques_cons: groups constraints according to cliques,
 # global_cons: constraints that are not in any single clique
 # cliques_term_sparsities: each clique, each obj/constraint, each ts_clique, each basis needed to index moment matrix
-function moment_relax(pop::PolyOpt{Polynomial{T}}, corr_sparsity::CorrelativeSparsity, cliques_term_sparsities::Vector{Vector{TermSparsity}}) where {T}
+function moment_relax(pop::PolyOpt{Polynomial{T}}, corr_sparsity::CorrelativeSparsity, cliques_term_sparsities::Vector{Vector{TermSparsity{M}}}) where {T,M}
     # NOTE: objective and constraints may have integer coefficients, but popular JuMP solvers does not support integer coefficients
     # left type here to support BigFloat model for higher precision
     model = GenericModel{T}()
