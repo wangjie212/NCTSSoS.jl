@@ -15,7 +15,7 @@ end
 
     pop = PolyOpt(-f; comm_gps=[x, y], is_projective=true)
 
-    solver_config = SolverConfig(optimizer=SOLVER; mom_order=3, cs_algo=MF(), ts_algo=MMD())
+    solver_config = SolverConfig(optimizer=SOLVER; mom_order=3, cs_algo=MF(), ts_algo=MaximalElimination())
     result = cs_nctssos(pop, solver_config)
 
     for (cs_algo, ts_algo, ans) in zip([NoElimination(), MF(), MF()],

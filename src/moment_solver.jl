@@ -66,7 +66,7 @@ function moment_relax(pop::PolyOpt{Polynomial{T}}, corr_sparsity::CorrelativeSpa
                 )
             end]
 
-    @objective(model, Min, substitute_variables(mapreduce(p -> p[1] * prod(reduce_func(p[2])), +, terms(symmetric_canonicalize(pop.objective)); init=zero(pop.objective)), monomap))
+    @objective(model, Min, substitute_variables(mapreduce(p -> p[1] * prod(reduce_func(p[2])), +, terms(symmetric_canonicalize(pop.objective, prod ∘ reduce_func)); init=zero(pop.objective)), monomap))
 
     return MomentProblem(model, constraint_matrices, monomap, reduce_func)
 end
