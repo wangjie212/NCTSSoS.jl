@@ -10,9 +10,9 @@ Canonicalizes a mono by taking the minimum between itself and its adjoint.
 # Returns
 - `Monomial`: Canonicalized monomial (minimum of original and its star)
 """
-function symmetric_canonicalize(mono::Monomial)
+function symmetric_canonicalize(mono::Monomial, reducer::Function)
     isempty(mono.vars) && return mono
-    return min(mono, star(mono))
+    return min(reducer(mono), reducer(star(mono)))
 end
 
 """
@@ -26,8 +26,8 @@ Canonicalizes a polynomial by applying symmetric canonicalization to all monomia
 # Returns
 - `Polynomial`: Canonicalized polynomial with conjugated coefficients and canonicalized monomials
 """
-function symmetric_canonicalize(poly::Polynomial)
-    return Polynomial(conj.(poly.coeffs), symmetric_canonicalize.(poly.monos))
+function symmetric_canonicalize(poly::Polynomial, reducer::Function)
+    return Polynomial(conj.(poly.coeffs), symmetric_canonicalize.(poly.monos,reducer))
 end
 
 """
