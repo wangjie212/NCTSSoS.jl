@@ -1,32 +1,4 @@
-struct SOSProblem{T} <: OptimizationProblem
-    model::GenericModel{T}
-end
-
-# Decompose the matrix into the form sum_j C_αj * g_j
-# j: index of the constraint
-# α: the monomial (JuMP variable)
-function get_Cαj(basis::Vector{GenericVariableRef{T}}, localizing_mtx::VectorConstraint{F,S,Shape}) where {T,F,S,Shape}
-    dim = get_dim(localizing_mtx)
-    cis = CartesianIndices((dim, dim))
-    nbasis = length(basis)
-
-    # Is, Js, Vs: for storing sparse repr. of C_αj,
-    # each element corresponds to a monomial in basis.
-    Is, Js, Vs = [Int[] for _ in 1:nbasis], [Int[] for _ in 1:nbasis], [T[] for _ in 1:nbasis]
-
-    for (ci, cur_expr) in zip(cis, localizing_mtx.func)
-        for (α, coeff) in cur_expr.terms
-            α_idx = findfirst(==(α), basis)
-            push!(Is[α_idx], ci.I[1])
-            push!(Js[α_idx], ci.I[2])
-            push!(Vs[α_idx], coeff)
-        end
-    end
-
-    return [sparse(Is[i], Js[i], Vs[i], dim, dim) for i in eachindex(basis)]
-end
-
-function sos_dualize(moment_problem::MomentProblem{T}) where {T}
+function sos_dualize(moment_problem::MomentProblem{T,StateWord}) where {T}
     dual_model = GenericModel{T}()
 
     # Initialize Gj as variables
@@ -42,11 +14,9 @@ function sos_dualize(moment_problem::MomentProblem{T}) where {T}
 
     primal_objective_terms = objective_function(moment_problem.model).terms
 
-    # NOTE: objective is Symmetric, hence when comparing polynomials, we need to canonicalize them first
-    # TODO: fix this for trace
     unsymmetrized_basis = sort(collect(keys(moment_problem.monomap)))
 
-    symmetric_basis = sort(unique!([prod(moment_problem.reduce_func(symmetric_canonicalize(basis, prod ∘ moment_problem.reduce_func))) for basis in unsymmetrized_basis]))
+    symmetric_basis = unsymmetrized_basis
 
     # JuMP variables corresponding to symmetric_basis
     symmetric_variables = getindex.(Ref(moment_problem.monomap), symmetric_basis)
@@ -54,7 +24,7 @@ function sos_dualize(moment_problem::MomentProblem{T}) where {T}
     # specify constraints
     fα_constraints = [AffExpr(get(primal_objective_terms, α, zero(T))) for α in symmetric_variables]
 
-    symmetrized_α2cons_dict = Dict(zip(unsymmetrized_basis, map(x -> searchsortedfirst(symmetric_basis, symmetric_canonicalize(x, prod ∘ moment_problem.reduce_func)), unsymmetrized_basis)))
+    symmetrized_α2cons_dict = Dict(zip(unsymmetrized_basis, map(x -> searchsortedfirst(symmetric_basis, moment_problem.reduce_func(symmetric_canonicalize(x))), unsymmetrized_basis)))
 
     unsymmetrized_basis_vals = getindex.(Ref(moment_problem.monomap), unsymmetrized_basis)
 

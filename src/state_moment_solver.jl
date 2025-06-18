@@ -1,43 +1,31 @@
-# T: type of the coefficients
-# monomap: map from monomials in DynamicPolynomials to variables in JuMP
-struct MomentProblem{T,M,CR<:ConstraintRef} <: OptimizationProblem
-    model::GenericModel{T}
-    constraints::Vector{CR}
-    monomap::Dict{M,GenericVariableRef{T}}  # TODO: maybe refactor.
-    reduce_func::Function
-end
-
-function substitute_variables(poly::Polynomial{T}, monomap::Dict{Monomial,GenericVariableRef{T}}) where {T}
-    mapreduce(+, zip(poly.coeffs, poly.monos)) do (coef, mono)
-        coef * monomap[mono]
-    end
-end
-
-function get_mom_matrix(mom_problem::MomentProblem)
-    _, mom_loc = findmax(get_dim, constraint_object.(mom_problem.constraints))
-    return value.(mom_problem.constraints[mom_loc])
+function substitute_variables(poly::NCStatePolynomial{T}, wordmap::Dict{StateWord,GenericVariableRef{T}}) where {T}
+    mapreduce(x -> (x[1] * wordmap[expval(x[2])]), +, terms(poly))
 end
 
 # cliques_cons: groups constraints according to cliques,
 # global_cons: constraints that are not in any single clique
 # cliques_term_sparsities: each clique, each obj/constraint, each ts_clique, each basis needed to index moment matrix
-function moment_relax(pop::PolyOpt{Polynomial{T}}, corr_sparsity::CorrelativeSparsity, cliques_term_sparsities::Vector{Vector{TermSparsity{M}}}) where {T,M}
+# FIXME: should I use CorrelativeSparsity here instead of cliques_cons and global_cons
+function moment_relax(pop::PolyOpt{NCStatePolynomial{T},OBJ}, cliques_cons::Vector{Vector{Int}}, global_cons::Vector{Int}, cliques_term_sparsities::Vector{Vector{TermSparsity{M}}}) where {T,M,OBJ}
     # NOTE: objective and constraints may have integer coefficients, but popular JuMP solvers does not support integer coefficients
     # left type here to support BigFloat model for higher precision
     model = GenericModel{T}()
 
     reduce_func = reducer(pop)
+
+
     # the union of clique_total_basis
     total_basis = sorted_union(map(zip(corr_sparsity.clq_cons, cliques_term_sparsities)) do (cons_idx, term_sparsities)
         union(vec(reduce(vcat, [
             map(poly.monos) do m
-                prod(reduce_func(neat_dot(rol_idx, m * col_idx)))
+                expval(reduce_func(neat_dot(rol_idx, m * col_idx)))
             end
             for (poly, term_sparsity) in zip([one(pop.objective); corr_sparsity.cons[cons_idx]], term_sparsities) for basis in term_sparsity.block_bases for rol_idx in basis for col_idx in basis
         ])))
     end...)
 
-    # map the monomials to JuMP variables, the first variable must be 1
+
+    # # map the monomials to JuMP variables, the first variable must be 1
     @variable(model, y[1:length(total_basis)])
     @constraint(model, first(y) == 1)
     monomap = Dict(zip(total_basis, y))
@@ -66,22 +54,21 @@ function moment_relax(pop::PolyOpt{Polynomial{T}}, corr_sparsity::CorrelativeSpa
                 )
             end]
 
-    @objective(model, Min, substitute_variables(mapreduce(p -> p[1] * prod(reduce_func(p[2])), +, terms(symmetric_canonicalize(pop.objective, prod ∘ reduce_func)); init=zero(pop.objective)), monomap))
+    @objective(model, Min, substitute_variables(mapreduce(p -> p[1] * reduce_func(p[2]), +, terms(symmetric_canonicalize(pop.objective)); init=zero(pop.objective)), monomap))
 
     return MomentProblem(model, constraint_matrices, monomap, reduce_func)
 end
 
 function constrain_moment_matrix!(
     model::GenericModel{T},
-    poly::Polynomial{T},
-    local_basis::Vector{Monomial},
-    monomap::Dict{Monomial,GenericVariableRef{T}},
+    poly::NCStatePolynomial{T},
+    local_basis::Vector{NCStateWord},
+    monomap::Dict{StateWord,GenericVariableRef{T}},
     cone, # FIXME: which type should I use?
     reduce_func::Function
 ) where {T}
     moment_mtx = [
-        substitute_variables(sum([coef * reduce_func(neat_dot(row_idx, mono * col_idx)) for (coef, mono) in zip(coefficients(poly), monomials(poly))]), monomap) for
-        row_idx in local_basis, col_idx in local_basis
+        substitute_variables(sum([poly_term[1] * reduce_func(neat_dot(row_idx, poly_term[2] * col_idx)) for poly_term in terms(poly)]; init=zero(poly)), monomap) for row_idx in local_basis, col_idx in local_basis
     ]
     return @constraint(model, moment_mtx in cone)
 end

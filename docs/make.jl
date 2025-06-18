@@ -7,9 +7,10 @@ makedocs(;
         "Home" => "index.md",
         "Noncommutative Polynomial Optimization" => "ncpop.md",
         "API" => "api.md",
-        "Examples" => ["Bell inequalities" => "bell.md"],
+        "Examples" => ["Bell inequalities" => "bell.md", "Broyden Banded Function" => "broyden.md"],
+        "Performance" => ["FastPolynomials" => "performance.md"]
     ],
-    modules=[NCTSSoS],
+    modules=[NCTSSoS, NCTSSoS.FastPolynomials],
     format=Documenter.HTML(; prettyurls=get(ENV, "CI", nothing) == "true"),
 )
 

@@ -1,0 +1,149 @@
+using Test, NCTSSoS.FastPolynomials
+using NCTSSoS.FastPolynomials:
+    star, symmetric_canonicalize, cyclic_canonicalize, _comm, _projective, _unipotent
+
+using NCTSSoS.FastPolynomials: Polynomial
+
+@testset "Utilities" begin
+    @ncpolyvar x y z
+
+    @testset "Symmetric Canonical Form" begin
+        mono1 = monomial([z, y, x], [1, 1, 2])
+
+        mono1_sym = symmetric_canonicalize(mono1)
+        @test mono1_sym.vars == [x, y, z]
+        @test mono1_sym.z == [2, 1, 1]
+
+        mono2 = monomial([x, y, z], [2, 1, 1])
+        mono2_sym = symmetric_canonicalize(mono2)
+        @test mono2_sym.vars == [x, y, z]
+        @test mono2_sym.z == [2, 1, 1]
+
+        poly1 = Polynomial(
+            [0.1, 0.2, 0.3],
+            [
+                monomial([x, y, z], [2, 1, 1]),
+                monomial([z, y, x], [1, 1, 2]),
+                monomial([], []),
+            ],
+        )
+        poly1_sym = symmetric_canonicalize(poly1)
+
+        @test poly1_sym.coeffs ≈ [0.3, 0.3]
+        @test poly1_sym.monos == [monomial([], []), monomial([x, y, z], [2, 1, 1])]
+
+        n = 3
+        @ncpolyvar a[1:n]
+        poly3 = Polynomial(
+            [1, -1, -1, 3, -2, 2, -1, -1, 6, 9, 9, -54, 142],
+            [
+                monomial([a[1]], [2]),
+                monomial([a[1], a[2]], [1, 1]),
+                monomial([a[2], a[1]], [1, 1]),
+                monomial([a[2]], [2]),
+                monomial([a[1], a[2], a[1]], [1, 1, 1]),
+                monomial([a[1], a[2], a[1]], [1, 2, 1]),
+                monomial([a[2], a[3]], [1, 1]),
+                monomial([a[3], a[2]], [1, 1]),
+                monomial([a[3]], [2]),
+                monomial([a[2], a[3]], [2, 1]),
+                monomial([a[3], a[2]], [1, 2]),
+                monomial([a[3], a[2], a[3]], [1, 1, 1]),
+                monomial([a[3], a[2], a[3]], [1, 2, 1]),
+            ],
+        )
+
+        supp = sort(
+            map([
+                [1, 2, 2, 1],
+                [3, 2, 2, 3],
+                [1, 2, 1],
+                [2, 2, 3],
+                [3, 2, 3],
+                [1, 1],
+                [1, 2],
+                [2, 2],
+                [2, 3],
+                [3, 3],
+            ]) do v
+                monomial(a[v], ones(length(v)))
+            end,
+        )
+
+        coe = [-2, 1, -2, 3, 6, -2, 18, -54, 2, 142]
+
+        poly3_sym = symmetric_canonicalize(poly3)
+
+        @test poly3_sym.coeffs == coe
+        @test poly3_sym.monos == supp
+    end
+
+    @testset "Cyclic Canonical Form" begin
+        @test cyclic_canonicalize(x^2 * y^2) == x * y^2 * x
+        @test cyclic_canonicalize(z * y^2) == y * z * y
+        @test cyclic_canonicalize(z * z) == z^2
+        @test isone(cyclic_canonicalize(one(x)))
+
+        n = 3
+        @ncpolyvar a[1:n]
+        f = Polynomial(
+            [1, -1, -1, 3, -2, 2, -1, -1, 6, 9, 9, -54, 142, 5, 5, 5],
+            [
+                monomial([a[1]], [2]),
+                monomial([a[1], a[2]], [1, 1]),
+                monomial([a[2], a[1]], [1, 1]),
+                monomial([a[2]], [2]),
+                monomial([a[1], a[2], a[1]], [1, 1, 1]),
+                monomial([a[1], a[2], a[1]], [1, 2, 1]),
+                monomial([a[2], a[3]], [1, 1]),
+                monomial([a[3], a[2]], [1, 1]),
+                monomial([a[3]], [2]),
+                monomial([a[2], a[3]], [2, 1]),
+                monomial([a[3], a[2]], [1, 2]),
+                monomial([a[3], a[2], a[3]], [1, 1, 1]),
+                monomial([a[3], a[2], a[3]], [1, 2, 1]),
+                monomial([a[1], a[2]], [2, 2]),
+                monomial([a[1], a[2], a[3]], [1, 1, 1]),
+                monomial([a[3], a[2], a[1]], [1, 1, 1]),
+            ],
+        )
+
+        f2 = Polynomial(
+            [7, 142, -2, 18, -54, 1, -2, 3, -2, 6, 10],
+            [
+                monomial([a[1], a[2], a[1]], [1, 2, 1]),
+                monomial([a[3], a[2], a[3]], [1, 2, 1]),
+                monomial([a[1], a[2], a[1]], [1, 1, 1]),
+                monomial([a[2], a[3]], [2, 1]),
+                monomial([a[3], a[2], a[3]], [1, 1, 1]),
+                monomial([a[1]], [2]),
+                monomial([a[1], a[2]], [1, 1]),
+                monomial([a[2]], [2]),
+                monomial([a[2], a[3]], [1, 1]),
+                monomial([a[3]], [2]),
+                monomial([a[1], a[2], a[3]], [1, 1, 1]),
+            ],
+        )
+        @test cyclic_canonicalize(f) == cyclic_canonicalize(f2)
+    end
+
+    @testset "_comm" begin
+        @ncpolyvar a[1:3]
+        @ncpolyvar b[1:3]
+
+        mono = a[1]^2 * b[2]^2 * a[2] * b[1]^3
+        @test prod(_comm(mono, [a, b])) == a[1]^2 * a[2] * b[2]^2 * b[1]^3
+        mono = a[1]^3 * a[3]
+        @test prod(_comm(mono, [a, b])) == a[1]^3 * a[3]
+    end
+
+    @testset "_projective" begin
+        mono = y * x^3 * y * z^3
+        @test _projective(mono) == y * x * y * z
+    end
+
+    @testset "_unipotent" begin
+        mono = z * x * y * z^2 * y * x * z
+        @test _unipotent(mono) == one(mono)
+    end
+end
