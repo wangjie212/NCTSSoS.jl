@@ -16,7 +16,6 @@ SparseArrays = "2f01184e-e22b-5df5-ae63-d93ebab69eaf"
 ChordalGraph = "0.4"
 CliqueTrees = "1"
 Graphs = "1.5"
-MetaGraphs = "0.7, 0.8"
 MosekTools = "0.15.9"
 julia = "1"
 

@@ -3,9 +3,7 @@ Base.cmp(a::Variable, b::Variable) = (a.name == b.name) ? 0 : (a.name < b.name ?
 Base.isless(a::Variable, b::Variable) = cmp(a, b) < 0
 
 function Base.in(a::Variable, collection::Vector{Variable})
-    if !issorted(collection)
-        sort!(collection)
-    end
+    @assert issorted(collection)
     return !isempty(searchsorted(collection, a))
 end
 
@@ -40,9 +38,7 @@ function binary_search(collection::Vector{Monomial}, target::Monomial)
 end
 
 function Base.in(a::Monomial, collection::Vector{Monomial})
-    if !issorted(collection)
-        sort!(collection)
-    end
+    @assert issorted(collection)
     return !iszero(binary_search(collection, a))
 end
 

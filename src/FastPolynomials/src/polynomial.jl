@@ -117,11 +117,7 @@ end
 
 maxdegree(p::Polynomial) = maximum(degree.(p.monos))
 
-function Base.:(^)(p::Polynomial, n::Int)
-    n == 0 && return one(typeof(p))
-    n == 1 && return p
-    return p * (p^(n - 1))
-end
+Base.:(^)(p::Polynomial, n::Int) = Base.power_by_squaring(p, n)
 
 Base.one(::Type{Polynomial{T}}) where {T} = Polynomial([one(T)], [one(Monomial)])
 Base.one(::Polynomial{T}) where {T} = Polynomial([one(T)], [one(Monomial)])
