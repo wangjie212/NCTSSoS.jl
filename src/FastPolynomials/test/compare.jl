@@ -40,7 +40,7 @@ using NCTSSoS.FastPolynomials: Polynomial
 
         @test isless(mono4, mono5)
 
-        @test mono1 in [mono1, mono2, mono3]
+        @test mono1 in sort([mono1, mono2, mono3])
         @test mono1 ∉ [mono3, mono3]
     end
 
