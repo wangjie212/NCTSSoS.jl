@@ -284,9 +284,9 @@ end
 
         mtx_basis = [one(x), x, y, x^2, y^2, x * y, y * x]
 
-        G_tsp = get_term_sparsity_graph([one(x)], activated_support, mtx_basis)
+        G_tsp = get_term_sparsity_graph([one(x)], activated_support, mtx_basis,identity)
         @test G_tsp.fadjlist == [[4, 5], Int[], Int[], [1, 6], [1, 7], [4, 7], [5, 6]]
-        @test sort(term_sparsity_graph_supp(G_tsp, mtx_basis, one(1.0 * x * y))) == sort([
+        @test sort(term_sparsity_graph_supp(G_tsp, mtx_basis, one(1.0 * x * y),identity)) == sort([
             one(x * y),
             x^2,
             y^2,
@@ -298,7 +298,7 @@ end
             y^3 * x,
             y * x * y * x,
         ])
-        @test sort(term_sparsity_graph_supp(G_tsp, mtx_basis, 1.0 - x^2)) == sort([
+        @test sort(term_sparsity_graph_supp(G_tsp, mtx_basis, 1.0 - x^2,identity)) == sort([
             one(x * y),
             x^2,
             y^2,
