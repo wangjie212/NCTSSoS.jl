@@ -37,7 +37,7 @@ end
 # consider adding Solver Interface
 # consider obtaining enough information on Moment matrix etc to check if problem solved correctly
 # prev_ans::Union{Nothing,PolyOptResult{C,T}}=nothing
-function cs_nctssos(pop::PolyOpt{T}, solver_config::SolverConfig) where {T}
+function cs_nctssos(pop::PolyOpt{T}, solver_config::SolverConfig; dualize::Bool=true) where {T}
     mom_order = iszero(solver_config.mom_order) ? maximum([ceil(Int, maxdegree(poly) / 2) for poly in [pop.objective; pop.eq_constraints; pop.ineq_constraints]]) : solver_config.mom_order
 
     corr_sparsity = correlative_sparsity(pop, mom_order, solver_config.cs_algo)
@@ -53,26 +53,39 @@ function cs_nctssos(pop::PolyOpt{T}, solver_config::SolverConfig) where {T}
     end
 
     moment_problem = moment_relax(pop, corr_sparsity, cliques_term_sparsities)
-    sos_problem = sos_dualize(moment_problem)
-    set_optimizer(sos_problem.model, solver_config.optimizer)
-
-    optimize!(sos_problem.model)
-    return PolyOptResult(objective_value(sos_problem.model), corr_sparsity, cliques_term_sparsities)
+    if dualize
+        sos_problem = sos_dualize(moment_problem)
+        set_optimizer(sos_problem.model, solver_config.optimizer)
+        optimize!(sos_problem.model)
+        return PolyOptResult(objective_value(sos_problem.model), corr_sparsity, cliques_term_sparsities)
+    else
+        set_optimizer(moment_problem.model, solver_config.optimizer)
+        optimize!(moment_problem.model)
+        return PolyOptResult(objective_value(moment_problem.model), corr_sparsity, cliques_term_sparsities)
+    end
 end
 
-function cs_nctssos_higher(pop::PolyOpt{T}, prev_res::PolyOptResult, solver_config::SolverConfig) where {T}
-    initial_activated_supp = [sorted_union([poly_term_sparsity.term_sparse_graph_supp for poly_term_sparsity in term_sparsities]...)
-                              for term_sparsities in prev_res.cliques_term_sparsities]
+function cs_nctssos_higher(pop::PolyOpt{T}, prev_res::PolyOptResult, solver_config::SolverConfig; dualize::Bool=true) where {T}
+    initial_activated_supps = [sorted_union([poly_term_sparsity.term_sparse_graph_supp for poly_term_sparsity in term_sparsities]...)
+                               for term_sparsities in prev_res.cliques_term_sparsities]
 
-    cliques_term_sparsities = map(zip(initial_activated_supp, prev_res.corr_sparsity.clq_cons, prev_res.corr_sparsity.clq_idcs_bases)) do (activated_supp, cons_idx, idcs_bases)
-        [iterate_term_sparse_supp(activated_supp, poly, basis, solver_config.ts_algo) for (poly, basis) in zip([one(pop.objective); prev_res.corr_sparsity.cons[cons_idx]], idcs_bases)]
+    prev_corr_sparsity = prev_res.corr_sparsity
+    cliques_term_sparsities = map(zip(initial_activated_supps, prev_corr_sparsity.clq_cons, prev_corr_sparsity.clq_mom_mtx_bases, prev_corr_sparsity.clq_localizing_mtx_bases)) do (init_act_supp, cons_idx, mom_mtx_bases, localizing_mtx_bases)
+        term_sparsities(init_act_supp, prev_corr_sparsity.cons[cons_idx], mom_mtx_bases, localizing_mtx_bases, solver_config.ts_algo)
     end
 
+
     moment_problem = moment_relax(pop, prev_res.corr_sparsity, cliques_term_sparsities)
-    sos_problem = sos_dualize(moment_problem)
-    set_optimizer(sos_problem.model, solver_config.optimizer)
-    optimize!(sos_problem.model)
-    return PolyOptResult(objective_value(sos_problem.model), prev_res.corr_sparsity, cliques_term_sparsities)
+    if !dualize
+        set_optimizer(moment_problem.model, solver_config.optimizer)
+        optimize!(moment_problem.model)
+        return PolyOptResult(objective_value(moment_problem.model), prev_res.corr_sparsity, cliques_term_sparsities)
+    else
+        sos_problem = sos_dualize(moment_problem)
+        set_optimizer(sos_problem.model, solver_config.optimizer)
+        optimize!(sos_problem.model)
+        return PolyOptResult(objective_value(sos_problem.model), prev_res.corr_sparsity, cliques_term_sparsities)
+    end
 end
 
 

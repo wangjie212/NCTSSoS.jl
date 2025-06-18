@@ -1,7 +1,13 @@
 using Test, NCTSSoS
 using NCTSSoS.FastPolynomials
 using JuMP
-using Clarabel
+if Sys.isapple()
+    using MosekTools
+    const SOLVER = Mosek.Optimizer
+else
+    using Clarabel
+    const SOLVER = Clarabel.Optimizer
+end
 using Graphs
 
 using NCTSSoS.FastPolynomials: get_basis, monomials, neat_dot
@@ -22,7 +28,7 @@ using NCTSSoS:
         f = 1.0 * x[1] * y[1] + x[1] * y[2] + x[2] * y[1] - x[2] * y[2]
         pop = PolyOpt(f; comm_gps = [x, y], is_unipotent = true)
 
-        solver_config = SolverConfig(optimizer = Clarabel.Optimizer; mom_order = 1)
+        solver_config = SolverConfig(optimizer = SOLVER; mom_order = 1)
 
         result = cs_nctssos(pop, solver_config)
 
@@ -39,7 +45,7 @@ using NCTSSoS:
         -f
         pop = PolyOpt(-f; comm_gps = [x, y], is_projective = true)
 
-        solver_config = SolverConfig(optimizer = Clarabel.Optimizer; mom_order = 3)
+        solver_config = SolverConfig(optimizer = SOLVER; mom_order = 3)
 
         result = cs_nctssos(pop, solver_config)
 
@@ -47,7 +53,6 @@ using NCTSSoS:
     end
 end
 
-# FIXME
 @testset "CS TS Example" begin
     order = 3
     n = 10
@@ -77,60 +82,11 @@ end
     pop = PolyOpt(f; ineq_constraints = cons)
 
     solver_config =
-        SolverConfig(optimizer = Clarabel.Optimizer; cs_algo = MF(), ts_algo = MMD())
-    cs_algo = MF()
-    ts_algo = MMD()
+        SolverConfig(optimizer = SOLVER; cs_algo = MF(), ts_algo = MMD())
 
-    corr_sparsity = correlative_sparsity(pop, order, cs_algo)
+    result = cs_nctssos(pop, solver_config; dualize=false)
 
-    cliques_objective = [
-        reduce(
-            +,
-            [
-                issubset(variables(mono), clique) ? coef * mono : zero(mono) for
-                (coef, mono) in zip(pop.objective.coeffs, pop.objective.monos)
-            ],
-        ) for clique in corr_sparsity.cliques
-    ]
-
-    # prepare the support for each term sparse localizing moment
-    initial_activated_supp = [
-        sorted_union(
-            symmetric_canonicalize.(monomials(obj_part)),
-            mapreduce(a -> monomials(a), vcat, pop.constraints[cons_idx]),
-            [neat_dot(b, b) for b in idcs_bases[1]],
-        ) for (obj_part, cons_idx, idcs_bases) in zip(
-            cliques_objective,
-            corr_sparsity.cliques_cons,
-            corr_sparsity.cliques_idcs_bases,
-        )
-    ]
-
-    cliques_term_sparsities = map(
-        zip(
-            initial_activated_supp,
-            corr_sparsity.cliques_cons,
-            corr_sparsity.cliques_idcs_bases,
-        ),
-    ) do (activated_supp, cons_idx, idcs_bases)
-        [
-            iterate_term_sparse_supp(activated_supp, poly, basis, ts_algo) for
-            (poly, basis) in
-            zip([one(pop.objective); pop.constraints[cons_idx]], idcs_bases)
-        ]
-    end
-
-    moment_problem = moment_relax(
-        pop,
-        corr_sparsity.cliques_cons,
-        corr_sparsity.global_cons,
-        cliques_term_sparsities,
-    )
-
-    set_optimizer(moment_problem.model, Clarabel.Optimizer)
-    optimize!(moment_problem.model)
-    objective_value(moment_problem.model)
-    @test isapprox(objective_value(moment_problem.model), 3.011288, atol = 1e-4)
+    @test isapprox(result.objective, 3.011288, atol = 1e-4)
 end
 
 @testset "Moment Method Heisenberg Model on Star Graph" begin
@@ -160,34 +116,20 @@ end
 
     pop = PolyOpt(
         objective;
-        constraints = gs,
-        is_equality = [true for _ in gs],
+        eq_constraints = gs,
         is_unipotent = true,
     )
     order = 1
     cs_algo = MF()
 
-    corr_sparsity = correlative_sparsity(pop, order, cs_algo)
-
-    cliques_term_sparsities = [
-        [TermSparsity(Monomial[], [basis]) for basis in idx_basis] for
-        idx_basis in corr_sparsity.cliques_idcs_bases
-    ]
-
-    moment_problem = moment_relax(
-        pop,
-        corr_sparsity.cliques_cons,
-        corr_sparsity.global_cons,
-        cliques_term_sparsities,
+    solver_config = SolverConfig(
+        optimizer = SOLVER,
+        mom_order = order,
+        cs_algo = cs_algo
     )
 
-    set_optimizer(moment_problem.model, Clarabel.Optimizer)
-    optimize!(moment_problem.model)
-
-    # FIXME: objective and dual seems to be converging why they say it's only
-    # nearly feasible? But it works for Mosek
-    @test is_solved_and_feasible(moment_problem.model)
-    @test isapprox(objective_value(moment_problem.model), true_ans, atol = 1e-6)
+    result = cs_nctssos(pop, solver_config; dualize = false)
+    @test isapprox(result.objective, true_ans, atol = 1e-6)
 end
 
 @testset "Replace DynamicPolynomials variables with JuMP variables" begin
@@ -215,85 +157,35 @@ end
 
     pop = PolyOpt(f)
 
-    corr_sparsity = correlative_sparsity(pop, order, NoElimination())
-
     @testset "Dense" begin
-        cliques_term_sparsities = [
-            [TermSparsity(Monomial[], [basis]) for basis in idx_basis] for
-            idx_basis in corr_sparsity.cliques_idcs_bases
-        ]
 
-        moment_problem = moment_relax(
-            pop,
-            corr_sparsity.cliques_cons,
-            corr_sparsity.global_cons,
-            cliques_term_sparsities,
+        solver_config = SolverConfig(
+            optimizer = SOLVER,
+            mom_order = order,
+            cs_algo = NoElimination(),
         )
 
-        set_optimizer(moment_problem.model, Clarabel.Optimizer)
-        optimize!(moment_problem.model)
+        result = cs_nctssos(pop, solver_config; dualize = false)
 
         # NOTE: differs from original test case value since that one is a relaxed in terms of sparsity
         # This value here is obtained by running the master branch with no sparsity relaxation
-        @test is_solved_and_feasible(moment_problem.model)
         @test isapprox(
-            objective_value(moment_problem.model),
+            result.objective,
             4.372259295498716e-10,
             atol = 1e-6,
         )
     end
 
     @testset "Sprase" begin
-        ts_algo = MMD()
-
-        cliques_objective = [
-            reduce(
-                +,
-                [
-                    issubset(variables(mono), clique) ? coef * mono : zero(mono) for
-                    (coef, mono) in zip(pop.objective.coeffs, pop.objective.monos)
-                ],
-            ) for clique in corr_sparsity.cliques
-        ]
-
-        # prepare the support for each term sparse localizing moment
-        initial_activated_supp = [
-            # why does order matter here?
-            sorted_union(
-                symmetric_canonicalize.(monomials(obj_part)),
-                [neat_dot(b, b) for b in idcs_bases[1]],
-            ) for (obj_part, cons_idx, idcs_bases) in zip(
-                cliques_objective,
-                corr_sparsity.cliques_cons,
-                corr_sparsity.cliques_idcs_bases,
-            )
-        ]
-
-        cliques_term_sparsities_s = map(
-            zip(
-                initial_activated_supp,
-                corr_sparsity.cliques_cons,
-                corr_sparsity.cliques_idcs_bases,
-            ),
-        ) do (activated_supp, cons_idx, idcs_bases)
-            [
-                iterate_term_sparse_supp(activated_supp, poly, basis, ts_algo) for
-                (poly, basis) in
-                zip([one(pop.objective); pop.constraints[cons_idx]], idcs_bases)
-            ]
-        end
-
-        moment_problem_s = moment_relax(
-            pop,
-            corr_sparsity.cliques_cons,
-            corr_sparsity.global_cons,
-            cliques_term_sparsities_s,
+        solver_config = SolverConfig(
+            optimizer = SOLVER,
+            mom_order = order,
+            ts_algo = MMD(),
         )
-        set_optimizer(moment_problem_s.model, Clarabel.Optimizer)
-        optimize!(moment_problem_s.model)
 
-        @test is_solved_and_feasible(moment_problem_s.model)
-        @test isapprox(objective_value(moment_problem_s.model), -0.0035512, atol = 1e-7)
+        result = cs_nctssos(pop, solver_config; dualize = false)
+
+        @test isapprox(result.objective, -0.0035512, atol = 1e-7)
     end
 end
 
@@ -304,82 +196,29 @@ end
     f = 2.0 - x[1]^2 + x[1] * x[2]^2 * x[1] - x[2]^2
     g = 4.0 - x[1]^2 - x[2]^2
     h1 = x[1] * x[2] + x[2] * x[1] - 2.0
-    pop = PolyOpt(f; constraints = [g, h1], is_equality = [false, true])
+    pop = PolyOpt(f; eq_constraints=[h1], ineq_constraints=[g])
 
-    corr_sparsity = correlative_sparsity(pop, order, NoElimination())
 
     @testset "Dense" begin
-        cliques_term_sparsities = [
-            [TermSparsity(Monomial[], [basis]) for basis in idx_basis] for
-            idx_basis in corr_sparsity.cliques_idcs_bases
-        ]
+        solver_config = SolverConfig(
+            optimizer = SOLVER,
+            mom_order = order)
 
-        moment_problem = moment_relax(
-            pop,
-            corr_sparsity.cliques_cons,
-            corr_sparsity.global_cons,
-            cliques_term_sparsities,
-        )
-
-        set_optimizer(moment_problem.model, Clarabel.Optimizer)
-        optimize!(moment_problem.model)
-
-        @test is_solved_and_feasible(moment_problem.model)
-        @test isapprox(objective_value(moment_problem.model), -1.0, atol = 1e-6)
+        result = cs_nctssos(pop, solver_config; dualize = false)
+        @test isapprox(result.objective, -1.0, atol = 1e-6)
     end
 
     @testset "Term Sparse" begin
-        ts_algo = MMD()
-
-        cliques_objective = [
-            reduce(
-                +,
-                [
-                    issubset(variables(mono), clique) ? coef * mono : zero(mono) for
-                    (coef, mono) in zip(pop.objective.coeffs, pop.objective.monos)
-                ],
-            ) for clique in corr_sparsity.cliques
-        ]
-
-        # prepare the support for each term sparse localizing moment
-        initial_activated_supp = [
-            # why does order matter here?
-            sorted_union(
-                symmetric_canonicalize.(monomials(obj_part)),
-                mapreduce(a -> monomials(a), vcat, pop.constraints[cons_idx]),
-                [neat_dot(b, b) for b in idcs_bases[1]],
-            ) for (obj_part, cons_idx, idcs_bases) in zip(
-                cliques_objective,
-                corr_sparsity.cliques_cons,
-                corr_sparsity.cliques_idcs_bases,
-            )
-        ]
-
-        cliques_term_sparsities_s = map(
-            zip(
-                initial_activated_supp,
-                corr_sparsity.cliques_cons,
-                corr_sparsity.cliques_idcs_bases,
-            ),
-        ) do (activated_supp, cons_idx, idcs_bases)
-            [
-                iterate_term_sparse_supp(activated_supp, poly, basis, ts_algo) for
-                (poly, basis) in
-                zip([one(pop.objective); pop.constraints[cons_idx]], idcs_bases)
-            ]
-        end
-
-        moment_problem_s = moment_relax(
-            pop,
-            corr_sparsity.cliques_cons,
-            corr_sparsity.global_cons,
-            cliques_term_sparsities_s,
+        solver_config = SolverConfig(
+            optimizer = SOLVER,
+            mom_order = order,
+            cs_algo = MF(),
+            ts_algo = MMD(),
         )
-        set_optimizer(moment_problem_s.model, Clarabel.Optimizer)
-        optimize!(moment_problem_s.model)
 
-        @test is_solved_and_feasible(moment_problem_s.model)
-        @test isapprox(objective_value(moment_problem_s.model), -1.0, atol = 1e-6)
+        result = cs_nctssos(pop, solver_config; dualize = false)
+
+        @test isapprox(result.objective, -1.0, atol = 1e-6)
     end
 end
 
@@ -395,92 +234,37 @@ end
 
     cons = vcat([1.0 - x[i]^2 for i = 1:n], [x[i] - 1.0 / 3 for i = 1:n])
     order = 3
-    cs_algo = MF()
 
-    pop = PolyOpt(f; constraints = cons)
-
-    corr_sparsity = correlative_sparsity(pop, order, cs_algo)
+    pop = PolyOpt(f; ineq_constraints = cons)
 
     @testset "Correlative Sparse" begin
-        cliques_term_sparsities = [
-            [TermSparsity(Monomial[], [basis]) for basis in idx_basis] for
-            idx_basis in corr_sparsity.cliques_idcs_bases
-        ]
-
-        moment_problem = moment_relax(
-            pop,
-            corr_sparsity.cliques_cons,
-            corr_sparsity.global_cons,
-            cliques_term_sparsities,
+        solver_config = SolverConfig(
+            optimizer = SOLVER,
+            mom_order = order,
+            cs_algo = MF(),
         )
-
-        set_optimizer(moment_problem.model, Clarabel.Optimizer)
-
-        optimize!(moment_problem.model)
+        result = cs_nctssos(pop, solver_config; dualize = false)
 
         # FIXME: reduced accuracy
         # @test is_solved_and_feasible(moment_problem.model)
         @test isapprox(
-            objective_value(moment_problem.model),
+            result.objective,
             0.9975306427277915,
             atol = 1e-5,
         )
     end
 
     @testset "Term Sparse" begin
-        ts_algo = MMD()
-
-        cliques_objective = [
-            reduce(
-                +,
-                [
-                    issubset(variables(mono), clique) ? coef * mono : zero(mono) for
-                    (coef, mono) in zip(pop.objective.coeffs, pop.objective.monos)
-                ],
-            ) for clique in corr_sparsity.cliques
-        ]
-
-        # prepare the support for each term sparse localizing moment
-        initial_activated_supp = [
-            # why does order matter here?
-            sorted_union(
-                symmetric_canonicalize.(monomials(obj_part)),
-                mapreduce(a -> monomials(a), vcat, pop.constraints[cons_idx]),
-                [neat_dot(b, b) for b in idcs_bases[1]],
-            ) for (obj_part, cons_idx, idcs_bases) in zip(
-                cliques_objective,
-                corr_sparsity.cliques_cons,
-                corr_sparsity.cliques_idcs_bases,
-            )
-        ]
-
-        cliques_term_sparsities_s = map(
-            zip(
-                initial_activated_supp,
-                corr_sparsity.cliques_cons,
-                corr_sparsity.cliques_idcs_bases,
-            ),
-        ) do (activated_supp, cons_idx, idcs_bases)
-            [
-                iterate_term_sparse_supp(activated_supp, poly, basis, ts_algo) for
-                (poly, basis) in
-                zip([one(pop.objective); pop.constraints[cons_idx]], idcs_bases)
-            ]
-        end
-
-        moment_problem_s = moment_relax(
-            pop,
-            corr_sparsity.cliques_cons,
-            corr_sparsity.global_cons,
-            cliques_term_sparsities_s,
+        solver_config = SolverConfig(
+            optimizer = SOLVER,
+            mom_order = order,
+            ts_algo = MMD(),
         )
 
-        set_optimizer(moment_problem_s.model, Clarabel.Optimizer)
-        optimize!(moment_problem_s.model)
+        result = cs_nctssos(pop, solver_config; dualize = false)
 
-        @test is_solved_and_feasible(moment_problem_s.model)
         @test isapprox(
-            objective_value(moment_problem_s.model),
+            result.objective,
             0.9975306427277915,
             atol = 1e-5,
         )

@@ -30,12 +30,12 @@ using NCTSSoS:
 
     @testset "MF" begin
         corr_sparsity = correlative_sparsity(pop, mom_order, MF())
-        @test maximum(length.(corr_sparsity.cliques)) ==  7
+        @test maximum(length.(corr_sparsity.cliques)) == 7
     end
 
     @testset "AsIS" begin
         corr_sparsity = correlative_sparsity(pop, mom_order, AsIsElimination())
-        @test maximum(length.(corr_sparsity.cliques)) ==  7
+        @test maximum(length.(corr_sparsity.cliques)) == 7
     end
 end
 
@@ -45,28 +45,28 @@ end
     f = 2.0 - x[1]^2 + x[1] * x[2]^2 * x[1] - x[2]^2
     g = 4.0 - x[1]^2 - x[2]^2
     h1 = x[1] * x[2] + x[2] * x[1] - 2.0
-    pop = PolyOpt(f; ineq_constraints = [g], eq_constraints=[h1])
+    pop = PolyOpt(f; ineq_constraints=[g], eq_constraints=[h1])
     mom_order = 2
 
     @testset "No Elimination" begin
         corr_sparsity = correlative_sparsity(pop, mom_order, NoElimination())
         @test maximum(length.(corr_sparsity.cliques)) == 2
         @test length.(corr_sparsity.clq_mom_mtx_bases) == [7]
-        @test length.(corr_sparsity.clq_localizing_mtx_bases[1]) == [1,1]
+        @test length.(corr_sparsity.clq_localizing_mtx_bases[1]) == [3, 3]
     end
 
     @testset "MF" begin
         corr_sparsity = correlative_sparsity(pop, mom_order, MF())
         @test maximum(length.(corr_sparsity.cliques)) == 2
         @test length.(corr_sparsity.clq_mom_mtx_bases) == [7]
-        @test length.(corr_sparsity.clq_localizing_mtx_bases[1]) == [1,1]
+        @test length.(corr_sparsity.clq_localizing_mtx_bases[1]) == [3, 3]
     end
 
     @testset "AsIS" begin
         corr_sparsity = correlative_sparsity(pop, mom_order, AsIsElimination())
         @test maximum(length.(corr_sparsity.cliques)) == 2
         @test length.(corr_sparsity.clq_mom_mtx_bases) == [7]
-        @test length.(corr_sparsity.clq_localizing_mtx_bases[1]) == [1,1]
+        @test length.(corr_sparsity.clq_localizing_mtx_bases[1]) == [3, 3]
     end
 end
 
@@ -214,68 +214,65 @@ end
 
 @testset "Term Sparsity" begin
 
-    @testset "Initialize Activated Support" begin
+    @testset "Term Sparsity Graph" begin
+        # Example 10.2
+        @ncpolyvar x y
+        activated_support = [
+            one(x),
+            x^2,
+            x * y^2 * x,
+            y^2,
+            x * y * x * y,
+            y * x * y * x,
+            x^3 * y,
+            y * x^3,
+            x * y^3,
+            y^3 * x,
+        ]
 
+        mtx_basis = [one(x), x, y, x^2, y^2, x * y, y * x]
+
+        G_tsp = get_term_sparsity_graph([one(x)], activated_support, mtx_basis)
+        @test G_tsp.fadjlist == [[4, 5], Int[], Int[], [1, 6], [1, 7], [4, 7], [5, 6]]
+        @test sort(term_sparsity_graph_supp(G_tsp, mtx_basis, one(1.0 * x * y))) == sort([
+            one(x * y),
+            x^2,
+            y^2,
+            x^4,
+            y^4,
+            y * x^2 * y,
+            x * y^2 * x,
+            x^3 * y,
+            y^3 * x,
+            y * x * y * x,
+        ])
+        @test sort(term_sparsity_graph_supp(G_tsp, mtx_basis, 1.0 - x^2)) == sort([
+            one(x * y),
+            x^2,
+            y^2,
+            y * x * y * x,
+            y * x^2 * y,
+            y^3 * x,
+            y^4,
+            x * y^2 * x,
+            x^2 * y^2,
+            x^3 * y,
+            x^4,
+            y * x^3 * y * x,
+            y * x^4 * y,
+            y^2 * x^2 * y * x,
+            y^2 * x^2 * y^2,
+            x * y * x^2 * y * x,
+            x^5 * y,
+            x^6,
+        ])
     end
 
 
+
+
 end
 
-@testset "Term Sparsity Graph" begin
-    # Example 10.2
-    @ncpolyvar x y
-    activated_support = [
-        one(x),
-        x^2,
-        x * y^2 * x,
-        y^2,
-        x * y * x * y,
-        y * x * y * x,
-        x^3 * y,
-        y * x^3,
-        x * y^3,
-        y^3 * x,
-    ]
-    # f = 2.0 - x^2 + x * y^2 * x - y^2 + x * y * x * y + y * x * y * x + x^3 * y + y * x^3 + x * y^3 + y^3 * x
-    # @test sort(monomials(f)) == sort(total_support)
-
-    mtx_basis = [one(x), x, y, x^2, y^2, x * y, y * x]
-
-    G_tsp = get_term_sparsity_graph([one(x)], activated_support, mtx_basis)
-    @test G_tsp.fadjlist == [[4, 5], Int[], Int[], [1, 6], [1, 7], [4, 7], [5, 6]]
-    @test sort(term_sparsity_graph_supp(G_tsp, mtx_basis, one(1.0*x*y))) == sort([
-        one(x * y),
-        x^2,
-        y^2,
-        x^4,
-        y^4,
-        y * x^2 * y,
-        x * y^2 * x,
-        x^3 * y,
-        y^3 * x,
-        y * x * y * x,
-    ])
-    @test sort(term_sparsity_graph_supp(G_tsp, mtx_basis, 1.0 - x^2)) == sort([
-        one(x * y),
-        x^2,
-        y^2,
-        y * x * y * x,
-        y * x^2 * y,
-        y^3 * x,
-        y^4,
-        x * y^2 * x,
-        x^2 * y^2,
-        x^3 * y,
-        x^4,
-        y * x^3 * y * x,
-        y * x^4 * y,
-        y^2 * x^2 * y * x,
-        y^2 * x^2 * y^2,
-        x * y * x^2 * y * x,
-        x^5 * y,
-        x^6,
-    ])
-end
 
 
 

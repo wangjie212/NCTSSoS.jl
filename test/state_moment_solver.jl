@@ -24,7 +24,7 @@ using NCTSSoS:
     sp =
         -1.0 * ς(x[1] * y[1]) - 1.0 * ς(x[1] * y[2]) - 1.0 * ς(x[2] * y[1]) +
         1.0 * ς(x[2] * y[2])
-    spop = StatePolyOpt(sp; is_unipotent = true, comm_gps = [x, y])
+    spop = PolyOpt(sp; is_unipotent = true, comm_gps = [x, y])
 
     d = 1
     # how did I implement monomials for StatePoly and NCStatePoly?
@@ -227,11 +227,11 @@ end
     basis = get_state_basis(x, 1, identity)
 
     sp = 1.0 * ς(x[1] * x[2]) + 2.0 * ς(x[1]) + 3.0 * ς(x[2])
-    nc_words = Monomial.([one(x[1]), x[1], x[2]])
+    nc_words = monomial.([one(x[1]), x[1], x[2]])
     ncsp =
         1.0 * ς(x[1] * x[2]) * one(Monomial) +
-        2.0 * ς(x[1]) * Monomial(x[1]) +
-        3.0 * ς(x[2]) * Monomial(x[2])
+        2.0 * ς(x[1]) * monomial(x[1]) +
+        3.0 * ς(x[2]) * monomial(x[2])
     poly = one(ncsp)
 
     total_basis = sort(unique([expval(neat_dot(a, b)) for a in basis for b in basis]))
@@ -241,7 +241,7 @@ end
     wordmap = Dict(zip(total_basis, y))
 
     ncterms = map(
-        a -> a[1] * NCStateWord(Monomial.(a[2]), a[3]),
+        a -> a[1] * NCStateWord(monomial.(a[2]), a[3]),
         zip([1.0, 2.0, 3.0], [[x[1] * x[2]], [x[1]], [x[2]]], nc_words),
     )
 

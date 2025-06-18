@@ -126,7 +126,7 @@ function correlative_sparsity(pop::PolyOpt{P,OBJ}, order::Int, elim_algo::Elimin
     cliques_idx_bases = map(zip(eachindex(cliques), cliques_cons)) do (clique_idx, clique_cons)
         # get the basis of the moment matrix in a clique, then sort it
         cur_orders = order .- cld.(maxdegree.(all_cons[clique_cons]), 2)
-        cur_lengths = map(o -> searchsortedfirst(cliques_moment_matrix_bases_dg[clique_idx], o) - 1, cur_orders)
+        cur_lengths = map(o -> searchsortedfirst(cliques_moment_matrix_bases_dg[clique_idx], o + 1) - 1, cur_orders)
         map(cur_lengths) do len
             cliques_moment_matrix_bases[clique_idx][1:len]
         end
@@ -230,5 +230,7 @@ function term_sparsity_graph_supp(G::SimpleGraph, basis::Vector{Monomial}, g::Po
     # NOTE: Do I need to symmetric canonicalize it?
     # TODO: add reduce! here
     gsupp(a, b) = map(g_supp -> neat_dot(a, g_supp * b), g.monos)
+    # @show [gsupp(basis[v], basis[v]) for v in vertices(G)]
+    # @show [gsupp(basis[e.src], basis[e.dst]) for e in edges(G)]
     return union([gsupp(basis[v], basis[v]) for v in vertices(G)]..., [gsupp(basis[e.src], basis[e.dst]) for e in edges(G)]...)
 end
