@@ -79,7 +79,6 @@ using NCTSSoS.FastPolynomials:
 
         @test expval(ncsw1) == StateWord([x[1] * x[2], x[2]^2, x[1] * x[2]])
 
-        @test_broken begin
             basis = get_state_basis(x, 1, identity)
             total_basis = sort(unique([neat_dot(a, b) for a in basis for b in basis]))
             c_words = [
@@ -111,7 +110,6 @@ using NCTSSoS.FastPolynomials:
                 )
             @test sort(total_basis) ==
                 sort(map(x -> NCStateWord(x[1], x[2]), zip(c_words, nc_words)))
-        end
     end
 
     @testset "_unipotent" begin

@@ -218,8 +218,8 @@ function _projective(ncsw::NCStateWord)
     return NCStateWord(_projective(ncsw.sw), _projective(ncsw.nc_word))
 end
 
-function get_basis(::Type{Monomial}, variables::Vector{Variable}, d::Int)
-    return get_basis(variables, d) 
+function get_basis(::Type{Monomial}, variables::Vector{Variable}, d::Int,reducer::Function)
+    return reducer(get_basis(variables, d))
 end
 
 function get_basis(::Type{NCStateWord},variables::Vector{Variable}, d::Int, reducer::Function)
@@ -231,28 +231,28 @@ end
 ς(w) = ς(w') stated in https://arxiv.org/abs/2301.12513, Section 2.1
 """
 function get_state_basis(variables::Vector{Variable}, d::Int, reducer::Function)
-    return reducer.(
-        map(
-            a -> NCStateWord(StateWord(a[1]), a[2]),
-            mapreduce(vcat, 0:d) do nc_deg
-                nc_basis = monomials(variables, Val(nc_deg))
-                cw_deg = d - nc_deg
-                cw_basis = unique!([
-                    begin
-                        interm = sort(filter(!isone, collect(c_word)))
-                        isempty(interm) ? [one(variables[1])] : interm
-                    end for c_word in Iterators.product(
-                        ntuple(
-                            _ -> unique!(
-                                symmetric_canonicalize.(get_basis(variables, cw_deg))
+    return map(
+        a -> NCStateWord(StateWord(a[1]), a[2]),
+        mapreduce(vcat, 0:d) do nc_deg
+            nc_basis = reducer.(monomials(variables, Val(nc_deg)))
+            cw_deg = d - nc_deg
+            cw_basis = unique!([
+                begin
+                    interm = sort(filter(!isone, collect(c_word)))
+                    isempty(interm) ? [one(variables[1])] : interm
+                end for c_word in Iterators.product(
+                    ntuple(
+                        _ -> unique!(
+                            symmetric_canonicalize.(
+                                get_basis(variables, cw_deg),Ref(reducer)
                             ),
-                            cw_deg,
-                        )...,
-                        [one(variables[1])],
-                    ) if sum(degree.(c_word)) <= cw_deg
-                ])
-                reshape(collect(Iterators.product(cw_basis, nc_basis)), :)
-            end,
-        ),
+                        ),
+                        cw_deg,
+                    )...,
+                    [one(variables[1])],
+                ) if sum(degree.(c_word)) <= cw_deg
+            ])
+            reshape(collect(Iterators.product(cw_basis, nc_basis)), :)
+        end,
     )
 end
