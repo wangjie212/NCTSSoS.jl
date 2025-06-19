@@ -218,7 +218,19 @@ function _projective(ncsw::NCStateWord)
     return NCStateWord(_projective(ncsw.sw), _projective(ncsw.nc_word))
 end
 
-function get_state_basis(variables::Vector{Variable}, d::Int, reducer)
+function get_basis(::Type{Monomial}, variables::Vector{Variable}, d::Int)
+    return get_basis(variables, d) 
+end
+
+function get_basis(::Type{NCStateWord},variables::Vector{Variable}, d::Int, reducer::Function)
+    return get_state_basis(variables, d, reducer)
+end
+
+"""
+
+ς(w) = ς(w') stated in https://arxiv.org/abs/2301.12513, Section 2.1
+"""
+function get_state_basis(variables::Vector{Variable}, d::Int, reducer::Function)
     return reducer.(
         map(
             a -> NCStateWord(StateWord(a[1]), a[2]),
