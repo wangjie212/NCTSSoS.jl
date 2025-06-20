@@ -148,3 +148,13 @@ function get_basis(
 ) where {T}
     return reducer.(get_basis(variables, d))
 end
+
+function simplify(
+    m::NCStateWord,
+    comm_gps::Vector{Vector{Variable}},
+    is_unipotent::Bool,
+    is_projective::Bool,
+)
+    cxs = _comm(m, comm_gps)
+    return is_unipotent ? _unipotent(cxs) : (is_projective ? _projective(cxs) : cxs)
+end

@@ -161,3 +161,10 @@ Computes the "neat dot" product of two monomials as star(x) * y.
 function neat_dot(x::Monomial, y::Monomial)
     return star(x) * y
 end
+
+function simplify(
+    m::Monomial, comm_gps::Vector{Vector{Variable}}, is_unipotent::Bool, is_projective::Bool
+)
+    cxs = _comm(m, comm_gps)
+    return is_unipotent ? _unipotent.(cxs) : (is_projective ? _projective.(cxs) : cxs)
+end
