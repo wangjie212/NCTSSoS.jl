@@ -140,7 +140,7 @@ end
 @testset "get state basis" begin
     @ncpolyvar x y
 
-    sa = SimplifyAlgorithm([[x, y]], false, false)
+    sa = SimplifyAlgorithm(; comm_gps=[[x, y]], is_projective=false, is_unipotent=false)
     get_state_basis([x, y], 1, sa)
     c_words = [[one(x)], [y], [x], [one(x)], [one(x)]]
     nc_words = [one(x), one(x), one(x), y, x]

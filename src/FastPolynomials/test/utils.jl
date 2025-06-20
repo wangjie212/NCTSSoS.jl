@@ -7,9 +7,9 @@ using NCTSSoS.FastPolynomials:
 
     @testset "Symmetric Canonical Form" begin
         sa = SimplifyAlgorithm(
-            [[x, y, z]],
-            false,
-            false,
+            comm_gps=[[x, y, z]],
+            is_projective=false,
+            is_unipotent=false,
         )
         mono1 = monomial([z, y, x], [1, 1, 2])
 
@@ -39,9 +39,9 @@ using NCTSSoS.FastPolynomials:
         @ncpolyvar a[1:n]
 
         sa = SimplifyAlgorithm(
-            [a],
-            false,
-            false,
+            comm_gps=[a],
+            is_projective=false,
+            is_unipotent=false,
         )
 
         poly3 = Polynomial(

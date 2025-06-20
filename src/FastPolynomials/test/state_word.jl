@@ -79,7 +79,7 @@ using NCTSSoS.FastPolynomials:
 
         @test expval(ncsw1) == StateWord([x[1] * x[2], x[2]^2, x[1] * x[2]])
 
-        sa = SimplifyAlgorithm([x], false, false)
+        sa = SimplifyAlgorithm(; comm_gps=[x], is_projective=false, is_unipotent=false)
         basis = get_state_basis(x, 1, sa)
         total_basis = sort(unique([neat_dot(a, b) for a in basis for b in basis]))
         c_words = [

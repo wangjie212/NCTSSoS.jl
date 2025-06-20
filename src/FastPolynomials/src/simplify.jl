@@ -1,7 +1,7 @@
-struct SimplifyAlgorithm
-    comm_gps::Vector{Vector{Variable}}
-    is_unipotent::Bool
-    is_projective::Bool
+@kwdef struct SimplifyAlgorithm
+    comm_gps::Vector{Vector{Variable}} = Vector{Variable}[]
+    is_unipotent::Bool = false
+    is_projective::Bool = false
 end
 
 function simplify(m::Monomial, sa::SimplifyAlgorithm)
@@ -12,7 +12,7 @@ function simplify(m::Monomial, sa::SimplifyAlgorithm)
 end
 
 function simplify(sw::StateWord, sa::SimplifyAlgorithm)
-    return StateWord(simplify.(sw.state_monos, sa))
+    return StateWord(simplify.(sw.state_monos, Ref(sa)))
 end
 
 function simplify(ncsw::NCStateWord, sa::SimplifyAlgorithm)
