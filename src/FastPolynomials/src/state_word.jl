@@ -204,29 +204,21 @@ Computes the expectation value by combining state monomials with the non-commuta
 """
 expval(a::NCStateWord) = StateWord([a.sw.state_monos; a.nc_word])
 
-function _unipotent(sw::StateWord)
-    return StateWord(_unipotent.(sw.state_monos))
-end
-
-function _unipotent(ncsw::NCStateWord)
-    return NCStateWord(_unipotent(ncsw.sw), _unipotent(ncsw.nc_word))
-end
-
-_projective(sw::StateWord) = StateWord(_projective.(sw.state_monos))
-
-function _projective(ncsw::NCStateWord)
-    return NCStateWord(_projective(ncsw.sw), _projective(ncsw.nc_word))
+function get_basis(
+    ::Type{NCStatePolynomial{T}}, variables::Vector{Variable}, d::Int, sa::SimplifyAlgorithm
+) where {T}
+    return get_state_basis(variables, d, sa)
 end
 
 """
 ς(w) = ς(w') stated in https://arxiv.org/abs/2301.12513, Section 2.1
 """
-function get_state_basis(variables::Vector{Variable}, d::Int, reducer::Function)
+function get_state_basis(variables::Vector{Variable}, d::Int, sa::SimplifyAlgorithm)
     return unique!(
         map(
             a -> NCStateWord(StateWord(a[1]), a[2]),
             mapreduce(vcat, 0:d) do nc_deg
-                nc_basis = reducer.(monomials(variables, Val(nc_deg)))
+                nc_basis = simplify.(monomials(variables, Val(nc_deg)), Ref(sa))
                 cw_deg = d - nc_deg
                 cw_basis = unique!([
                     begin
@@ -236,7 +228,7 @@ function get_state_basis(variables::Vector{Variable}, d::Int, reducer::Function)
                         ntuple(
                             _ -> unique!(
                                 symmetric_canonicalize.(
-                                    get_basis(variables, cw_deg), Ref(reducer)
+                                    get_basis(variables, cw_deg), Ref(sa)
                                 ),
                             ),
                             cw_deg,

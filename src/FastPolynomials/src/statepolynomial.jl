@@ -251,45 +251,32 @@ function degree(ncsp::NCStatePolynomial)
     return reduce(max, degree.(ncsp.nc_state_words))
 end
 
-function get_basis(
-    ::Type{NCStatePolynomial{T}}, variables::Vector{Variable}, d::Int, reducer::Function
-) where {T}
-    return get_state_basis(variables, d, reducer)
-end
-
 monomials(ncsp::NCStatePolynomial) = ncsp.nc_state_words
 
 terms(ncsp::NCStatePolynomial) = zip(ncsp.coeffs, ncsp.nc_state_words)
 
-function symmetric_canonicalize(sw::StateWord, reducer::Function)
-    return StateWord(symmetric_canonicalize.(sw.state_monos, Ref(prod ∘ reducer)))
+function symmetric_canonicalize(sw::StateWord, sa::SimplifyAlgorithm)
+    return StateWord(symmetric_canonicalize.(sw.state_monos, Ref(sa)))
 end
 
-function symmetric_canonicalize(ncsw::NCStateWord, reducer::Function)
+function symmetric_canonicalize(ncsw::NCStateWord, sa::SimplifyAlgorithm)
     return NCStateWord(
-        symmetric_canonicalize(ncsw.sw, reducer),
-        symmetric_canonicalize(ncsw.nc_word, reducer),
+        symmetric_canonicalize(ncsw.sw, sa), symmetric_canonicalize(ncsw.nc_word, sa)
     )
 end
 
 for symb in [:symmetric_canonicalize, :cyclic_canonicalize]
     eval(
         quote
-            function $(symb)(sp::StatePolynomial)
-                return StatePolynomial((sp.coeffs), $(symb).(sp.state_words))
+            function $(symb)(sp::StatePolynomial, sa::SimplifyAlgirhtm)
+                return StatePolynomial((sp.coeffs), $(symb).(sp.state_words, Ref(sa)))
             end
 
-            function $(symb)(ncsp::NCStatePolynomial)
-                return NCStatePolynomial((ncsp.coeffs), $(symb).(ncsp.nc_state_words))
+            function $(symb)(ncsp::NCStatePolynomial, sa::SimplifyAlgorithm)
+                return NCStatePolynomial(
+                    (ncsp.coeffs), $(symb).(ncsp.nc_state_words, Ref(sa))
+                )
             end
         end,
     )
-end
-
-function _comm(sw::StateWord, comm_gps::Vector{Vector{Variable}})
-    return StateWord(prod.(_comm.(sw.state_monos, Ref(comm_gps))))
-end
-
-function _comm(ncsw::NCStateWord, comm_gps::Vector{Vector{Variable}})
-    return NCStateWord(_comm(ncsw.sw, comm_gps), prod(_comm(ncsw.nc_word, comm_gps)))
 end

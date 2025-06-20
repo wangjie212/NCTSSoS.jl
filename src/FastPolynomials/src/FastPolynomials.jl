@@ -22,4 +22,5 @@ include("state_word.jl")
 export ncstatepoly
 include("statepolynomial.jl")
 
+include("simplify.jl")
 end
