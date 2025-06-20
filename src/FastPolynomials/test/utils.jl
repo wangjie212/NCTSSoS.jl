@@ -2,20 +2,23 @@ using Test, NCTSSoS.FastPolynomials
 using NCTSSoS.FastPolynomials:
     star, symmetric_canonicalize, cyclic_canonicalize, _comm, _projective, _unipotent
 
-using NCTSSoS.FastPolynomials: Polynomial
-
 @testset "Utilities" begin
     @ncpolyvar x y z
 
     @testset "Symmetric Canonical Form" begin
+        sa = SimplifyAlgorithm(
+            [[x, y, z]],
+            false,
+            false,
+        )
         mono1 = monomial([z, y, x], [1, 1, 2])
 
-        mono1_sym = symmetric_canonicalize(mono1)
+        mono1_sym = symmetric_canonicalize(mono1,sa)
         @test mono1_sym.vars == [x, y, z]
         @test mono1_sym.z == [2, 1, 1]
 
         mono2 = monomial([x, y, z], [2, 1, 1])
-        mono2_sym = symmetric_canonicalize(mono2)
+        mono2_sym = symmetric_canonicalize(mono2,sa)
         @test mono2_sym.vars == [x, y, z]
         @test mono2_sym.z == [2, 1, 1]
 
@@ -27,13 +30,20 @@ using NCTSSoS.FastPolynomials: Polynomial
                 monomial([], []),
             ],
         )
-        poly1_sym = symmetric_canonicalize(poly1)
+        poly1_sym = symmetric_canonicalize(poly1,sa)
 
         @test poly1_sym.coeffs ≈ [0.3, 0.3]
         @test poly1_sym.monos == [monomial([], []), monomial([x, y, z], [2, 1, 1])]
 
         n = 3
         @ncpolyvar a[1:n]
+
+        sa = SimplifyAlgorithm(
+            [a],
+            false,
+            false,
+        )
+
         poly3 = Polynomial(
             [1, -1, -1, 3, -2, 2, -1, -1, 6, 9, 9, -54, 142],
             [
@@ -72,7 +82,7 @@ using NCTSSoS.FastPolynomials: Polynomial
 
         coe = [-2, 1, -2, 3, 6, -2, 18, -54, 2, 142]
 
-        poly3_sym = symmetric_canonicalize(poly3)
+        poly3_sym = symmetric_canonicalize(poly3, sa)
 
         @test poly3_sym.coeffs == coe
         @test poly3_sym.monos == supp

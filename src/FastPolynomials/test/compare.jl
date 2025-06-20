@@ -1,5 +1,4 @@
 using Test, NCTSSoS.FastPolynomials
-using NCTSSoS.FastPolynomials: Polynomial
 
 @testset "Comparison" begin
     @testset "cmp variables" begin
