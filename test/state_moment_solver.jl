@@ -1,4 +1,13 @@
 using Test, NCTSSoS, NCTSSoS.FastPolynomials
+if Sys.isapple()
+    using MosekTools
+    const SOLVER = Mosek.Optimizer
+else
+    using Clarabel
+    const SOLVER = Clarabel.Optimizer
+end
+using COSMO
+const QUICK_SOLVER = COSMO.Optimizer
 using JuMP
 using NCTSSoS:
     get_state_basis,
@@ -9,8 +18,7 @@ using NCTSSoS:
     substitute_variables,
     moment_relax
 using NCTSSoS.FastPolynomials: expval, terms, symmetric_canonicalize, monomials
-using Clarabel, COSMO
-using NCTSSoS: sos_dualize
+
 using NCTSSoS:
     correlative_sparsity,
     iterate_term_sparse_supp,
@@ -27,52 +35,9 @@ using NCTSSoS:
     spop = PolyOpt(sp * one(Monomial); is_unipotent = true, comm_gps = [x, y])
 
     d = 1
-    # how did I implement monomials for StatePoly and NCStatePoly?
-    # graph is defined on StateWords and NCStateWords
-    cr = correlative_sparsity(spop, d, NoElimination())
 
-    cliques_objective = [
-        reduce(
-            +,
-            [
-                issubset(variables(mono), clique) ? coef * mono : zero(mono) for
-                (coef, mono) in terms(spop.objective)
-            ],
-        ) for clique in cr.cliques
-    ]
+    solver_config = SolverConfig(; optimizer = SOLVER, mom_order = d)
 
-    initial_activated_supp = [
-        sorted_union(
-            symmetric_canonicalize.(monomials(obj_part)),
-            mapreduce(
-                a -> monomials(a),
-                vcat,
-                spop.constraints[cons_idx];
-                init = typeof(monomials(spop.objective)[1])[],
-            ),
-        ) for (obj_part, cons_idx, idcs_bases) in
-        zip(cliques_objective, cr.cliques_cons, cr.cliques_idcs_bases)
-    ]
-
-
-    cliques_term_sparsities = map(
-        zip(initial_activated_supp, cr.cliques_cons, cr.cliques_idcs_bases),
-    ) do (activated_supp, cons_idx, idcs_bases)
-        [
-            iterate_term_sparse_supp(activated_supp, poly, basis, NoElimination()) for
-            (poly, basis) in
-            zip([one(spop.objective); spop.constraints[cons_idx]], idcs_bases)
-        ]
-    end
-
-    mom_problem =
-        moment_relax(spop, cr.cliques_cons, cr.global_cons, cliques_term_sparsities)
-
-    # FIXME: cannot find some key
-    sos_problem = sos_dualize(mom_problem)
-
-    set_optimizer(mom_problem.model, Clarabel.Optimizer)
-    optimize!(mom_problem.model)
     @test isapprox(objective_value(mom_problem.model), -2.8284271321623202, atol = 1e-5)
     @test is_solved_and_feasible(mom_problem.model)
 

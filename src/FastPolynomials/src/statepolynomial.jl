@@ -251,23 +251,30 @@ function degree(ncsp::NCStatePolynomial)
     return reduce(max, degree.(ncsp.nc_state_words))
 end
 
+function get_basis(
+    ::Type{NCStatePolynomial{T}}, variables::Vector{Variable}, d::Int, reducer::Function
+) where {T}
+    return get_state_basis(variables, d, reducer)
+end
+
 monomials(ncsp::NCStatePolynomial) = ncsp.nc_state_words
 
 terms(ncsp::NCStatePolynomial) = zip(ncsp.coeffs, ncsp.nc_state_words)
 
+function symmetric_canonicalize(sw::StateWord, reducer::Function)
+    return StateWord(symmetric_canonicalize.(sw.state_monos, Ref(prod ∘ reducer)))
+end
+
+function symmetric_canonicalize(ncsw::NCStateWord, reducer::Function)
+    return NCStateWord(
+        symmetric_canonicalize(ncsw.sw, reducer),
+        symmetric_canonicalize(ncsw.nc_word, reducer),
+    )
+end
+
 for symb in [:symmetric_canonicalize, :cyclic_canonicalize]
-    # assuming this is always reduced
-    take_adj = (symb == :symmetric_canonicalize ? :adjoint : :identity)
     eval(
         quote
-            function $(symb)(sw::StateWord)
-                return StateWord($(symb).(sw.state_monos))
-            end
-
-            function $(symb)(ncsw::NCStateWord)
-                return NCStateWord($(symb)(ncsw.sw), $(symb)(ncsw.nc_word))
-            end
-
             function $(symb)(sp::StatePolynomial)
                 return StatePolynomial((sp.coeffs), $(symb).(sp.state_words))
             end
@@ -280,9 +287,9 @@ for symb in [:symmetric_canonicalize, :cyclic_canonicalize]
 end
 
 function _comm(sw::StateWord, comm_gps::Vector{Vector{Variable}})
-    StateWord.(prod.(_comm.(sw.state_monos, Ref(comm_gps))))
+    return StateWord(prod.(_comm.(sw.state_monos, Ref(comm_gps))))
 end
 
 function _comm(ncsw::NCStateWord, comm_gps::Vector{Vector{Variable}})
-    NCStateWord.(_comm(ncsw.sw, comm_gps), prod(_comm(ncsw.nc_word, comm_gps)))
+    return NCStateWord(_comm(ncsw.sw, comm_gps), prod(_comm(ncsw.nc_word, comm_gps)))
 end

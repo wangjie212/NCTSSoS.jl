@@ -142,3 +142,9 @@ Computes the support of a polynomial after canonicalization.
 function support(poly::Polynomial{T}, canonicalize::Function) where {T}
     return unique!(canonicalize.(poly.monos))
 end
+
+function get_basis(
+    ::Type{Polynomial{T}}, variables::Vector{Variable}, d::Int, reducer::Function
+) where {T}
+    return reducer.(get_basis(variables, d))
+end

@@ -216,6 +216,7 @@ function get_basis(vars::Vector{Variable}, d::Int)
     return sort!(reduce(vcat, vec_of_monos))
 end
 
+
 function Base.:(^)(a::Variable, expo::Int)
     @assert expo >= 0 "Exponent must be non-negative."
     return iszero(expo) ? one(a) : Monomial([a], [expo])
