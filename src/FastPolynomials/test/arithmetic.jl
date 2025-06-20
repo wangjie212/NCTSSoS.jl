@@ -1,5 +1,4 @@
 using Test, NCTSSoS.FastPolynomials
-using NCTSSoS.FastPolynomials: Variable, Polynomial, Monomial, monomial
 
 @testset "Arithmetic" begin
     @testset "Variable Multiplication" begin

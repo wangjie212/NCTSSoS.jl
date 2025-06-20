@@ -171,6 +171,7 @@ function ncstatepoly(coeffs::Vector{T}, nc_state_words::Vector{NCStateWord}) whe
     return NCStatePolynomial(uniq_coeffs[nz_idcs], uniq_nc_state_words[nz_idcs])
 end
 
+
 function Base.show(io::IO, obj::NCStatePolynomial)
     return print_object(io, obj; multiline=false)
 end
@@ -254,29 +255,3 @@ end
 monomials(ncsp::NCStatePolynomial) = ncsp.nc_state_words
 
 terms(ncsp::NCStatePolynomial) = zip(ncsp.coeffs, ncsp.nc_state_words)
-
-function symmetric_canonicalize(sw::StateWord, sa::SimplifyAlgorithm)
-    return StateWord(symmetric_canonicalize.(sw.state_monos, Ref(sa)))
-end
-
-function symmetric_canonicalize(ncsw::NCStateWord, sa::SimplifyAlgorithm)
-    return NCStateWord(
-        symmetric_canonicalize(ncsw.sw, sa), symmetric_canonicalize(ncsw.nc_word, sa)
-    )
-end
-
-for symb in [:symmetric_canonicalize, :cyclic_canonicalize]
-    eval(
-        quote
-            function $(symb)(sp::StatePolynomial, sa::SimplifyAlgirhtm)
-                return StatePolynomial((sp.coeffs), $(symb).(sp.state_words, Ref(sa)))
-            end
-
-            function $(symb)(ncsp::NCStatePolynomial, sa::SimplifyAlgorithm)
-                return NCStatePolynomial(
-                    (ncsp.coeffs), $(symb).(ncsp.nc_state_words, Ref(sa))
-                )
-            end
-        end,
-    )
-end

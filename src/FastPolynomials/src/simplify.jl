@@ -63,3 +63,57 @@ _projective(sw::StateWord) = StateWord(_projective.(sw.state_monos))
 function _projective(ncsw::NCStateWord)
     return NCStateWord(_projective(ncsw.sw), _projective(ncsw.nc_word))
 end
+
+"""
+ς(w) = ς(w') stated in https://arxiv.org/abs/2301.12513, Section 2.1
+"""
+function get_state_basis(variables::Vector{Variable}, d::Int, sa::SimplifyAlgorithm)
+    return unique!(
+        map(
+            a -> NCStateWord(StateWord(a[1]), a[2]),
+            mapreduce(vcat, 0:d) do nc_deg
+                nc_basis = simplify.(monomials(variables, Val(nc_deg)), Ref(sa))
+                cw_deg = d - nc_deg
+                cw_basis = unique!([
+                    begin
+                        interm = sort(filter(!isone, collect(c_word)))
+                        isempty(interm) ? [one(variables[1])] : interm
+                    end for c_word in Iterators.product(
+                        ntuple(
+                            _ -> unique!(
+                                symmetric_canonicalize.(
+                                    get_basis(variables, cw_deg), Ref(sa)
+                                ),
+                            ),
+                            cw_deg,
+                        )...,
+                        [one(variables[1])],
+                    ) if sum(degree.(c_word)) <= cw_deg
+                ])
+                reshape(collect(Iterators.product(cw_basis, nc_basis)), :)
+            end,
+        ),
+    )
+end
+
+function get_basis(
+    ::Type{NCStatePolynomial{T}}, variables::Vector{Variable}, d::Int, sa::SimplifyAlgorithm
+) where {T}
+    return get_state_basis(variables, d, sa)
+end
+
+for symb in [:symmetric_canonicalize, :cyclic_canonicalize]
+    eval(
+        quote
+            function $(symb)(sp::StatePolynomial, sa::SimplifyAlgorithm)
+                return StatePolynomial((sp.coeffs), $(symb).(sp.state_words, Ref(sa)))
+            end
+
+            function $(symb)(ncsp::NCStatePolynomial, sa::SimplifyAlgorithm)
+                return NCStatePolynomial(
+                    (ncsp.coeffs), $(symb).(ncsp.nc_state_words, Ref(sa))
+                )
+            end
+        end,
+    )
+end
