@@ -1,4 +1,5 @@
 using Test, NCTSSoS, NCTSSoS.FastPolynomials
+
 if Sys.isapple()
     using MosekTools
     const SOLVER = Mosek.Optimizer
@@ -10,17 +11,7 @@ using SparseArrays
 using JuMP
 using Graphs
 using CliqueTrees
-using NCTSSoS:
-    get_Cαj,
-    clique_decomp,
-    correlative_sparsity,
-    sorted_union,
-    neat_dot,
-    iterate_term_sparse_supp,
-    symmetric_canonicalize,
-    TermSparsity,
-    moment_relax,
-    sos_dualize
+using NCTSSoS: get_Cαj
 
 # NOTE: sos_dualize has performance issue have verified locally it's correct
 @testset "CS TS Example" begin

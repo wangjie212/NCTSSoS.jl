@@ -1,8 +1,8 @@
 using Test, NCTSSoS
 using JuMP
 using NCTSSoS.FastPolynomials
-using NCTSSoS: get_dim, reducer, sorted_unique
-using NCTSSoS.FastPolynomials: Polynomial, sorted_union, get_basis
+using NCTSSoS: get_dim, sorted_unique
+using NCTSSoS.FastPolynomials: sorted_union, get_basis
 
 @testset "Utilities" begin
     @ncpolyvar x y z
@@ -20,24 +20,24 @@ m" begin
         @test get_dim(constraint_object(cons2)) == 2 * n
     end
 
-    @testset "reducer" begin
+    @testset "Simplify" begin
         obj = 1.0 * x * y + 2.0 * y * z
 
         basis = get_basis([x, y, z], 3)
 
         pop = PolyOpt(obj; is_unipotent = true)
-        reducer_func = reducer(pop)
-        @test prod(reducer_func(y*x^2*y)) == one(Monomial)
+        sa = SimplifyAlgorithm(comm_gps=pop.comm_gps, is_unipotent=pop.is_unipotent, is_projective=pop.is_projective)
+        @test simplify((y * x^2 * y), sa) == one(Monomial)
 
         pop = PolyOpt(obj; is_projective = true)
-        reducer_func = reducer(pop)
-        @test prod(reducer_func(y*x^2*y)) == y*x*y
+        sa = SimplifyAlgorithm(comm_gps=pop.comm_gps, is_unipotent=pop.is_unipotent, is_projective=pop.is_projective)
+        @test simplify((y * x^2 * y), sa) == y * x * y
 
         pop = PolyOpt(obj; comm_gps = [[x], [y, z]], is_unipotent = true)
-        reducer_func = reducer(pop)
-        @test prod(reducer_func(y*x^2*y)) == one(y)
+        sa = SimplifyAlgorithm(comm_gps=pop.comm_gps, is_unipotent=pop.is_unipotent, is_projective=pop.is_projective)
+        @test simplify((y * x^2 * y), sa) == one(y)
 
-        @test sorted_unique(map(prod, reducer_func.(basis))) == sort([
+        @test sorted_unique(simplify.(basis,Ref(sa))) == sort([
             one(x * y),
             monomial([z], [1]),
             monomial([y], [1]),
@@ -53,10 +53,10 @@ m" begin
         ])
 
         pop = PolyOpt(obj; comm_gps = [[x], [y, z]], is_projective = true)
-        reducer_func = reducer(pop)
-        @test prod(reducer_func(y*x^2*y)) == x*y
+        sa = SimplifyAlgorithm(comm_gps=pop.comm_gps, is_unipotent=pop.is_unipotent, is_projective=pop.is_projective)
+        @test simplify((y * x^2 * y), sa) == x * y
 
-        @test sorted_unique(map(prod, reducer_func.(basis))) == sort([
+        @test sorted_unique(simplify.(basis,Ref(sa))) == sort([
             one(x * y * z),
             monomial([z], [1]),
             monomial([y], [1]),

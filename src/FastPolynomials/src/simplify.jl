@@ -117,3 +117,9 @@ for symb in [:symmetric_canonicalize, :cyclic_canonicalize]
         end,
     )
 end
+
+function get_basis(
+    ::Type{Polynomial{T}}, variables::Vector{Variable}, d::Int, ::SimplifyAlgorithm
+) where {T}
+    return get_basis(variables, d)
+end

@@ -1,4 +1,5 @@
 using Test, NCTSSoS, NCTSSoS.FastPolynomials
+
 if Sys.isapple()
     using MosekTools
     const SOLVER = Mosek.Optimizer
@@ -17,6 +18,7 @@ using NCTSSoS:
     constrain_moment_matrix!,
     substitute_variables,
     moment_relax
+
 using NCTSSoS.FastPolynomials: expval, terms, symmetric_canonicalize, monomials
 
 using NCTSSoS:
