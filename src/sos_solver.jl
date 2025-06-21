@@ -26,7 +26,7 @@ function get_Cαj(basis::Vector{GenericVariableRef{T}}, localizing_mtx::VectorCo
     return [sparse(Is[i], Js[i], Vs[i], dim, dim) for i in eachindex(basis)]
 end
 
-function sos_dualize(moment_problem::MomentProblem{T}) where {T}
+function sos_dualize(moment_problem::MomentProblem{T,M}) where {T,M}
     dual_model = GenericModel{T}()
 
     # Initialize Gj as variables
@@ -46,7 +46,12 @@ function sos_dualize(moment_problem::MomentProblem{T}) where {T}
     # TODO: fix this for trace
     unsymmetrized_basis = sort(collect(keys(moment_problem.monomap)))
 
-    symmetric_basis = sort(unique!([symmetric_canonicalize(basis, moment_problem.sa) for basis in unsymmetrized_basis]))
+    if M == StateWord
+        symmetric_basis = unsymmetrized_basis
+    else
+        symmetric_basis = sorted_unique(symmetric_canonicalize.(unsymmetrized_basis, Ref(moment_problem.sa)))
+    end
+
 
     # JuMP variables corresponding to symmetric_basis
     symmetric_variables = getindex.(Ref(moment_problem.monomap), symmetric_basis)

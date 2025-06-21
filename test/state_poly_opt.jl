@@ -63,9 +63,8 @@ end
     result_mom =  cs_nctssos(spop, solver_config; dualize=false)
     @test isapprox(result_mom.objective, -4.0, atol = 1e-4)
 
-    # FIXME
-    # result_sos = cs_nctssos(spop, solver_config)
-    # @test_broken isapprox(result_sos.objective, -4.0, atol = 1e-5)
+    result_sos = cs_nctssos(spop, solver_config)
+    @test isapprox(result_sos.objective, -4.0, atol = 1e-5)
 end
 
 @testset "State Polynomial Opt 7.2.2" begin
