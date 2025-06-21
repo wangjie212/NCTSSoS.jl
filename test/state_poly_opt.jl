@@ -44,8 +44,18 @@ using NCTSSoS:
     result_sos = cs_nctssos(spop, solver_config)
 
     @test isapprox(result_mom.objective, -2.8284271321623202, atol=1e-5)
-
     @test isapprox(result_sos.objective, -2.8284271321623202, atol=1e-5)
+
+
+    sa = SimplifyAlgorithm(comm_gps=[x, y], is_unipotent=true, is_projective=false)
+
+    @testset "Sparse" begin
+
+        solver_config = SolverConfig(; optimizer = SOLVER, mom_order = d, cs_algo=MF(), ts_algo=MMD())
+
+        result = cs_nctssos(spop, solver_config)
+
+    end
 end
 
 @testset "State Polynomial Opt 7.2.1" begin
