@@ -35,6 +35,16 @@ function symmetric_canonicalize(mono::Monomial, sa::SimplifyAlgorithm)
     return min(simplify(mono, sa), simplify(star(mono), sa))
 end
 
+function symmetric_canonicalize(sw::StateWord, sa::SimplifyAlgorithm)
+    return StateWord(symmetric_canonicalize.(sw.state_monos, Ref(sa)))
+end
+
+function symmetric_canonicalize(ncsw::NCStateWord, sa::SimplifyAlgorithm)
+    return NCStateWord(
+        symmetric_canonicalize(ncsw.sw, sa), symmetric_canonicalize(ncsw.nc_word, sa)
+    )
+end
+
 """
     symmetric_canonicalize(poly::Polynomial)
 

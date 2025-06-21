@@ -8,7 +8,7 @@ include("variables.jl")
 export Monomial, monomial
 include("monomials.jl")
 
-export Polynomial, degree
+export Polynomial, degree, monomials, coefficients
 include("polynomial.jl")
 
 include("compare.jl")

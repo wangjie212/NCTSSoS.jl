@@ -40,15 +40,13 @@ using NCTSSoS:
 
     solver_config = SolverConfig(; optimizer = SOLVER, mom_order = d)
 
-    result = cs_nctssos(spop, solver_config)
+    result_mom = cs_nctssos(spop, solver_config; dualize=false)
+    result_sos = cs_nctssos(spop, solver_config)
 
-    @test isapprox(objective_value(mom_problem.model), -2.8284271321623202, atol = 1e-5)
-    @test is_solved_and_feasible(mom_problem.model)
 
-    set_optimizer(sos_problem.model, Clarabel.Optimizer)
-    optimize!(sos_problem.model)
-    @test isapprox(objective_value(sos_problem.model), -2.8284271321623202, atol = 1e-5)
-    @test is_solved_and_feasible(sos_problem.model)
+    @test isapprox(result_mom.objective, -2.8284271321623202, atol=1e-5)
+
+    @test isapprox(result_sos.objective, -2.8284271321623202, atol=1e-5)
 end
 
 @testset "State Polynomial Opt 7.2.1" begin
@@ -57,7 +55,7 @@ end
     sp2 = 1.0 * ς(x[1] * y[1]) + -1.0 * ς(x[2] * y[2])
     sp = -1.0 * sp1 * sp1 - 1.0 * sp2 * sp2
 
-    spop = StatePolyOpt(sp; is_unipotent = true, comm_gps = [x, y])
+    spop = PolyOpt(sp * one(Monomial); is_unipotent=true, comm_gps=[x, y])
 
     d = 3
     cr = correlative_sparsity(spop, d, NoElimination())
@@ -95,19 +93,13 @@ end
         ]
     end
 
-    mom_problem =
-        moment_relax(spop, cr.cliques_cons, cr.global_cons, cliques_term_sparsities)
+    solver_config = SolverConfig(; optimizer = QUICK_SOLVER, mom_order = d)
 
-    set_optimizer(mom_problem.model, COSMO.Optimizer)
-    optimize!(mom_problem.model)
-    @test isapprox(objective_value(mom_problem.model), -4.0, atol = 1e-4)
-    @test is_solved_and_feasible(mom_problem.model)
+    result_mom =  cs_nctssos(spop, solver_config; dualize=false)
+    @test isapprox(result_mom.objective, -4.0, atol = 1e-4)
 
-    sos_problem = sos_dualize(mom_problem)
-    set_optimizer(sos_problem.model, COSMO.Optimizer)
-    optimize!(sos_problem.model)
-    @test isapprox(objective_value(sos_problem.model), -4.0, atol = 1e-5)
-    @test is_solved_and_feasible(sos_problem.model)
+    result_sos = cs_nctssos(spop, solver_config)
+    @test isapprox(result_sos.objective, -4.0, atol = 1e-5)
 end
 
 @testset "State Polynomial Opt 7.2.2" begin
@@ -117,14 +109,13 @@ end
         cov(1, 1) + cov(1, 2) + cov(1, 3) + cov(2, 1) + cov(2, 2) - cov(2, 3) + cov(3, 1) -
         cov(3, 2)
 
-    spop = StatePolyOpt(sp; is_unipotent = true, comm_gps = [x[1:3], y[1:3]])
+    spop = StatePolyOpt(sp*one(Monomial); is_unipotent = true, comm_gps = [x[1:3], y[1:3]])
 
-    solver_config = SolverConfig(; optimizer = COSMO.Optimizer, mom_order = 2)
+    solver_config = SolverConfig(; optimizer = SOLVER, mom_order = 2)
 
     @test cs_nctssos(spop, solver_config) ≈ -5.0 atol = 1e-2
 
     @ncpolyvar x[1:6]
-
     sp =
         -1.0 * ς(x[1] * x[4]) + 1 * ς(x[1]) * ς(x[4]) - 1 * ς(x[1] * x[5]) +
         1 * ς(x[1]) * ς(x[5]) - 1 * ς(x[1] * x[6]) + 1 * ς(x[1]) * ς(x[6]) -
@@ -137,7 +128,7 @@ end
 
     spop = StatePolyOpt(sp; is_unipotent = true, comm_gps = [x[1:3], x[4:6]])
 
-    solver_config = SolverConfig(; optimizer = COSMO.Optimizer, mom_order = 2)
+    solver_config = SolverConfig(; optimizer = SOLVER, mom_order = 2)
 
     @test cs_nctssos(spop, solver_config) ≈ -5.0 atol = 1e-2
 
@@ -187,13 +178,18 @@ end
     )
     optimize!(sos_problem.model)
     @test isapprox(objective_value(sos_problem.model), -5.0, atol = 1e-3)
+    result_sos = cs_nctssos(spop, solver_config)
+
+    @test isapprox(result_sos.objective, -5.0, atol=1e-3)
 end
 
 
 @testset "Constrain Moment matrix" begin
     @ncpolyvar x[1:2]
 
-    basis = get_state_basis(x, 1, identity)
+    sa = SimplifyAlgorithm(comm_gps=[x], is_unipotent=false, is_projective=false)
+
+    basis = get_state_basis(x, 1, sa)
 
     sp = 1.0 * ς(x[1] * x[2]) + 2.0 * ς(x[1]) + 3.0 * ς(x[2])
     nc_words = monomial.([one(x[1]), x[1], x[2]])

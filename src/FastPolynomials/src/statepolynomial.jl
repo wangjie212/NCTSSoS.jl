@@ -35,6 +35,8 @@ degree(sp::StatePolynomial) = mapreduce(degree, max, sp.state_words)
 
 monomials(sp::StatePolynomial) = sp.state_words
 
+coefficients(sp::StatePolynomial) = sp.coeffs
+
 function Base.show(io::IO, obj::StatePolynomial)
     return print_object(io, obj; multiline=false)
 end
@@ -171,7 +173,6 @@ function ncstatepoly(coeffs::Vector{T}, nc_state_words::Vector{NCStateWord}) whe
     return NCStatePolynomial(uniq_coeffs[nz_idcs], uniq_nc_state_words[nz_idcs])
 end
 
-
 function Base.show(io::IO, obj::NCStatePolynomial)
     return print_object(io, obj; multiline=false)
 end
@@ -253,5 +254,7 @@ function degree(ncsp::NCStatePolynomial)
 end
 
 monomials(ncsp::NCStatePolynomial) = ncsp.nc_state_words
+
+coefficients(ncsp::NCStatePolynomial) = ncsp.coeffs
 
 terms(ncsp::NCStatePolynomial) = zip(ncsp.coeffs, ncsp.nc_state_words)
