@@ -37,37 +37,10 @@ function moment_relax(pop::PolyOpt{P}, corr_sparsity::CorrelativeSparsity, cliqu
         ])))
     end...)
 
-    for (cons_idx, term_sparsities) in zip(corr_sparsity.clq_cons, cliques_term_sparsities)
-        for (poly, term_sparsity) in zip([one(pop.objective); corr_sparsity.cons[cons_idx]], term_sparsities)
-            @show poly
-            for basis in term_sparsity.block_bases
-                @show basis 
-                for rol_idx in eachindex(basis) 
-                    for col_idx in eachindex(basis) 
-                        map(monomials(poly)) do m
-                            @show rol_idx, col_idx, expval(simplify(neat_dot(basis[rol_idx], m * basis[col_idx]), sa))
-                        end
-                    end
-                end
-            end
-        end
-    end
-
     # map the monomials to JuMP variables, the first variable must be 1
     @variable(model, y[1:length(total_basis)])
     @constraint(model, first(y) == 1)
     monomap = Dict(zip(total_basis, y))
-
-    @show keys(monomap)
-    for tss in cliques_term_sparsities
-        @show "new clique"
-        for ts in tss
-            @show "new poly"
-            for bb in ts.block_bases
-                @show bb
-            end
-        end
-    end
 
     constraint_matrices =
         [mapreduce(vcat, zip(cliques_term_sparsities, corr_sparsity.clq_cons)) do (term_sparsities, cons_idx)

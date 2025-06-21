@@ -90,11 +90,7 @@ function get_state_basis(variables::Vector{Variable}, d::Int, sa::SimplifyAlgori
                         isempty(interm) ? [one(variables[1])] : interm
                     end for c_word in Iterators.product(
                         ntuple(
-                            _ -> unique!(
-                                symmetric_canonicalize.(
-                                    get_basis(variables, cw_deg), Ref(sa)
-                                ),
-                            ),
+                            _ -> unique!(simplify.(get_basis(variables, cw_deg), Ref(sa))),
                             cw_deg,
                         )...,
                         [one(variables[1])],

@@ -31,7 +31,6 @@ function sos_dualize(moment_problem::MomentProblem{T,M}) where {T,M}
 
     # Initialize Gj as variables
     dual_variables = map(constraint_object.(moment_problem.constraints)) do cons
-        # FIXME: HEDIOUS
         G_dim = get_dim(cons)
         @variable(dual_model, [1:G_dim, 1:G_dim] in ((cons.set isa MOI.Zeros) ? SymmetricMatrixSpace() : PSDCone()))
     end
@@ -46,12 +45,7 @@ function sos_dualize(moment_problem::MomentProblem{T,M}) where {T,M}
     # TODO: fix this for trace
     unsymmetrized_basis = sort(collect(keys(moment_problem.monomap)))
 
-    if M == StateWord
-        symmetric_basis = unsymmetrized_basis
-    else
-        symmetric_basis = sorted_unique(symmetric_canonicalize.(unsymmetrized_basis, Ref(moment_problem.sa)))
-    end
-
+    symmetric_basis = sorted_unique(symmetric_canonicalize.(unsymmetrized_basis, Ref(moment_problem.sa)))
 
     # JuMP variables corresponding to symmetric_basis
     symmetric_variables = getindex.(Ref(moment_problem.monomap), symmetric_basis)

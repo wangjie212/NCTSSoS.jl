@@ -190,7 +190,7 @@ function get_term_sparsity_graph(cons_support::Vector{M}, activated_supp::Vector
     sorted_activated_supp = sort(activated_supp)
     for i in 1:nterms, j in i+1:nterms
         for supp in cons_support
-            if symmetric_canonicalize(neat_dot(bases[i], supp * bases[j]), reduce_func) in sorted_activated_supp
+            if symmetric_canonicalize(neat_dot(bases[i], supp * bases[j]), sa) in sorted_activated_supp
                 add_edge!(G, i, j)
                 continue
             end
