@@ -294,3 +294,5 @@ function _projective(mono::Monomial)
         var^(iszero(expo) ? expo : one(expo))
     end
 end
+
+expval(m::Monomial) = m

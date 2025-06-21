@@ -7,9 +7,9 @@ struct MomentProblem{T,M,CR<:ConstraintRef} <: OptimizationProblem
     sa::SimplifyAlgorithm
 end
 
-function substitute_variables(poly::Polynomial{T}, monomap::Dict{Monomial,GenericVariableRef{T}}) where {T}
-    mapreduce(+, zip(poly.coeffs, poly.monos)) do (coef, mono)
-        coef * monomap[mono]
+function substitute_variables(poly::P, monomap::Dict{M,GenericVariableRef{T}}) where {T,P<:AbstractPolynomial{T},M}
+    mapreduce(+, zip(coefficients(poly), monomials(poly))) do (coef, mono)
+        coef * monomap[expval(mono)]
     end
 end
 
@@ -21,7 +21,7 @@ end
 # cliques_cons: groups constraints according to cliques,
 # global_cons: constraints that are not in any single clique
 # cliques_term_sparsities: each clique, each obj/constraint, each ts_clique, each basis needed to index moment matrix
-function moment_relax(pop::PolyOpt{Polynomial{T}}, corr_sparsity::CorrelativeSparsity, cliques_term_sparsities::Vector{Vector{TermSparsity{M}}}) where {T,M}
+function moment_relax(pop::PolyOpt{P}, corr_sparsity::CorrelativeSparsity, cliques_term_sparsities::Vector{Vector{TermSparsity{M}}}) where {T,P<:AbstractPolynomial{T},M}
     # NOTE: objective and constraints may have integer coefficients, but popular JuMP solvers does not support integer coefficients
     # left type here to support BigFloat model for higher precision
     model = GenericModel{T}()
@@ -30,8 +30,8 @@ function moment_relax(pop::PolyOpt{Polynomial{T}}, corr_sparsity::CorrelativeSpa
     # the union of clique_total_basis
     total_basis = sorted_union(map(zip(corr_sparsity.clq_cons, cliques_term_sparsities)) do (cons_idx, term_sparsities)
         union(vec(reduce(vcat, [
-            map(poly.monos) do m
-                simplify(neat_dot(rol_idx, m * col_idx), sa)
+            map(monomials(poly)) do m
+                expval(simplify(neat_dot(rol_idx, m * col_idx), sa))
             end
             for (poly, term_sparsity) in zip([one(pop.objective); corr_sparsity.cons[cons_idx]], term_sparsities) for basis in term_sparsity.block_bases for rol_idx in basis for col_idx in basis
         ])))
@@ -73,12 +73,12 @@ end
 
 function constrain_moment_matrix!(
     model::GenericModel{T},
-    poly::Polynomial{T},
-    local_basis::Vector{Monomial},
-    monomap::Dict{Monomial,GenericVariableRef{T}},
+    poly::P,
+    local_basis::Vector{M1}, # M2 should be expval(M1)
+    monomap::Dict{M2,GenericVariableRef{T}},
     cone, # FIXME: which type should I use?
     sa::SimplifyAlgorithm
-) where {T}
+) where {T,P<:AbstractPolynomial{T},M1,M2}
     moment_mtx = [
         substitute_variables(sum([coef * simplify(neat_dot(row_idx, mono * col_idx), sa) for (coef, mono) in zip(coefficients(poly), monomials(poly))]), monomap) for
         row_idx in local_basis, col_idx in local_basis

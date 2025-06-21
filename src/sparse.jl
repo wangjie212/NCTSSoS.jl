@@ -162,7 +162,7 @@ function init_activated_supp(partial_obj::P, cons::Vector{P}, mom_mtx_bases::Vec
     return sorted_union(symmetric_canonicalize.(monomials(partial_obj), Ref(sa)), mapreduce(a -> simplify.(monomials(a), Ref(sa)), vcat, cons; init=M[]), [simplify(neat_dot(b, b), sa) for b in mom_mtx_bases])
 end
 
-function term_sparsities(initial_activated_supp::Vector{Monomial}, cons::Vector{P}, mom_mtx_bases::Vector{Monomial}, localizing_mtx_bases::Vector{Vector{Monomial}}, ts_algo::EliminationAlgorithm, sa::SimplifyAlgorithm) where {T,P<:AbstractPolynomial{T}}
+function term_sparsities(initial_activated_supp::Vector{M}, cons::Vector{P}, mom_mtx_bases::Vector{M}, localizing_mtx_bases::Vector{Vector{M}}, ts_algo::EliminationAlgorithm, sa::SimplifyAlgorithm) where {T,P<:AbstractPolynomial{T},M}
     [
         [iterate_term_sparse_supp(initial_activated_supp, one(P), mom_mtx_bases, ts_algo, sa)];
         map(zip(cons, localizing_mtx_bases)) do (poly, basis)
@@ -184,7 +184,7 @@ Constructs a term sparsity graph for polynomial constraints.
 # Returns
 - `SimpleGraph`: Term sparsity graph
 """
-function get_term_sparsity_graph(cons_support::Vector{Monomial}, activated_supp::Vector{Monomial}, bases::Vector{Monomial}, sa::SimplifyAlgorithm)
+function get_term_sparsity_graph(cons_support::Vector{M}, activated_supp::Vector{M}, bases::Vector{M}, sa::SimplifyAlgorithm) where {M}
     nterms = length(bases)
     G = SimpleGraph(nterms)
     sorted_activated_supp = sort(activated_supp)
@@ -213,8 +213,8 @@ Iteratively computes term sparsity support for a polynomial.
 # Returns
 - `TermSparsity`: Term sparsity structure containing graph support and block bases
 """
-function iterate_term_sparse_supp(activated_supp::Vector{Monomial}, poly::Polynomial, basis::Vector{Monomial}, elim_algo::EliminationAlgorithm, sa::SimplifyAlgorithm)
-    F = get_term_sparsity_graph(poly.monos, activated_supp, basis, sa)
+function iterate_term_sparse_supp(activated_supp::Vector{M}, poly::P, basis::Vector{M}, elim_algo::EliminationAlgorithm, sa::SimplifyAlgorithm) where {M,P}
+    F = get_term_sparsity_graph(monomials(poly), activated_supp, basis, sa)
     blocks = clique_decomp(F, elim_algo)
     map(block -> add_clique!(F, block), blocks)
     return TermSparsity(term_sparsity_graph_supp(F, basis, poly, sa), map(x -> basis[x], blocks))
@@ -233,10 +233,10 @@ Computes the support of a term sparsity graph for a given polynomial.
 # Returns
 - `Vector{Monomial}`: Support monomials for the term sparsity graph
 """
-function term_sparsity_graph_supp(G::SimpleGraph, basis::Vector{Monomial}, g::Polynomial, sa::SimplifyAlgorithm)
+function term_sparsity_graph_supp(G::SimpleGraph, basis::Vector{M}, g::P, sa::SimplifyAlgorithm) where {M,P}
     # following (10.4) in Sparse Polynomial Optimization: Theory and Practise
     # NOTE: Do I need to symmetric canonicalize it?
     # TODO: add reduce! here
-    gsupp(a, b) = map(g_supp -> simplify(neat_dot(a, g_supp * b), sa), g.monos)
+    gsupp(a, b) = map(g_supp -> simplify(neat_dot(a, g_supp * b), sa), monomials(g))
     return union([gsupp(basis[v], basis[v]) for v in vertices(G)]..., [gsupp(basis[e.src], basis[e.dst]) for e in edges(G)]...)
 end
