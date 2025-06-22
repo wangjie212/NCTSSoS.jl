@@ -48,10 +48,11 @@ using NCTSSoS:
 
 
     @testset "Sparse" begin
+        solver_config = SolverConfig(; optimizer = SOLVER, mom_order = d, cs_algo=NoElimination(), ts_algo=MMD())
 
-        solver_config = SolverConfig(; optimizer = SOLVER, mom_order = d, cs_algo=MF(), ts_algo=MMD())
+        result = cs_nctssos(spop, solver_config)
 
-        @test_broken result = cs_nctssos(spop, solver_config)
+        @test result.objective ≈ -2.8284271321623202 atol = 1e-5
 
     end
 end

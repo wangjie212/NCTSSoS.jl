@@ -6,7 +6,10 @@ using NCTSSoS:
     clique_decomp,
     get_term_sparsity_graph,
     term_sparsity_graph_supp,
-    correlative_sparsity
+    correlative_sparsity,
+    NCStateWord, 
+    get_state_basis
+
 
 @testset "Correlative Sparsity without constraints" begin
     @testset "Example 2" begin
@@ -235,8 +238,8 @@ end
 
         @test sort.(clique_decomp(G, NoElimination())) == [collect(1:6)]
         @test sort.(clique_decomp(G, AsIsElimination())) == [[0x0002, 0x0005], [0x0002, 0x0004], [0x0002, 0x0006], [0x0003, 0x0005], [0x0003, 0x0004], [0x0001, 0x0005], [0x0001, 0x0004], [0x0001, 0x0006]]
-        
-        @test sort.(clique_decomp(G, MF())) == [[0x0003, 0x0004, 0x0005], [0x0001, 0x0002, 0x0006],[0x0001, 0x0002, 0x0004, 0x0005]]
+
+        @test sort.(clique_decomp(G, MF())) == [[0x0003, 0x0004, 0x0005], [0x0001, 0x0002, 0x0006], [0x0001, 0x0002, 0x0004, 0x0005]]
 
         rm("example5.lgz")
 
@@ -265,7 +268,7 @@ end
 end
 
 @testset "Term Sparsity" begin
-    @testset "Term Sparsity Graph" begin
+    @testset "Term Sparsity Graph Poly Opt" begin
         # Example 10.2
         @ncpolyvar x y
         activated_support = [
@@ -283,11 +286,11 @@ end
 
         mtx_basis = [one(x), x, y, x^2, y^2, x * y, y * x]
 
-        sa = SimplifyAlgorithm(comm_gps=[[x,y]],is_unipotent=false,is_projective=false)
+        sa = SimplifyAlgorithm(comm_gps=[[x, y]], is_unipotent=false, is_projective=false)
 
         G_tsp = get_term_sparsity_graph([one(x)], activated_support, mtx_basis, sa)
         @test G_tsp.fadjlist == [[4, 5], Int[], Int[], [1, 6], [1, 7], [4, 7], [5, 6]]
-        @test sort(term_sparsity_graph_supp(G_tsp, mtx_basis, one(1.0 * x * y),sa)) == sort([
+        @test sort(term_sparsity_graph_supp(G_tsp, mtx_basis, one(1.0 * x * y), sa)) == sort([
             one(x * y),
             x^2,
             y^2,
@@ -299,7 +302,7 @@ end
             y^3 * x,
             y * x * y * x,
         ])
-        @test sort(term_sparsity_graph_supp(G_tsp, mtx_basis, 1.0 - x^2,sa)) == sort([
+        @test sort(term_sparsity_graph_supp(G_tsp, mtx_basis, 1.0 - x^2, sa)) == sort([
             one(x * y),
             x^2,
             y^2,
@@ -319,6 +322,40 @@ end
             x^5 * y,
             x^6,
         ])
+    end
+
+    @testset "Test Case 7.2.0" begin
+        @ncpolyvar x[1:2] y[1:2]
+        sp =
+            (-1.0 * ς(x[1] * y[1]) - 1.0 * ς(x[1] * y[2]) - 1.0 * ς(x[2] * y[1]) +
+             1.0 * ς(x[2] * y[2])) * one(Monomial)
+
+        d = 1
+
+        sa = SimplifyAlgorithm(comm_gps=[x, y], is_unipotent=true, is_projective=false)
+        basis = get_state_basis([x; y], d, sa)
+
+        init_act_supp = [one(NCStateWord), ς(x[1]) * ς(x[1]) * one(Monomial), ς(x[2]) * ς(x[2]) * one(Monomial), ς(y[1]) * ς(y[1]) * one(Monomial), ς(y[2]) * ς(y[2]) * one(Monomial), ς(x[1] * y[1]) * one(Monomial), ς(x[1] * y[2]) * one(Monomial), ς(x[2] * y[1]) * one(Monomial), ς(x[2] * y[2]) * one(Monomial)]
+
+
+        @testset "Initial Activated Support" begin
+            using NCTSSoS: init_activated_supp, get_state_basis
+
+            @test init_activated_supp(sp, typeof(sp)[], basis, sa) == init_act_supp
+        end
+
+        @testset "Get Term Sparsity Graph" begin
+            using NCTSSoS: get_term_sparsity_graph
+
+            G = get_term_sparsity_graph([one(NCStateWord)], init_act_supp, basis, sa)
+
+            @test G.fadjlist == [[], [6], [7], [8], [9], [2, 8, 9], [3, 8, 9], [4, 6, 7], [5, 6, 7]]
+        end
+
+        @testset "Iterate Term Sparse Supp" begin
+            using NCTSSoS: iterate_term_sparse_supp
+            ts = iterate_term_sparse_supp(init_act_supp, 1.0 * one(NCStateWord), basis, MMD(), sa)
+        end
     end
 end
 
