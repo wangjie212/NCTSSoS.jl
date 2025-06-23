@@ -8,4 +8,5 @@ using NCTSSoS, Test
     include("sos_solver.jl")
     include("interface.jl")
     include("state_poly_opt.jl")
+    include("Aqua.jl")
 end
