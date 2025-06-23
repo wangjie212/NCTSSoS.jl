@@ -38,6 +38,8 @@ using NCTSSoS:
 
     solver_config = SolverConfig(; optimizer = SOLVER, mom_order = d)
 
+    result = cs_nctssos(spop, solver_config)
+
     @test isapprox(objective_value(mom_problem.model), -2.8284271321623202, atol = 1e-5)
     @test is_solved_and_feasible(mom_problem.model)
 

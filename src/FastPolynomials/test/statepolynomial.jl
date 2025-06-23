@@ -140,10 +140,11 @@ end
 @testset "get state basis" begin
     @ncpolyvar x y
 
-    get_state_basis([x, y], 1, identity)
+    sa = SimplifyAlgorithm(; comm_gps=[[x, y]], is_projective=false, is_unipotent=false)
+    get_state_basis([x, y], 1, sa)
     c_words = [[one(x)], [y], [x], [one(x)], [one(x)]]
     nc_words = [one(x), one(x), one(x), y, x]
-    @test sort(get_state_basis([x, y], 1, identity)) ==
+    @test sort(get_state_basis([x, y], 1, sa)) ==
         sort(map(x -> NCStateWord(x[1], x[2]), zip(c_words, nc_words)))
 
     c_words = [
@@ -165,7 +166,7 @@ end
         fill([one(x)], 4)...,
     ]
     nc_words = [fill(one(x), 9); fill(y, 3); fill(x, 3); [y * x, y^2, x * y, x^2]]
-    @test sort(get_state_basis([x, y], 2, identity)) ==
+    @test sort(get_state_basis([x, y], 2, sa)) ==
         sort(map(x -> NCStateWord(x[1], x[2]), zip(c_words, nc_words)))
 
     nc_words = [fill(one(x), 7); fill(x, 4); fill(x^2, 2); [x^3]]
@@ -185,6 +186,6 @@ end
         [x],
         [one(x)],
     ]
-    @test sort(get_state_basis([x], 3, identity)) ==
+    @test sort(get_state_basis([x], 3, sa)) ==
         sort(map(x -> NCStateWord(x[1], x[2]), zip(c_words, nc_words)))
 end

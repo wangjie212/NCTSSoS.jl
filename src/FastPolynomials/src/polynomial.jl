@@ -143,8 +143,21 @@ function support(poly::Polynomial{T}, canonicalize::Function) where {T}
     return unique!(canonicalize.(poly.monos))
 end
 
-function get_basis(
-    ::Type{Polynomial{T}}, variables::Vector{Variable}, d::Int, reducer::Function
-) where {T}
-    return reducer.(get_basis(variables, d))
+function get_basis(::Type{Polynomial{T}}, variables::Vector{Variable}, d::Int) where {T}
+    return get_basis(variables, d)
+end
+
+"""
+    cyclic_canonicalize(poly::Polynomial)
+
+Canonicalizes a polynomial by applying cyclic canonicalization to all monomials.
+
+# Arguments
+- `poly::Polynomial`: The polynomial to canonicalize
+
+# Returns
+- `Polynomial`: Canonicalized polynomial with same coefficients and canonicalized monomials
+"""
+function cyclic_canonicalize(poly::Polynomial)
+    return Polynomial(poly.coeffs, cyclic_canonicalize.(poly.monos))
 end

@@ -10,4 +10,5 @@ using Test
     include("statepolynomial.jl")
     include("utils.jl")
     include("variables.jl")
+    include("simplify.jl")
 end

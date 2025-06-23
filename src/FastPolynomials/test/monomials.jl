@@ -1,5 +1,5 @@
 using Test, NCTSSoS.FastPolynomials
-using NCTSSoS.FastPolynomials: degree, Monomial, neat_dot, star, monomial
+using NCTSSoS.FastPolynomials: neat_dot, star
 
 @testset "Monomials" begin
     @testset "Creation" begin
