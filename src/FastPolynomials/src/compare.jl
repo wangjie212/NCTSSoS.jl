@@ -21,25 +21,9 @@ function Base.cmp(a::Monomial, b::Monomial)
     return 0
 end
 
-function binary_search(collection::Vector{Monomial}, target::Monomial)
-    left, right = 1, length(collection)
-    while left < right
-        mid = (left + right) ÷ 2
-        cmp_result = cmp(target, collection[mid])
-        if cmp_result < 0
-            right = mid
-        elseif cmp_result > 0
-            left = mid + 1
-        else
-            return mid
-        end
-    end
-    return 0
-end
-
 function Base.in(a::Monomial, collection::Vector{Monomial})
     @assert issorted(collection)
-    return !iszero(binary_search(collection, a))
+    return !isempty(searchsorted(collection, a))
 end
 
 Base.isless(a::Monomial, b::Monomial) = cmp(a, b) == -1
