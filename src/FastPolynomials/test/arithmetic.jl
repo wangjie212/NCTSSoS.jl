@@ -85,7 +85,7 @@ using Test, NCTSSoS.FastPolynomials
 
         p2 = x^2 + y^3
         @test p2 isa Polynomial{Float64}
-        @test p2 ≈ Polynomial([1.0, 1.0], [monomial([x], [2]), monomial([y], [3])])
+        @test p2 == Polynomial([1.0, 1.0], [monomial([x], [2]), monomial([y], [3])])
 
         m1 = x * y
         @test m1.vars == [x, y]

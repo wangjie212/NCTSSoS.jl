@@ -21,25 +21,9 @@ function Base.cmp(a::Monomial, b::Monomial)
     return 0
 end
 
-function binary_search(collection::Vector{Monomial}, target::Monomial)
-    left, right = 1, length(collection)
-    while left < right
-        mid = (left + right) ÷ 2
-        cmp_result = cmp(target, collection[mid])
-        if cmp_result < 0
-            right = mid
-        elseif cmp_result > 0
-            left = mid + 1
-        else
-            return mid
-        end
-    end
-    return 0
-end
-
 function Base.in(a::Monomial, collection::Vector{Monomial})
     @assert issorted(collection)
-    return !iszero(binary_search(collection, a))
+    return !isempty(searchsorted(collection, a))
 end
 
 Base.isless(a::Monomial, b::Monomial) = cmp(a, b) == -1
@@ -54,16 +38,5 @@ function Base.:(==)(p::Polynomial{T}, q::Polynomial{T}) where {T}
     for (coef1, coef2) in zip(p.coeffs, q.coeffs)
         coef1 != coef2 && return false
     end
-    return true
-end
-
-function Base.isapprox(p::Polynomial{S}, q::Polynomial{T}; atol::Real=0.0) where {S,T}
-    p_nz_idcs = findall(x -> !isapprox(0.0, p.coeffs[x]; atol=atol), 1:length(p.coeffs))
-    q_nz_idcs = findall(x -> !isapprox(0.0, q.coeffs[x]; atol=atol), 1:length(q.coeffs))
-
-    length(p_nz_idcs) != length(q_nz_idcs) && return false
-
-    p.monos[p_nz_idcs] != q.monos[q_nz_idcs] && return false
-    isapprox(p.coeffs[p_nz_idcs], q.coeffs[q_nz_idcs]; atol=atol) || return false
     return true
 end
