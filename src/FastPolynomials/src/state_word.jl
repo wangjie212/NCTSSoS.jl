@@ -97,6 +97,8 @@ Base.:(*)(a::StateWord, b::Monomial) = NCStateWord(a, b)
 
 Base.one(::Type{StateWord}) = StateWord([one(Monomial)])
 Base.one(_::StateWord) = one(StateWord)
+Base.zero(::Type{StateWord}) = 0.0 * one(StateWord)
+Base.zero(::StateWord) = 0.0 * one(StateWord)
 
 """
     NCStateWord
@@ -190,6 +192,8 @@ end
 
 Base.one(::Type{NCStateWord}) = NCStateWord(one(StateWord), one(Monomial))
 Base.one(_::NCStateWord) = one(NCStateWord)
+Base.zero(::Type{NCStateWord}) = 0.0 * one(NCStateWord)
+Base.zero(::NCStateWord) = 0.0 * one(NCStateWord)
 
 """
     expval(a::NCStateWord)
@@ -203,4 +207,3 @@ Computes the expectation value by combining state monomials with the non-commuta
 - `StateWord`: StateWord containing all state monomials plus the non-commutative word
 """
 expval(a::NCStateWord) = StateWord([a.sw.state_monos; a.nc_word])
-

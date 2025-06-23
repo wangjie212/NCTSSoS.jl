@@ -105,3 +105,61 @@ using NCTSSoS.FastPolynomials: simplify, get_state_basis, NCStateWord
         @test sort(get_state_basis([x, y], 2, sa3)) == sort(target_sbasis_3)
 	end
 end
+
+@testset "Symmetric Canonicalie" begin
+    @ncpolyvar x[1:2] y[1:2] 
+
+    sa1 = SimplifyAlgorithm(; comm_gps=[x, y], is_unipotent=false, is_projective=false)
+
+    sa2 = SimplifyAlgorithm(; comm_gps=[x, y], is_unipotent=true, is_projective=false)
+    
+    sa3 = SimplifyAlgorithm(; comm_gps=[x, y], is_unipotent=false, is_projective=true)
+
+    @testset "Monomial" begin
+        @test symmetric_canonicalize(x[2] * y[2]^2 * x[1] * y[1], sa1) ==
+            x[1] * x[2] * y[1] * y[2]^2
+
+        @test symmetric_canonicalize(x[2] * y[2]^2 * x[1] * y[1], sa2) ==
+            x[1] * x[2] * y[1]
+
+        @test symmetric_canonicalize(x[2] * y[2]^2 * x[1] * y[1], sa3) ==
+            x[1] * x[2] * y[1] * y[2]
+    end
+
+    @testset "StateWord" begin
+        @test symmetric_canonicalize(
+            ς(x[2] * y[1] * x[1]) * ς(y[2] * x[2] * x[1] * y[2]), sa1
+        ) == ς(x[1] * x[2] * y[1]) * ς(x[1] * x[2] * y[2]^2)
+
+        @test symmetric_canonicalize(
+            ς(x[2] * y[1] * x[1]) * ς(y[2] * x[2] * x[1] * y[2]), sa2
+        ) == ς(x[1] * x[2] * y[1]) * ς(x[1] * x[2])
+
+        @test symmetric_canonicalize(
+            ς(x[2] * y[1] * x[1]) * ς(y[2] * x[2] * x[1] * y[2]), sa3
+        ) == ς(x[1] * x[2] * y[1]) * ς(x[1] * x[2]*y[2])
+    end
+
+    @testset "NCStateWord" begin
+        @test symmetric_canonicalize(
+            ς(x[2] * y[1] * x[1]) *
+            ς(y[2] * x[2] * x[1] * y[2]) *
+            (x[2] * y[1] * x[1] * y[1]),
+            sa1,
+        ) == ς(x[1] * x[2] * y[1]) * ς(x[1] * x[2] * y[2]^2) * (x[1]*x[2]*y[1]^2)
+
+        @test symmetric_canonicalize(
+            ς(x[2] * y[1] * x[1]) *
+            ς(y[2] * x[2] * x[1] * y[2]) *
+            (x[2] * y[1] * x[1] * y[1]),
+            sa2,
+        ) == ς(x[1] * x[2] * y[1]) * ς(x[1] * x[2]) * (x[1]*x[2])
+
+        @test symmetric_canonicalize(
+            ς(x[2] * y[1] * x[1]) *
+            ς(y[2] * x[2] * x[1] * y[2]) *
+            (x[2] * y[1] * x[1] * y[1]),
+            sa3,
+        ) == ς(x[1] * x[2] * y[1]) * ς(x[1] * x[2] * y[2]) * (x[1]*x[2]*y[1])
+    end
+end

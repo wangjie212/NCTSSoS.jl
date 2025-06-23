@@ -35,6 +35,16 @@ function symmetric_canonicalize(mono::Monomial, sa::SimplifyAlgorithm)
     return min(simplify(mono, sa), simplify(star(mono), sa))
 end
 
+function symmetric_canonicalize(sw::StateWord, sa::SimplifyAlgorithm)
+    return StateWord(symmetric_canonicalize.(sw.state_monos, Ref(sa)))
+end
+
+function symmetric_canonicalize(ncsw::NCStateWord, sa::SimplifyAlgorithm)
+    return NCStateWord(
+        symmetric_canonicalize(ncsw.sw, sa), symmetric_canonicalize(ncsw.nc_word, sa)
+    )
+end
+
 """
     symmetric_canonicalize(poly::Polynomial)
 
@@ -80,11 +90,7 @@ function get_state_basis(variables::Vector{Variable}, d::Int, sa::SimplifyAlgori
                         isempty(interm) ? [one(variables[1])] : interm
                     end for c_word in Iterators.product(
                         ntuple(
-                            _ -> unique!(
-                                symmetric_canonicalize.(
-                                    get_basis(variables, cw_deg), Ref(sa)
-                                ),
-                            ),
+                            _ -> unique!(simplify.(get_basis(variables, cw_deg), Ref(sa))),
                             cw_deg,
                         )...,
                         [one(variables[1])],
@@ -116,4 +122,10 @@ for symb in [:symmetric_canonicalize, :cyclic_canonicalize]
             end
         end,
     )
+end
+
+function get_basis(
+    ::Type{Polynomial{T}}, variables::Vector{Variable}, d::Int, ::SimplifyAlgorithm
+) where {T}
+    return get_basis(variables, d)
 end

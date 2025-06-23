@@ -8,7 +8,7 @@ include("variables.jl")
 export Monomial, monomial
 include("monomials.jl")
 
-export Polynomial, degree
+export Polynomial, degree, monomials, coefficients
 include("polynomial.jl")
 
 include("compare.jl")
@@ -22,6 +22,6 @@ include("state_word.jl")
 export ncstatepoly
 include("statepolynomial.jl")
 
-export SimplifyAlgorithm
+export SimplifyAlgorithm, simplify
 include("simplify.jl")
 end

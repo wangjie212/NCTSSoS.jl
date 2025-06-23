@@ -1,6 +1,7 @@
 using Test, NCTSSoS
 using NCTSSoS.FastPolynomials
 using JuMP
+
 if Sys.isapple()
     using MosekTools
     const SOLVER = Mosek.Optimizer
@@ -30,7 +31,7 @@ using NCTSSoS:
 
         solver_config = SolverConfig(optimizer = SOLVER; mom_order = 1)
 
-        result = cs_nctssos(pop, solver_config)
+        result = cs_nctssos(pop, solver_config; dualize=false)
 
         @test isapprox(result.objective, -2.8284271321623193, atol = 1e-6)
     end
@@ -42,7 +43,6 @@ using NCTSSoS:
             1.0 * x[1] * (y[1] + y[2] + y[3]) +
             x[2] * (y[1] + y[2] - y[3]) +
             x[3] * (y[1] - y[2]) - x[1] - 2 * y[1] - y[2]
-        -f
         pop = PolyOpt(-f; comm_gps = [x, y], is_projective = true)
 
         solver_config = SolverConfig(optimizer = SOLVER; mom_order = 3)

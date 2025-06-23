@@ -7,5 +7,5 @@ using NCTSSoS, Test
     include("moment_solver.jl")
     include("sos_solver.jl")
     include("interface.jl")
-    include("state_moment_solver.jl")
+    include("state_poly_opt.jl")
 end

@@ -4,12 +4,12 @@ struct MomentProblem{T,M,CR<:ConstraintRef} <: OptimizationProblem
     model::GenericModel{T}
     constraints::Vector{CR}
     monomap::Dict{M,GenericVariableRef{T}}  # TODO: maybe refactor.
-    reduce_func::Function
+    sa::SimplifyAlgorithm
 end
 
-function substitute_variables(poly::Polynomial{T}, monomap::Dict{Monomial,GenericVariableRef{T}}) where {T}
-    mapreduce(+, zip(poly.coeffs, poly.monos)) do (coef, mono)
-        coef * monomap[mono]
+function substitute_variables(poly::P, monomap::Dict{M,GenericVariableRef{T}}) where {T,P<:AbstractPolynomial{T},M}
+    mapreduce(+, zip(coefficients(poly), monomials(poly))) do (coef, mono)
+        coef * monomap[expval(mono)]
     end
 end
 
@@ -21,17 +21,17 @@ end
 # cliques_cons: groups constraints according to cliques,
 # global_cons: constraints that are not in any single clique
 # cliques_term_sparsities: each clique, each obj/constraint, each ts_clique, each basis needed to index moment matrix
-function moment_relax(pop::PolyOpt{Polynomial{T}}, corr_sparsity::CorrelativeSparsity, cliques_term_sparsities::Vector{Vector{TermSparsity{M}}}) where {T,M}
+function moment_relax(pop::PolyOpt{P}, corr_sparsity::CorrelativeSparsity, cliques_term_sparsities::Vector{Vector{TermSparsity{M}}}) where {T,P<:AbstractPolynomial{T},M}
     # NOTE: objective and constraints may have integer coefficients, but popular JuMP solvers does not support integer coefficients
     # left type here to support BigFloat model for higher precision
     model = GenericModel{T}()
 
-    reduce_func = reducer(pop)
+    sa = SimplifyAlgorithm(comm_gps=pop.comm_gps, is_unipotent=pop.is_unipotent, is_projective=pop.is_projective)
     # the union of clique_total_basis
     total_basis = sorted_union(map(zip(corr_sparsity.clq_cons, cliques_term_sparsities)) do (cons_idx, term_sparsities)
         union(vec(reduce(vcat, [
-            map(poly.monos) do m
-                prod(reduce_func(neat_dot(rol_idx, m * col_idx)))
+            map(monomials(poly)) do m
+                expval(simplify(neat_dot(rol_idx, m * col_idx), sa))
             end
             for (poly, term_sparsity) in zip([one(pop.objective); corr_sparsity.cons[cons_idx]], term_sparsities) for basis in term_sparsity.block_bases for rol_idx in basis for col_idx in basis
         ])))
@@ -51,7 +51,7 @@ function moment_relax(pop::PolyOpt{Polynomial{T}}, corr_sparsity::CorrelativeSpa
                             poly,
                             ts_sub_basis,
                             monomap,
-                            poly in pop.eq_constraints ? Zeros() : PSDCone(), prod ∘ reduce_func)
+                            poly in pop.eq_constraints ? Zeros() : PSDCone(), sa)
                     end
                 end
             end
@@ -62,25 +62,25 @@ function moment_relax(pop::PolyOpt{Polynomial{T}}, corr_sparsity::CorrelativeSpa
                     [one(pop.objective)],
                     monomap,
                     global_con <= length(pop.eq_constraints) ? Zeros() : PSDCone(),
-                    prod ∘ reduce_func
+                    sa
                 )
             end]
 
-    @objective(model, Min, substitute_variables(mapreduce(p -> p[1] * prod(reduce_func(p[2])), +, terms(symmetric_canonicalize(pop.objective, prod ∘ reduce_func)); init=zero(pop.objective)), monomap))
+    @objective(model, Min, substitute_variables(mapreduce(p -> p[1] * simplify(p[2], sa), +, terms(symmetric_canonicalize(pop.objective, sa)); init=zero(pop.objective)), monomap))
 
-    return MomentProblem(model, constraint_matrices, monomap, reduce_func)
+    return MomentProblem(model, constraint_matrices, monomap, sa)
 end
 
 function constrain_moment_matrix!(
     model::GenericModel{T},
-    poly::Polynomial{T},
-    local_basis::Vector{Monomial},
-    monomap::Dict{Monomial,GenericVariableRef{T}},
+    poly::P,
+    local_basis::Vector{M1}, # M2 should be expval(M1)
+    monomap::Dict{M2,GenericVariableRef{T}},
     cone, # FIXME: which type should I use?
-    reduce_func::Function
-) where {T}
+    sa::SimplifyAlgorithm
+) where {T,P<:AbstractPolynomial{T},M1,M2}
     moment_mtx = [
-        substitute_variables(sum([coef * reduce_func(neat_dot(row_idx, mono * col_idx)) for (coef, mono) in zip(coefficients(poly), monomials(poly))]), monomap) for
+        substitute_variables(sum([coef * simplify(neat_dot(row_idx, mono * col_idx), sa) for (coef, mono) in zip(coefficients(poly), monomials(poly))]), monomap) for
         row_idx in local_basis, col_idx in local_basis
     ]
     return @constraint(model, moment_mtx in cone)

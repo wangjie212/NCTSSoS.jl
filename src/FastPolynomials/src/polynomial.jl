@@ -143,10 +143,6 @@ function support(poly::Polynomial{T}, canonicalize::Function) where {T}
     return unique!(canonicalize.(poly.monos))
 end
 
-function get_basis(::Type{Polynomial{T}}, variables::Vector{Variable}, d::Int) where {T}
-    return get_basis(variables, d)
-end
-
 """
     cyclic_canonicalize(poly::Polynomial)
 
