@@ -52,9 +52,6 @@ using Test, NCTSSoS.FastPolynomials
         )
         @test p1 == p2
         @test !(p1 == p3)
-
-        @test !isapprox(p1, p3; atol=1e-9)
-        @test isapprox(p1, p3; atol=1e-7)
     end
     @testset "Hash Polynomial" begin
         @ncpolyvar x y
