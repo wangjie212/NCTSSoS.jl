@@ -142,3 +142,18 @@ Computes the support of a polynomial after canonicalization.
 function support(poly::Polynomial{T}, canonicalize::Function) where {T}
     return unique!(canonicalize.(poly.monos))
 end
+
+"""
+    cyclic_canonicalize(poly::Polynomial)
+
+Canonicalizes a polynomial by applying cyclic canonicalization to all monomials.
+
+# Arguments
+- `poly::Polynomial`: The polynomial to canonicalize
+
+# Returns
+- `Polynomial`: Canonicalized polynomial with same coefficients and canonicalized monomials
+"""
+function cyclic_canonicalize(poly::Polynomial)
+    return Polynomial(poly.coeffs, cyclic_canonicalize.(poly.monos))
+end

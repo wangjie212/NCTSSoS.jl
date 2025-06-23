@@ -97,6 +97,8 @@ Base.:(*)(a::StateWord, b::Monomial) = NCStateWord(a, b)
 
 Base.one(::Type{StateWord}) = StateWord([one(Monomial)])
 Base.one(_::StateWord) = one(StateWord)
+Base.zero(::Type{StateWord}) = 0.0 * one(StateWord)
+Base.zero(::StateWord) = 0.0 * one(StateWord)
 
 """
     NCStateWord
@@ -190,6 +192,8 @@ end
 
 Base.one(::Type{NCStateWord}) = NCStateWord(one(StateWord), one(Monomial))
 Base.one(_::NCStateWord) = one(NCStateWord)
+Base.zero(::Type{NCStateWord}) = 0.0 * one(NCStateWord)
+Base.zero(::NCStateWord) = 0.0 * one(NCStateWord)
 
 """
     expval(a::NCStateWord)
@@ -203,44 +207,3 @@ Computes the expectation value by combining state monomials with the non-commuta
 - `StateWord`: StateWord containing all state monomials plus the non-commutative word
 """
 expval(a::NCStateWord) = StateWord([a.sw.state_monos; a.nc_word])
-
-function _unipotent(sw::StateWord)
-    return StateWord(_unipotent.(sw.state_monos))
-end
-
-function _unipotent(ncsw::NCStateWord)
-    return NCStateWord(_unipotent(ncsw.sw), _unipotent(ncsw.nc_word))
-end
-
-_projective(sw::StateWord) = StateWord(_projective.(sw.state_monos))
-
-function _projective(ncsw::NCStateWord)
-    return NCStateWord(_projective(ncsw.sw), _projective(ncsw.nc_word))
-end
-
-function get_state_basis(variables::Vector{Variable}, d::Int, reducer)
-    return reducer.(
-        map(
-            a -> NCStateWord(StateWord(a[1]), a[2]),
-            mapreduce(vcat, 0:d) do nc_deg
-                nc_basis = monomials(variables, Val(nc_deg))
-                cw_deg = d - nc_deg
-                cw_basis = unique!([
-                    begin
-                        interm = sort(filter(!isone, collect(c_word)))
-                        isempty(interm) ? [one(variables[1])] : interm
-                    end for c_word in Iterators.product(
-                        ntuple(
-                            _ -> unique!(
-                                symmetric_canonicalize.(get_basis(variables, cw_deg))
-                            ),
-                            cw_deg,
-                        )...,
-                        [one(variables[1])],
-                    ) if sum(degree.(c_word)) <= cw_deg
-                ])
-                reshape(collect(Iterators.product(cw_basis, nc_basis)), :)
-            end,
-        ),
-    )
-end

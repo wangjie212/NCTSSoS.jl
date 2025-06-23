@@ -35,6 +35,8 @@ degree(sp::StatePolynomial) = mapreduce(degree, max, sp.state_words)
 
 monomials(sp::StatePolynomial) = sp.state_words
 
+coefficients(sp::StatePolynomial) = sp.coeffs
+
 function Base.show(io::IO, obj::StatePolynomial)
     return print_object(io, obj; multiline=false)
 end
@@ -126,6 +128,7 @@ function Base.:(-)(a::StatePolynomial, b::StatePolynomial)
 end
 
 Base.one(::StatePolynomial{T}) where {T} = StatePolynomial([one(T)], [one(StateWord)])
+Base.one(::Type{StatePolynomial{T}}) where {T} = StatePolynomial([one(T)], [one(StateWord)])
 
 function Base.zero(::StatePolynomial{T}) where {T}
     return StatePolynomial([zero(T)], [one(StateWord)])
@@ -170,6 +173,7 @@ function ncstatepoly(coeffs::Vector{T}, nc_state_words::Vector{NCStateWord}) whe
     nz_idcs = filter(a -> !iszero(uniq_coeffs[a]), 1:length(uniq_coeffs))
     return NCStatePolynomial(uniq_coeffs[nz_idcs], uniq_nc_state_words[nz_idcs])
 end
+
 
 function Base.show(io::IO, obj::NCStatePolynomial)
     return print_object(io, obj; multiline=false)
@@ -234,6 +238,9 @@ function Base.:(-)(a::NCStatePolynomial{T}, b::NCStateWord) where {T}
 end
 
 Base.one(::NCStatePolynomial{T}) where {T} = NCStatePolynomial([one(T)], [one(NCStateWord)])
+function Base.one(::Type{NCStatePolynomial{T}}) where {T}
+    return NCStatePolynomial([one(T)], [one(NCStateWord)])
+end
 
 function Base.zero(::NCStatePolynomial{T}) where {T}
     return NCStatePolynomial([zero(T)], [one(NCStateWord)])
@@ -253,36 +260,6 @@ end
 
 monomials(ncsp::NCStatePolynomial) = ncsp.nc_state_words
 
+coefficients(ncsp::NCStatePolynomial) = ncsp.coeffs
+
 terms(ncsp::NCStatePolynomial) = zip(ncsp.coeffs, ncsp.nc_state_words)
-
-for symb in [:symmetric_canonicalize, :cyclic_canonicalize]
-    # assuming this is always reduced
-    take_adj = (symb == :symmetric_canonicalize ? :adjoint : :identity)
-    eval(
-        quote
-            function $(symb)(sw::StateWord)
-                return StateWord($(symb).(sw.state_monos))
-            end
-
-            function $(symb)(ncsw::NCStateWord)
-                return NCStateWord($(symb)(ncsw.sw), $(symb)(ncsw.nc_word))
-            end
-
-            function $(symb)(sp::StatePolynomial)
-                return StatePolynomial((sp.coeffs), $(symb).(sp.state_words))
-            end
-
-            function $(symb)(ncsp::NCStatePolynomial)
-                return NCStatePolynomial((ncsp.coeffs), $(symb).(ncsp.nc_state_words))
-            end
-        end,
-    )
-end
-
-function _comm(sw::StateWord, comm_gps::Vector{Vector{Variable}})
-    StateWord.(prod.(_comm.(sw.state_monos, Ref(comm_gps))))
-end
-
-function _comm(ncsw::NCStateWord, comm_gps::Vector{Vector{Variable}})
-    NCStateWord.(_comm(ncsw.sw, comm_gps), prod(_comm(ncsw.nc_word, comm_gps)))
-end

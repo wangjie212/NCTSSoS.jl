@@ -79,7 +79,8 @@ using NCTSSoS.FastPolynomials:
 
         @test expval(ncsw1) == StateWord([x[1] * x[2], x[2]^2, x[1] * x[2]])
 
-        basis = get_state_basis(x, 1, identity)
+        sa = SimplifyAlgorithm(; comm_gps=[x], is_projective=false, is_unipotent=false)
+        basis = get_state_basis(x, 1, sa)
         total_basis = sort(unique([neat_dot(a, b) for a in basis for b in basis]))
         c_words = [
             [one(x[1])],
@@ -99,14 +100,15 @@ using NCTSSoS.FastPolynomials:
             [one(x[1])],
             [one(x[1])],
         ]
-        nc_words = monomial.(
-            [
-                fill(one(x[1]), 6)
-                fill(x[2], 3)
-                fill(x[1], 3)
-                [x[2] * x[1], x[2]^2, x[1] * x[2], x[1]^2]
-            ],
-        )
+        nc_words =
+            monomial.(
+                [
+                    fill(one(x[1]), 6)
+                    fill(x[2], 3)
+                    fill(x[1], 3)
+                    [x[2] * x[1], x[2]^2, x[1] * x[2], x[1]^2]
+                ],
+            )
         @test sort(total_basis) ==
             sort(map(x -> NCStateWord(x[1], x[2]), zip(c_words, nc_words)))
     end
