@@ -174,6 +174,7 @@ function ncstatepoly(coeffs::Vector{T}, nc_state_words::Vector{NCStateWord}) whe
     return NCStatePolynomial(uniq_coeffs[nz_idcs], uniq_nc_state_words[nz_idcs])
 end
 
+
 function Base.show(io::IO, obj::NCStatePolynomial)
     return print_object(io, obj; multiline=false)
 end
