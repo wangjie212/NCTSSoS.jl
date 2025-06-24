@@ -46,11 +46,30 @@ SolverConfig(Clarabel.MOIwrapper.Optimizer, 2, NoElimination(), NoElimination())
     ts_algo::EliminationAlgorithm = NoElimination()
 end
 
-# TODO: add user interface
-# learn from OMEinsum.jl
-# consider adding Solver Interface
-# consider obtaining enough information on Moment matrix etc to check if problem solved correctly
-# prev_ans::Union{Nothing,PolyOptResult{C,T}}=nothing
+"""
+    cs_nctssos(pop::PolyOpt{P}, solver_config::SolverConfig; dualize::Bool=true) where {P}
+
+Solve a polynomial optimization problem using the CS-NCTSSOS method with correlative sparsity and term sparsity exploitation.
+
+# Arguments
+- `pop::PolyOpt{P}`: The polynomial optimization problem to solve
+- `solver_config::SolverConfig`: Configuration containing optimizer, moment order, and sparsity algorithms
+
+# Keyword Arguments
+- `dualize::Bool=true`: Whether to dualize the moment relaxation to a sum-of-squares problem
+
+# Returns
+- `PolyOptResult`: Result containing the objective value, correlative sparsity structure, and term sparsity information
+
+# Description
+This function solves a polynomial optimization problem by:
+1. Computing correlative sparsity to decompose the problem into smaller cliques
+2. Computing term sparsity for each clique to further reduce problem size
+3. Formulating and solving either the moment relaxation or its SOS dual
+4. Returning the optimal objective value and sparsity information
+
+The moment order is automatically determined from the polynomial degrees if not specified in `solver_config`.
+"""
 function cs_nctssos(pop::PolyOpt{P}, solver_config::SolverConfig; dualize::Bool=true) where {P}
     sa = SimplifyAlgorithm(comm_gps=pop.comm_gps, is_projective=pop.is_projective, is_unipotent=pop.is_unipotent)
     mom_order = iszero(solver_config.mom_order) ? maximum([ceil(Int, maxdegree(poly) / 2) for poly in [pop.objective; pop.eq_constraints; pop.ineq_constraints]]) : solver_config.mom_order
@@ -80,6 +99,31 @@ function cs_nctssos(pop::PolyOpt{P}, solver_config::SolverConfig; dualize::Bool=
     end
 end
 
+"""
+    cs_nctssos_higher(pop::PolyOpt{T}, prev_res::PolyOptResult, solver_config::SolverConfig; dualize::Bool=true) where {T}
+
+Solve a polynomial optimization problem using higher-order term sparsity based on a previous result.
+
+# Arguments
+- `pop::PolyOpt{T}`: The polynomial optimization problem to solve
+- `prev_res::PolyOptResult`: Previous optimization result containing sparsity information to build upon
+- `solver_config::SolverConfig`: Configuration containing optimizer and sparsity algorithms
+
+# Keyword Arguments
+- `dualize::Bool=true`: Whether to dualize the moment relaxation to a sum-of-squares problem
+
+# Returns
+- `PolyOptResult`: Result containing the objective value, correlative sparsity structure, and updated term sparsity information
+
+# Description
+This function performs a higher-order iteration of the CS-NCTSSOS method by:
+1. Using the correlative sparsity structure from the previous result
+2. Computing new term sparsity based on the union of previously activated supports
+3. Formulating and solving either the moment relaxation or its SOS dual with the refined sparsity
+4. Returning the optimal objective value and updated sparsity information
+
+This is typically used when the previous relaxation was not tight enough and a higher-order relaxation is needed.
+"""
 function cs_nctssos_higher(pop::PolyOpt{T}, prev_res::PolyOptResult, solver_config::SolverConfig; dualize::Bool=true) where {T}
     sa = SimplifyAlgorithm(comm_gps=pop.comm_gps, is_unipotent=pop.is_unipotent, is_projective=pop.is_projective)
     initial_activated_supps = [sorted_union([poly_term_sparsity.term_sparse_graph_supp for poly_term_sparsity in term_sparsities]...)
@@ -103,34 +147,3 @@ function cs_nctssos_higher(pop::PolyOpt{T}, prev_res::PolyOptResult, solver_conf
         return PolyOptResult(objective_value(sos_problem.model), prev_res.corr_sparsity, cliques_term_sparsities)
     end
 end
-
-# function cs_nctssos(spop::PolyOpt{NCStatePolynomial{T},OBJ}, solver_config::SolverConfig; dualize::Bool=true) where {T,OBJ}
-
-#     sa = SimplifyAlgorithm(comm_gps=spop.comm_gps, is_projective=spop.is_projective, is_unipotent=spop.is_unipotent)
-
-#     mom_order = iszero(solver_config.mom_order) ? maximum([ceil(Int, maxdegree(poly) / 2) for poly in [spop.objective; spop.eq_constraints; spop.ineq_constraints]]) : solver_config.mom_order
-
-#     corr_sparsity = correlative_sparsity(spop, mom_order, solver_config.cs_algo)
-
-#     cliques_objective = [reduce(+, [issubset(sort!(variables(t[2])), clique) ? t[1] * t[2] : zero(t[2]) for t in terms(spop.objective)]) for clique in corr_sparsity.cliques]
-
-#     initial_activated_supps = map(zip(cliques_objective, corr_sparsity.clq_cons, corr_sparsity.clq_mom_mtx_bases)) do (partial_obj, cons_idx, mom_mtx_base)
-#         init_activated_supp(partial_obj, corr_sparsity.cons[cons_idx], mom_mtx_base, reducer_func)
-#     end
-
-#     cliques_term_sparsities = map(zip(initial_activated_supps, corr_sparsity.clq_cons, corr_sparsity.clq_mom_mtx_bases, corr_sparsity.clq_localizing_mtx_bases)) do (init_act_supp, cons_idx, mom_mtx_bases, localizing_mtx_bases)
-#         term_sparsities(init_act_supp, corr_sparsity.cons[cons_idx], mom_mtx_bases, localizing_mtx_bases, solver_config.ts_algo, reducer_func)
-#     end
-
-#     moment_problem = moment_relax(spop, corr_sparsity, cliques_term_sparsities)
-#     if dualize
-#         sos_problem = sos_dualize(moment_problem)
-#         set_optimizer(sos_problem.model, solver_config.optimizer)
-#         optimize!(sos_problem.model)
-#         return PolyOptResult(objective_value(sos_problem.model), corr_sparsity, cliques_term_sparsities)
-#     else
-#         set_optimizer(moment_problem.model, solver_config.optimizer)
-#         optimize!(moment_problem.model)
-#         return PolyOptResult(objective_value(moment_problem.model), corr_sparsity, cliques_term_sparsities)
-#     end
-# end
