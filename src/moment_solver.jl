@@ -25,11 +25,17 @@ function moment_relax(pop::PolyOpt{P}, corr_sparsity::CorrelativeSparsity, cliqu
     # left type here to support BigFloat model for higher precision
     model = GenericModel{real(T)}()
 
+    x = pop.variables[1:6]
+    y = pop.variables[7:12]
+
     sa = SimplifyAlgorithm(comm_gps=pop.comm_gps, is_unipotent=pop.is_unipotent, is_projective=pop.is_projective)
     # the union of clique_total_basis
     total_basis = sorted_union(map(zip(corr_sparsity.clq_cons, cliques_term_sparsities)) do (cons_idx, term_sparsities)
         union(vec(reduce(vcat, [
             map(monomials(poly)) do m
+                if neat_dot(rol_idx, m * col_idx) == x[1]*y[1]*x[1]*y[1]
+                    @show rol_idx, m, col_idx, symmetric_canonicalize(x[1] * y[1] * x[1] * y[1], sa)
+                end
                 expval(simplify(neat_dot(rol_idx, m * col_idx), sa))
             end
             for (poly, term_sparsity) in zip([one(pop.objective); corr_sparsity.cons[cons_idx]], term_sparsities) for basis in term_sparsity.block_bases for rol_idx in basis for col_idx in basis
@@ -42,17 +48,7 @@ function moment_relax(pop::PolyOpt{P}, corr_sparsity::CorrelativeSparsity, cliqu
     monomap = Dict(zip(total_basis, y))
 
     constraint_matrices =
-                # map(corr_sparsity.global_cons) do global_con
-                #     constrain_moment_matrix!(
-                #         model,
-                #         corr_sparsity.cons[global_con],
-                #         [one(pop.objective)],
-                #         monomap,
-                #         global_con <= length(pop.eq_constraints) ? Zeros() : PSDCone(),
-                #         sa
-                #     )
-                # end
-        mapreduce(vcat, zip(cliques_term_sparsities, corr_sparsity.clq_cons)) do (term_sparsities, cons_idx)
+        [mapreduce(vcat, zip(cliques_term_sparsities, corr_sparsity.clq_cons)) do (term_sparsities, cons_idx)
                 mapreduce(vcat, zip(term_sparsities, [one(pop.objective), corr_sparsity.cons[cons_idx]...])) do (term_sparsity, poly)
                     map(term_sparsity.block_bases) do ts_sub_basis
                         constrain_moment_matrix!(
@@ -64,31 +60,16 @@ function moment_relax(pop::PolyOpt{P}, corr_sparsity::CorrelativeSparsity, cliqu
                     end
                 end
             end
-    @show constraint_matrices
-
-    # constraint_matrices =
-    #     [mapreduce(vcat, zip(cliques_term_sparsities, corr_sparsity.clq_cons)) do (term_sparsities, cons_idx)
-    #             mapreduce(vcat, zip(term_sparsities, [one(pop.objective), corr_sparsity.cons[cons_idx]...])) do (term_sparsity, poly)
-    #                 map(term_sparsity.block_bases) do ts_sub_basis
-    #                     constrain_moment_matrix!(
-    #                         model,
-    #                         poly,
-    #                         ts_sub_basis,
-    #                         monomap,
-    #                         poly in pop.eq_constraints ? Zeros() : PSDCone(), sa)
-    #                 end
-    #             end
-    #         end
-    #         map(corr_sparsity.global_cons) do global_con
-    #             constrain_moment_matrix!(
-    #                 model,
-    #                 corr_sparsity.cons[global_con],
-    #                 [one(pop.objective)],
-    #                 monomap,
-    #                 global_con <= length(pop.eq_constraints) ? Zeros() : PSDCone(),
-    #                 sa
-    #             )
-    #         end]
+            map(corr_sparsity.global_cons) do global_con
+                constrain_moment_matrix!(
+                    model,
+                    corr_sparsity.cons[global_con],
+                    [one(pop.objective)],
+                    monomap,
+                    global_con <= length(pop.eq_constraints) ? Zeros() : PSDCone(),
+                    sa
+                )
+            end]
 
     make_real = T <: Real ? identity : real
     @objective(model, Min, substitute_variables(mapreduce(p -> make_real(p[1]) * simplify(p[2], sa), +, terms(symmetric_canonicalize(pop.objective, sa)); init=make_real(zero(pop.objective))), monomap))
@@ -105,7 +86,6 @@ function constrain_moment_matrix!(
     sa::SimplifyAlgorithm
 ) where {T,T1,P<:AbstractPolynomial{T},M1,M2}
     T_prom = promote_type(T,T1)
-    @show T_prom
     moment_mtx = [
         substitute_variables(sum([T_prom(coef) * simplify(neat_dot(row_idx, mono * col_idx), sa) for (coef, mono) in zip(coefficients(poly), monomials(poly))]), monomap) for
         row_idx in local_basis, col_idx in local_basis

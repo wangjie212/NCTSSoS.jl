@@ -21,7 +21,7 @@ using NCTSSoS:
     pop = PolyOpt(ham; eq_constraints=eq_cons, comm_gps=[[x[i], y[i], z[i]] for i in 1:N], is_unipotent=true)
     mom_order = 2
 
-    csp = correlative_sparsity(pop, mom_order, MF())
+    csp = correlative_sparsity(pop, mom_order, NoElimination())
 
     sa = SimplifyAlgorithm(comm_gps=pop.comm_gps, is_unipotent=pop.is_unipotent, is_projective=pop.is_projective)
 
