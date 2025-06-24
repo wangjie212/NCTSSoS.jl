@@ -12,6 +12,32 @@ using NCTSSoS:
 
 
 @testset "Correlative Sparsity without constraints" begin
+    @testset "Heisenberg Chain" begin
+
+        N = 6
+        @ncpolyvar x[1:N] y[1:N] z[1:N]
+
+        ham = sum(ComplexF64(1 / 4) * op[i] * op[mod1(i + 1, N)] for op in [x, y, z] for i in 1:N)
+
+        eq_cons = reduce(vcat, [[x[i] * y[i] - im * z[i], y[i] * x[i] + im * z[i], y[i] * z[i] - im * x[i], z[i] * y[i] + im * x[i], z[i] * x[i] - im * y[i], x[i] * z[i] + im * y[i]] for i in 1:N])
+
+        pop = PolyOpt(ham; eq_constraints=eq_cons, comm_gps=[[x[i], y[i], z[i]] for i in 1:N], is_unipotent=true)
+        @testset "No Elimination" begin
+            corr_sparsity = correlative_sparsity(pop, mom_order, NoElimination())
+            @test maximum(length.(corr_sparsity.cliques)) == 6
+        end
+
+        @testset "MF" begin
+            corr_sparsity = correlative_sparsity(pop, mom_order, MF())
+            @test maximum(length.(corr_sparsity.cliques)) == 4
+        end
+
+        @testset "AsIS" begin
+            corr_sparsity = correlative_sparsity(pop, mom_order, AsIsElimination())
+            @test maximum(length.(corr_sparsity.cliques)) == 2
+        end
+    end
+
     @testset "Example 2" begin
         @ncpolyvar x[1:3]
         @ncpolyvar y[1:3]

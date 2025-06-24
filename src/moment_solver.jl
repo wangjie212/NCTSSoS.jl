@@ -36,6 +36,8 @@ function moment_relax(pop::PolyOpt{P}, corr_sparsity::CorrelativeSparsity, cliqu
         ])))
     end...)
 
+    @show total_basis
+
     # map the monomials to JuMP variables, the first variable must be 1
     @variable(model, y[1:length(total_basis)])
     @constraint(model, first(y) == 1)
