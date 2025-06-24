@@ -123,6 +123,8 @@ Base.one(::Type{Polynomial{T}}) where {T} = Polynomial([one(T)], [one(Monomial)]
 Base.one(::Polynomial{T}) where {T} = Polynomial([one(T)], [one(Monomial)])
 Base.zero(::Polynomial{T}) where {T} = Polynomial([zero(T)], [one(Monomial)])
 
+Base.real(p::Polynomial) = Polynomial(real.(p.coeffs), p.monos)
+
 coefficients(p::Polynomial) = p.coeffs
 monomials(p::Polynomial) = p.monos
 terms(p::Polynomial) = zip(p.coeffs, p.monos)

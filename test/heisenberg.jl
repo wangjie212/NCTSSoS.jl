@@ -17,8 +17,6 @@ solver_config = SolverConfig(optimizer=SOLVER, mom_order=1, cs_algo=MF(), ts_alg
 # how do I deal with complex constraint?
 res = cs_nctssos(pop, solver_config)
 
-NCTSSoS.debug(res)
-
 res = cs_nctssos_higher(pop,res,solver_config)
 @test res.objective / N ≈ -0.467129 atol=1e-6
 

@@ -36,22 +36,23 @@ function moment_relax(pop::PolyOpt{P}, corr_sparsity::CorrelativeSparsity, cliqu
         ])))
     end...)
 
-    for (i,clq_ts) in enumerate(cliques_term_sparsities)
-        println("Clique $(i)")
-        for ts in clq_ts
-            debug(ts)
-        end
-    end
-
-
-
     # map the monomials to JuMP variables, the first variable must be 1
     @variable(model, y[1:length(total_basis)])
     @constraint(model, first(y) == 1)
     monomap = Dict(zip(total_basis, y))
 
     constraint_matrices =
-        [mapreduce(vcat, zip(cliques_term_sparsities, corr_sparsity.clq_cons)) do (term_sparsities, cons_idx)
+                # map(corr_sparsity.global_cons) do global_con
+                #     constrain_moment_matrix!(
+                #         model,
+                #         corr_sparsity.cons[global_con],
+                #         [one(pop.objective)],
+                #         monomap,
+                #         global_con <= length(pop.eq_constraints) ? Zeros() : PSDCone(),
+                #         sa
+                #     )
+                # end
+        mapreduce(vcat, zip(cliques_term_sparsities, corr_sparsity.clq_cons)) do (term_sparsities, cons_idx)
                 mapreduce(vcat, zip(term_sparsities, [one(pop.objective), corr_sparsity.cons[cons_idx]...])) do (term_sparsity, poly)
                     map(term_sparsity.block_bases) do ts_sub_basis
                         constrain_moment_matrix!(
@@ -63,18 +64,34 @@ function moment_relax(pop::PolyOpt{P}, corr_sparsity::CorrelativeSparsity, cliqu
                     end
                 end
             end
-            map(corr_sparsity.global_cons) do global_con
-                constrain_moment_matrix!(
-                    model,
-                    corr_sparsity.cons[global_con],
-                    [one(pop.objective)],
-                    monomap,
-                    global_con <= length(pop.eq_constraints) ? Zeros() : PSDCone(),
-                    sa
-                )
-            end]
+    @show constraint_matrices
 
-    @objective(model, Min, substitute_variables(mapreduce(p -> p[1] * simplify(p[2], sa), +, terms(symmetric_canonicalize(pop.objective, sa)); init=zero(pop.objective)), monomap))
+    # constraint_matrices =
+    #     [mapreduce(vcat, zip(cliques_term_sparsities, corr_sparsity.clq_cons)) do (term_sparsities, cons_idx)
+    #             mapreduce(vcat, zip(term_sparsities, [one(pop.objective), corr_sparsity.cons[cons_idx]...])) do (term_sparsity, poly)
+    #                 map(term_sparsity.block_bases) do ts_sub_basis
+    #                     constrain_moment_matrix!(
+    #                         model,
+    #                         poly,
+    #                         ts_sub_basis,
+    #                         monomap,
+    #                         poly in pop.eq_constraints ? Zeros() : PSDCone(), sa)
+    #                 end
+    #             end
+    #         end
+    #         map(corr_sparsity.global_cons) do global_con
+    #             constrain_moment_matrix!(
+    #                 model,
+    #                 corr_sparsity.cons[global_con],
+    #                 [one(pop.objective)],
+    #                 monomap,
+    #                 global_con <= length(pop.eq_constraints) ? Zeros() : PSDCone(),
+    #                 sa
+    #             )
+    #         end]
+
+    make_real = T <: Real ? identity : real
+    @objective(model, Min, substitute_variables(mapreduce(p -> make_real(p[1]) * simplify(p[2], sa), +, terms(symmetric_canonicalize(pop.objective, sa)); init=make_real(zero(pop.objective))), monomap))
 
     return MomentProblem(model, constraint_matrices, monomap, sa)
 end
@@ -87,8 +104,10 @@ function constrain_moment_matrix!(
     cone, # FIXME: which type should I use?
     sa::SimplifyAlgorithm
 ) where {T,T1,P<:AbstractPolynomial{T},M1,M2}
+    T_prom = promote_type(T,T1)
+    @show T_prom
     moment_mtx = [
-        substitute_variables(sum([coef * simplify(neat_dot(row_idx, mono * col_idx), sa) for (coef, mono) in zip(coefficients(poly), monomials(poly))]), monomap) for
+        substitute_variables(sum([T_prom(coef) * simplify(neat_dot(row_idx, mono * col_idx), sa) for (coef, mono) in zip(coefficients(poly), monomials(poly))]), monomap) for
         row_idx in local_basis, col_idx in local_basis
     ]
     return @constraint(model, moment_mtx in cone)
