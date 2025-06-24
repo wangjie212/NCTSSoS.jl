@@ -6,7 +6,7 @@ end
 # j: index of the constraint
 # α: the monomial (JuMP variable)
 function get_Cαj(basis::Vector{GenericVariableRef{T}}, localizing_mtx::VectorConstraint{F,S,Shape}) where {T,F,S,Shape}
-    T_coef = complex(T)
+    T_coef = get_coef_type(localizing_mtx)
     dim = get_dim(localizing_mtx)
     cis = CartesianIndices((dim, dim))
     nbasis = length(basis)
@@ -29,7 +29,7 @@ end
 
 function sos_dualize(moment_problem::MomentProblem{T,M}) where {T,M}
     dual_model = GenericModel{T}()
-    T_coef = complex(T)
+    T_coef = get_coef_type(constraint_object(moment_problem.constraints[1]))
 
     # Initialize Gj as variables
     dual_variables = map(constraint_object.(moment_problem.constraints)) do cons

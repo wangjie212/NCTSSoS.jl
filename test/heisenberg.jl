@@ -10,16 +10,12 @@ eq_cons = reduce(vcat, [[x[i] * y[i] - im * z[i], y[i] * x[i] + im * z[i], y[i] 
 
 pop = PolyOpt(ham; eq_constraints=eq_cons, comm_gps=[[x[i], y[i], z[i]] for i in 1:N], is_unipotent=true)
 
-solver_config = SolverConfig(optimizer=Mosek.Optimizer)
+solver_config = SolverConfig(optimizer=Mosek.Optimizer, mom_order = 2)
 
 # how do I deal with complex constraint?
-cs_nctssos(pop, solver_config)
+res = cs_nctssos(pop, solver_config)
+res.objective / N
 
-using JuMP
 
-model = GenericModel{Float64}()
 
-@variable(model, y[1:2])
-
-@constraint(model, im * y[1] = y[2])
 
