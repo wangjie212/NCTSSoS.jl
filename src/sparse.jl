@@ -153,6 +153,11 @@ struct TermSparsity{M}
     block_bases::Vector{Vector{M}}
 end
 
+function debug(ts::TermSparsity)
+    println("Term Sparse Graph Support", ts.term_sparse_graph_supp)
+    println("Block bases", ts.block_bases)
+end
+
 function Base.show(io::IO, sparsity::TermSparsity)
     println(io, "Number of Activated supp:   ", length(sparsity.term_sparse_graph_supp))
     println(io, "Number of Bases Activated in each sub-block", length.(sparsity.block_bases))
@@ -188,11 +193,14 @@ function get_term_sparsity_graph(cons_support::Vector{M}, activated_supp::Vector
     nterms = length(bases)
     G = SimpleGraph(nterms)
     sorted_activated_supp = sort(activated_supp)
+    @show sorted_activated_supp
     for i in 1:nterms, j in i+1:nterms
         for supp in cons_support
             connected_mono = neat_dot(bases[i], supp * bases[j])
             expval_cm = expval(simplify(connected_mono, sa)) * one(Monomial)
+            @show expval_cm, symmetric_canonicalize(connected_mono,sa)
             if symmetric_canonicalize(connected_mono, sa) in sorted_activated_supp || expval_cm in sorted_activated_supp
+                @show "yes"
                 add_edge!(G, i, j)
                 continue
             end
