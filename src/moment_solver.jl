@@ -7,10 +7,9 @@ struct MomentProblem{T,M,CR<:ConstraintRef} <: OptimizationProblem
     sa::SimplifyAlgorithm
 end
 
-function substitute_variables(poly::P, monomap::Dict{M,GenericVariableRef{T}}) where {T,P<:AbstractPolynomial{T},M}
-    mapreduce(+, zip(coefficients(poly), monomials(poly))) do (coef, mono)
-        coef * monomap[expval(mono)]
-    end
+# T = real(T1)
+function substitute_variables(poly::P, monomap::Dict{M,GenericVariableRef{T}}) where {T,T1,P<:AbstractPolynomial{T1},M}
+    sum(coef * monomap[expval(mono)] for (coef, mono) in zip(coefficients(poly), monomials(poly)))
 end
 
 function get_mom_matrix(mom_problem::MomentProblem)
@@ -24,7 +23,7 @@ end
 function moment_relax(pop::PolyOpt{P}, corr_sparsity::CorrelativeSparsity, cliques_term_sparsities::Vector{Vector{TermSparsity{M}}}) where {T,P<:AbstractPolynomial{T},M}
     # NOTE: objective and constraints may have integer coefficients, but popular JuMP solvers does not support integer coefficients
     # left type here to support BigFloat model for higher precision
-    model = GenericModel{T}()
+    model = GenericModel{real(T)}()
 
     sa = SimplifyAlgorithm(comm_gps=pop.comm_gps, is_unipotent=pop.is_unipotent, is_projective=pop.is_projective)
     # the union of clique_total_basis
@@ -72,13 +71,13 @@ function moment_relax(pop::PolyOpt{P}, corr_sparsity::CorrelativeSparsity, cliqu
 end
 
 function constrain_moment_matrix!(
-    model::GenericModel{T},
+    model::GenericModel{T1},
     poly::P,
     local_basis::Vector{M1}, # M2 should be expval(M1)
-    monomap::Dict{M2,GenericVariableRef{T}},
+    monomap::Dict{M2,GenericVariableRef{T1}},
     cone, # FIXME: which type should I use?
     sa::SimplifyAlgorithm
-) where {T,P<:AbstractPolynomial{T},M1,M2}
+) where {T,T1,P<:AbstractPolynomial{T},M1,M2}
     moment_mtx = [
         substitute_variables(sum([coef * simplify(neat_dot(row_idx, mono * col_idx), sa) for (coef, mono) in zip(coefficients(poly), monomials(poly))]), monomap) for
         row_idx in local_basis, col_idx in local_basis
