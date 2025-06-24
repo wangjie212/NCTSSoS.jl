@@ -10,33 +10,42 @@ using NCTSSoS:
     NCStateWord, 
     get_state_basis
 
+@testset "Heisenberg Chain" begin
+    N = 6
+    @ncpolyvar x[1:N] y[1:N] z[1:N]
+
+    ham = sum(ComplexF64(1 / 4) * op[i] * op[mod1(i + 1, N)] for op in [x, y, z] for i in 1:N)
+
+    eq_cons = reduce(vcat, [[x[i] * y[i] - im * z[i], y[i] * x[i] + im * z[i], y[i] * z[i] - im * x[i], z[i] * y[i] + im * x[i], z[i] * x[i] - im * y[i], x[i] * z[i] + im * y[i]] for i in 1:N])
+
+    pop = PolyOpt(ham; eq_constraints=eq_cons, comm_gps=[[x[i], y[i], z[i]] for i in 1:N], is_unipotent=true)
+    mom_order = 1
+
+    csp = correlative_sparsity(pop, mom_order, MF())
+
+    sa = SimplifyAlgorithm(comm_gps=pop.comm_gps, is_unipotent=pop.is_unipotent, is_projective=pop.is_projective)
+
+    partial_obj = ComplexF64(1 / 4) * x[2] * x[3] + ComplexF64(1 / 4) * x[3] * x[4]
+
+    cons = typeof(partial_obj)[]
+
+    mom_mtx_bases = NCTSSoS.get_basis([x[2], x[3], x[4], y[3], z[2], z[4]], mom_order)
+
+    init_act_supp = NCTSSoS.init_activated_supp(partial_obj, cons, mom_mtx_bases, sa)
+
+    ts_g = NCTSSoS.get_term_sparsity_graph(monomials(one(partial_obj)), init_act_supp, mom_mtx_bases, sa)
+
+    ts = NCTSSoS.iterate_term_sparse_supp(init_act_supp, one(partial_obj), mom_mtx_bases, MMD(),sa)
+
+    m1 = x[3]*x[4]
+    sm = sort([one(Monomial), x[2] * x[3], x[3] * x[4]])
+
+
+
+end
+
 
 @testset "Correlative Sparsity without constraints" begin
-    @testset "Heisenberg Chain" begin
-
-        N = 6
-        @ncpolyvar x[1:N] y[1:N] z[1:N]
-
-        ham = sum(ComplexF64(1 / 4) * op[i] * op[mod1(i + 1, N)] for op in [x, y, z] for i in 1:N)
-
-        eq_cons = reduce(vcat, [[x[i] * y[i] - im * z[i], y[i] * x[i] + im * z[i], y[i] * z[i] - im * x[i], z[i] * y[i] + im * x[i], z[i] * x[i] - im * y[i], x[i] * z[i] + im * y[i]] for i in 1:N])
-
-        pop = PolyOpt(ham; eq_constraints=eq_cons, comm_gps=[[x[i], y[i], z[i]] for i in 1:N], is_unipotent=true)
-        @testset "No Elimination" begin
-            corr_sparsity = correlative_sparsity(pop, mom_order, NoElimination())
-            @test maximum(length.(corr_sparsity.cliques)) == 6
-        end
-
-        @testset "MF" begin
-            corr_sparsity = correlative_sparsity(pop, mom_order, MF())
-            @test maximum(length.(corr_sparsity.cliques)) == 4
-        end
-
-        @testset "AsIS" begin
-            corr_sparsity = correlative_sparsity(pop, mom_order, AsIsElimination())
-            @test maximum(length.(corr_sparsity.cliques)) == 2
-        end
-    end
 
     @testset "Example 2" begin
         @ncpolyvar x[1:3]

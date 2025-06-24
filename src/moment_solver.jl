@@ -36,7 +36,14 @@ function moment_relax(pop::PolyOpt{P}, corr_sparsity::CorrelativeSparsity, cliqu
         ])))
     end...)
 
-    @show total_basis
+    for (i,clq_ts) in enumerate(cliques_term_sparsities)
+        println("Clique $(i)")
+        for ts in clq_ts
+            debug(ts)
+        end
+    end
+
+
 
     # map the monomials to JuMP variables, the first variable must be 1
     @variable(model, y[1:length(total_basis)])
