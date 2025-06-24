@@ -12,10 +12,10 @@ eq_cons = reduce(vcat, [[x[i] * y[i] - im * z[i], y[i] * x[i] + im * z[i], y[i] 
 
 pop = PolyOpt(ham; eq_constraints=eq_cons, comm_gps=[[x[i], y[i], z[i]] for i in 1:N], is_unipotent=true)
 
-solver_config = SolverConfig(optimizer=SOLVER, mom_order=1, cs_algo=MF(), ts_algo = MMD())
+solver_config = SolverConfig(optimizer=SOLVER, mom_order=2, cs_algo=MF(), ts_algo = MMD())
 
 # how do I deal with complex constraint?
-res = cs_nctssos(pop, solver_config)
+res = cs_nctssos(pop, solver_config;dualize=false)
 
 res = cs_nctssos_higher(pop,res,solver_config)
 @test res.objective / N ≈ -0.467129 atol=1e-6
