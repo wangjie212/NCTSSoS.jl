@@ -25,17 +25,11 @@ function moment_relax(pop::PolyOpt{P}, corr_sparsity::CorrelativeSparsity, cliqu
     # left type here to support BigFloat model for higher precision
     model = GenericModel{real(T)}()
 
-    # x = pop.variables[1:6]
-    # y = pop.variables[7:12]
-
     sa = SimplifyAlgorithm(comm_gps=pop.comm_gps, is_unipotent=pop.is_unipotent, is_projective=pop.is_projective)
     # the union of clique_total_basis
     total_basis = sorted_union(map(zip(corr_sparsity.clq_cons, cliques_term_sparsities)) do (cons_idx, term_sparsities)
         union(vec(reduce(vcat, [
             map(monomials(poly)) do m
-                # if symmetric_canonicalize(neat_dot(rol_idx, m * col_idx), sa) == x[1] * y[1] * x[1] * y[1]
-                #     @show rol_idx, m, col_idx, poly
-                # end
                 expval(simplify(neat_dot(rol_idx, m * col_idx), sa))
             end
             for (poly, term_sparsity) in zip([one(pop.objective); corr_sparsity.cons[cons_idx]], term_sparsities) for basis in term_sparsity.block_bases for rol_idx in basis for col_idx in basis
