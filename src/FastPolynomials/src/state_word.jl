@@ -1,3 +1,4 @@
+@enum StateType Arbitrary MaxEntangled 
 """
     StateWord
 
@@ -13,7 +14,7 @@ operators with respect to a state.
 Creates a StateWord from monomials, filtering out identity elements and sorting.
 If all monomials are identity, stores a single identity monomial.
 """
-struct StateWord
+struct StateWord{ST<:StateType}
     state_monos::Vector{Monomial}
     function StateWord(monos::Vector{Monomial})
         filter!(!isone, sort!(monos))
@@ -41,7 +42,9 @@ julia> ς(x^2*y)
 <x²y¹>
 ```
 """
-ς(m::Union{Monomial,Variable}) = StateWord([monomial(m)])
+ς(m::Union{Monomial,Variable}) = StateWord{Arbitrary}([monomial(m)])
+
+Base.tr(m::Union{Monomial,Variable})= StateWord{Arbitrary}([monomial(m)])
 
 variables(sw::StateWord) = sorted_union(variables.(sw.state_monos)...)
 
@@ -60,8 +63,12 @@ function Base.show(io::IO, mime::MIME"text/plain", obj::StateWord)
     return print_object(io, obj; multiline=multiline)
 end
 
-function Base.string(obj::StateWord)
-    return join(map(x -> "<$(string(x))>", obj.state_monos), " * ")
+function Base.string(obj::StateWord{ST})
+    encloser = ST == MaxEntangled ? "tr()" : "⟨⟩"
+    return join(
+        map(x -> encloser[1:(end - 1)] * "$(string(x))" * encloser[end], obj.state_monos),
+        " * ",
+    )
 end
 
 function print_object(io::IO, obj::StateWord; multiline::Bool)
@@ -95,10 +102,10 @@ Base.isless(a::StateWord, b::StateWord) = cmp(a, b) < 0
 Base.:(*)(a::StateWord, b::StateWord) = StateWord([a.state_monos; b.state_monos])
 Base.:(*)(a::StateWord, b::Monomial) = NCStateWord(a, b)
 
-Base.one(::Type{StateWord}) = StateWord([one(Monomial)])
-Base.one(_::StateWord) = one(StateWord)
-Base.zero(::Type{StateWord}) = 0.0 * one(StateWord)
-Base.zero(::StateWord) = 0.0 * one(StateWord)
+Base.one(::Type{StateWord{ST}}) where ST = StateWord{ST}([one(Monomial)])
+Base.one(_::StateWord{ST}) where ST = one(StateWord{ST})
+Base.zero(::Type{StateWord{ST}}) where ST = 0.0 * one(StateWord{ST})
+Base.zero(::StateWord{ST}) where ST = 0.0 * one(StateWord{ST})
 
 """
     NCStateWord
@@ -122,8 +129,8 @@ julia> ncsw = sw * (x*z)
 <x²y¹> * x¹z¹
 ```
 """
-struct NCStateWord
-    sw::StateWord
+struct NCStateWord{ST}
+    sw::StateWord{ST}
     nc_word::Monomial
 end
 
