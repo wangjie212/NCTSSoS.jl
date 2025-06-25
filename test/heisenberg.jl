@@ -14,8 +14,6 @@ pop = PolyOpt(ham; eq_constraints=eq_cons, comm_gps=[[x[i], y[i], z[i]] for i in
 
 solver_config = SolverConfig(optimizer=SOLVER, mom_order=2, cs_algo=NoElimination(), ts_algo = MMD())
 
-pop.variables
-
 # how do I deal with complex constraint?
 res = cs_nctssos(pop, solver_config)
 

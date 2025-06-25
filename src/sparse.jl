@@ -195,9 +195,11 @@ function get_term_sparsity_graph(cons_support::Vector{M}, activated_supp::Vector
     sorted_activated_supp = sort(activated_supp)
     for i in 1:nterms, j in i+1:nterms
         for supp in cons_support
-            connected_mono = neat_dot(bases[i], supp * bases[j])
-            expval_cm = expval(simplify(connected_mono, sa)) * one(Monomial)
-            if symmetric_canonicalize(connected_mono, sa) in sorted_activated_supp || expval_cm in sorted_activated_supp
+            connected_mono_lr = neat_dot(bases[i], supp * bases[j])
+            connected_mono_rl = neat_dot(bases[j], supp * bases[i])
+            expval_cm_lr = expval(simplify(connected_mono_lr, sa)) * one(Monomial)
+            expval_cm_rl = expval(simplify(connected_mono_rl, sa)) * one(Monomial)
+            if expval_cm_lr in sorted_activated_supp || expval_cm_rl in sorted_activated_supp
                 add_edge!(G, i, j)
                 continue
             end

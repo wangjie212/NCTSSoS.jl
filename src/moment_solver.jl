@@ -25,17 +25,17 @@ function moment_relax(pop::PolyOpt{P}, corr_sparsity::CorrelativeSparsity, cliqu
     # left type here to support BigFloat model for higher precision
     model = GenericModel{real(T)}()
 
-    x = pop.variables[1:6]
-    y = pop.variables[7:12]
+    # x = pop.variables[1:6]
+    # y = pop.variables[7:12]
 
     sa = SimplifyAlgorithm(comm_gps=pop.comm_gps, is_unipotent=pop.is_unipotent, is_projective=pop.is_projective)
     # the union of clique_total_basis
     total_basis = sorted_union(map(zip(corr_sparsity.clq_cons, cliques_term_sparsities)) do (cons_idx, term_sparsities)
         union(vec(reduce(vcat, [
             map(monomials(poly)) do m
-                if neat_dot(rol_idx, m * col_idx) == x[1]*y[1]*x[1]*y[1]
-                    @show rol_idx, m, col_idx, symmetric_canonicalize(x[1] * y[1] * x[1] * y[1], sa)
-                end
+                # if symmetric_canonicalize(neat_dot(rol_idx, m * col_idx), sa) == x[1] * y[1] * x[1] * y[1]
+                #     @show rol_idx, m, col_idx, poly
+                # end
                 expval(simplify(neat_dot(rol_idx, m * col_idx), sa))
             end
             for (poly, term_sparsity) in zip([one(pop.objective); corr_sparsity.cons[cons_idx]], term_sparsities) for basis in term_sparsity.block_bases for rol_idx in basis for col_idx in basis
@@ -85,7 +85,7 @@ function constrain_moment_matrix!(
     cone, # FIXME: which type should I use?
     sa::SimplifyAlgorithm
 ) where {T,T1,P<:AbstractPolynomial{T},M1,M2}
-    T_prom = promote_type(T,T1)
+    T_prom = promote_type(T, T1)
     moment_mtx = [
         substitute_variables(sum([T_prom(coef) * simplify(neat_dot(row_idx, mono * col_idx), sa) for (coef, mono) in zip(coefficients(poly), monomials(poly))]), monomap) for
         row_idx in local_basis, col_idx in local_basis
