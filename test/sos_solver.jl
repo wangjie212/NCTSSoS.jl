@@ -244,13 +244,29 @@ end
 
     pop = PolyOpt(f; ineq_constraints = cons)
 
-    solver_config = SolverConfig(
-        optimizer = SOLVER,
-        mom_order = order,
-        cs_algo = MF(),
-    )
+    @testset "Correlative Sparsity" begin
+        solver_config = SolverConfig(
+            optimizer=SOLVER,
+            mom_order=order,
+            cs_algo=MF(),
+        )
 
-    result = cs_nctssos(pop, solver_config; dualize = true)
+        result = cs_nctssos(pop, solver_config; dualize=true)
 
-    @test isapprox(result.objective, 0.9975306427277915, atol = 1e-5)
+        @test isapprox(result.objective, 0.9975306427277915, atol=1e-5)
+    end
+
+    @testset "Term Sparsity" begin
+        solver_config = SolverConfig(
+            optimizer=SOLVER,
+            mom_order=order,
+            ts_algo=MMD(),
+        )
+
+        result = cs_nctssos(pop, solver_config; dualize=true)
+
+        @test isapprox(result.objective, 0.9975306427277915, atol=1e-5)
+    end
+
+
 end
