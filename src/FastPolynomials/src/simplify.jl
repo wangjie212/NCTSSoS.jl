@@ -20,6 +20,33 @@ function simplify(ncsw::NCStateWord, sa::SimplifyAlgorithm)
 end
 
 """
+    cyclic_canonicalize(mono::Monomial)
+
+Canonicalizes a monomial using both cyclic and symmetric operations.
+Finds the minimum among all cyclic shifts and their adjoints.
+Chclic canonical is both cyclic and symmetric
+
+# Arguments
+- `mono::Monomial`: The mono to canonicalize
+
+# Returns
+- `Monomial`: Canonicalized monomial (minimum across all cyclic shifts and their stars)
+"""
+function cyclic_canonicalize(mono::Monomial, sa::SimplifyAlgorithm)
+    isempty(mono.vars) && return mono
+    flatten_vars = mapreduce(
+        idx -> fill(mono.vars[idx], mono.z[idx]), vcat, eachindex(mono.z)
+    )
+    flatten_z = ones(Int, sum(mono.z))
+    return minimum(
+        mapreduce(vcat, 1:sum(mono.z)) do shift
+            shifted_mono = monomial(circshift!(flatten_vars, 1), circshift!(flatten_z, 1))
+            [simplify(shifted_mono,sa), simplify(star(shifted_mono),sa)]
+        end,
+    )
+end
+
+"""
     symmetric_canonicalize(mono::Monomial)
 
 Canonicalizes a mono by taking the minimum between itself and its adjoint.
@@ -35,20 +62,27 @@ function symmetric_canonicalize(mono::Monomial, sa::SimplifyAlgorithm)
     return min(simplify(mono, sa), simplify(star(mono), sa))
 end
 
-function symmetric_canonicalize(sw::StateWord{ST}, sa::SimplifyAlgorithm) where ST
-    return StateWord{ST}(symmetric_canonicalize.(sw.state_monos, Ref(sa)))
+function canonicalize(sw::StateWord{MaxEntangled}, sa::SimplifyAlgorithm)
+    return StateWord{MaxEntangled}(cyclic_canonicalize.(sw.state_monos, Ref(sa)))
 end
 
-function symmetric_canonicalize(ncsw::NCStateWord, sa::SimplifyAlgorithm)
+function canonicalize(sw::StateWord{Arbitrary}, sa::SimplifyAlgorithm)
+    return StateWord{Arbitrary}(symmetric_canonicalize.(sw.state_monos, Ref(sa)))
+end
+
+function canonicalize(ncsw::NCStateWord, sa::SimplifyAlgorithm)
     return NCStateWord(
-        symmetric_canonicalize(ncsw.sw, sa), symmetric_canonicalize(ncsw.nc_word, sa)
+        canonicalize(ncsw.sw, sa), symmetric_canonicalize(ncsw.nc_word, sa)
     )
 end
 
 """
-    symmetric_canonicalize(poly::Polynomial)
+    canonicalize(poly::Polynomial)
 
 Canonicalizes a polynomial by applying symmetric canonicalization to all monomials.
+
+It only makes sense of symmetric canonicalize a polynomial or non-commuting
+varaibles because trace polynomial is taken care at StatePoly
 
 # Arguments
 - `poly::Polynomial`: The polynomial to canonicalize
@@ -56,7 +90,7 @@ Canonicalizes a polynomial by applying symmetric canonicalization to all monomia
 # Returns
 - `Polynomial`: Canonicalized polynomial with conjugated coefficients and canonicalized monomials
 """
-function symmetric_canonicalize(poly::Polynomial, sa::SimplifyAlgorithm)
+function canonicalize(poly::Polynomial, sa::SimplifyAlgorithm)
     return Polynomial(conj.(poly.coeffs), symmetric_canonicalize.(poly.monos, Ref(sa)))
 end
 
@@ -110,19 +144,14 @@ function get_basis(
     return get_state_basis(ST, variables, d, sa)
 end
 
-for symb in [:symmetric_canonicalize, :cyclic_canonicalize]
-    eval(
-        quote
-            function $(symb)(sp::StatePolynomial, sa::SimplifyAlgorithm)
-                return StatePolynomial((sp.coeffs), $(symb).(sp.state_words, Ref(sa)))
-            end
 
-            function $(symb)(ncsp::NCStatePolynomial, sa::SimplifyAlgorithm)
-                return NCStatePolynomial(
-                    (ncsp.coeffs), $(symb).(ncsp.nc_state_words, Ref(sa))
-                )
-            end
-        end,
+function canonicalize(sp::Statepolynomial,sa::SimplifyAlgorithm)
+    return StatePolynomial((sp.coeffs), canonicalize.(sp.state_words, Ref(sa)))
+end
+
+function canonicalize(ncsp::NCStatePolynomial, sa::SimplifyAlgorithm)
+    return NCStatePolynomial(
+        (ncsp.coeffs), canonicalize.(ncsp.nc_state_words, Ref(sa))
     )
 end
 
