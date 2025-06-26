@@ -30,7 +30,7 @@ using NCTSSoS.FastPolynomials:
                 monomial([], []),
             ],
         )
-        poly1_sym = symmetric_canonicalize(poly1,sa)
+        poly1_sym = canonicalize(poly1,sa)
 
         @test poly1_sym.coeffs ≈ [0.3, 0.3]
         @test poly1_sym.monos == [monomial([], []), monomial([x, y, z], [2, 1, 1])]
@@ -82,44 +82,59 @@ using NCTSSoS.FastPolynomials:
 
         coe = [-2, 1, -2, 3, 6, -2, 18, -54, 2, 142]
 
-        poly3_sym = symmetric_canonicalize(poly3, sa)
+        poly3_sym = canonicalize(poly3, sa)
 
         @test poly3_sym.coeffs == coe
         @test poly3_sym.monos == supp
     end
 
     @testset "Cyclic Canonical Form" begin
-        @test cyclic_canonicalize(x^2 * y^2) == x * y^2 * x
-        @test cyclic_canonicalize(z * y^2) == y * z * y
-        @test cyclic_canonicalize(z * z) == z^2
-        @test isone(cyclic_canonicalize(one(x)))
+        sa = SimplifyAlgorithm(
+            comm_gps=[[x, y, z]],
+            is_projective=false,
+            is_unipotent=false,
+        )
+        @test cyclic_canonicalize(x^2 * y^2,sa) == x * y^2 * x
+        @test cyclic_canonicalize(z * y^2,sa) == y * z * y
+        @test cyclic_canonicalize(z * z,sa) == z^2
+        @test isone(cyclic_canonicalize(one(x),sa))
 
         n = 3
         @ncpolyvar a[1:n]
-        f = Polynomial(
-            [1, -1, -1, 3, -2, 2, -1, -1, 6, 9, 9, -54, 142, 5, 5, 5],
-            [
-                monomial([a[1]], [2]),
-                monomial([a[1], a[2]], [1, 1]),
-                monomial([a[2], a[1]], [1, 1]),
-                monomial([a[2]], [2]),
-                monomial([a[1], a[2], a[1]], [1, 1, 1]),
-                monomial([a[1], a[2], a[1]], [1, 2, 1]),
-                monomial([a[2], a[3]], [1, 1]),
-                monomial([a[3], a[2]], [1, 1]),
-                monomial([a[3]], [2]),
-                monomial([a[2], a[3]], [2, 1]),
-                monomial([a[3], a[2]], [1, 2]),
-                monomial([a[3], a[2], a[3]], [1, 1, 1]),
-                monomial([a[3], a[2], a[3]], [1, 2, 1]),
-                monomial([a[1], a[2]], [2, 2]),
-                monomial([a[1], a[2], a[3]], [1, 1, 1]),
-                monomial([a[3], a[2], a[1]], [1, 1, 1]),
-            ],
+        sa = SimplifyAlgorithm(
+            comm_gps=[a],
+            is_projective=false,
+            is_unipotent=false,
         )
+        f = mapreduce(
+            +,
+            zip(
+                [1, -1, -1, 3, -2, 2, -1, -1, 6, 9, 9, -54, 142, 5, 5, 5],
+                [
+                    monomial([a[1]], [2]),
+                    monomial([a[1], a[2]], [1, 1]),
+                    monomial([a[2], a[1]], [1, 1]),
+                    monomial([a[2]], [2]),
+                    monomial([a[1], a[2], a[1]], [1, 1, 1]),
+                    monomial([a[1], a[2], a[1]], [1, 2, 1]),
+                    monomial([a[2], a[3]], [1, 1]),
+                    monomial([a[3], a[2]], [1, 1]),
+                    monomial([a[3]], [2]),
+                    monomial([a[2], a[3]], [2, 1]),
+                    monomial([a[3], a[2]], [1, 2]),
+                    monomial([a[3], a[2], a[3]], [1, 1, 1]),
+                    monomial([a[3], a[2], a[3]], [1, 2, 1]),
+                    monomial([a[1], a[2]], [2, 2]),
+                    monomial([a[1], a[2], a[3]], [1, 1, 1]),
+                    monomial([a[3], a[2], a[1]], [1, 1, 1]),
+                ],
+            ),
+        ) do (coef, mono)
+            coef * tr(mono)
+        end
 
-        f2 = Polynomial(
-            [7, 142, -2, 18, -54, 1, -2, 3, -2, 6, 10],
+        f2 = mapreduce(+,
+            zip([7, 142, -2, 18, -54, 1, -2, 3, -2, 6, 10],
             [
                 monomial([a[1], a[2], a[1]], [1, 2, 1]),
                 monomial([a[3], a[2], a[3]], [1, 2, 1]),
@@ -132,9 +147,11 @@ using NCTSSoS.FastPolynomials:
                 monomial([a[2], a[3]], [1, 1]),
                 monomial([a[3]], [2]),
                 monomial([a[1], a[2], a[3]], [1, 1, 1]),
-            ],
-        )
-        @test cyclic_canonicalize(f) == cyclic_canonicalize(f2)
+            ])
+        ) do (coef, mono)
+            coef * tr(mono)
+        end
+        @test canonicalize(f, sa) == canonicalize(f2, sa)
     end
 
     @testset "_comm" begin

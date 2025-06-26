@@ -163,10 +163,7 @@ using NCTSSoS.FastPolynomials: support, cyclic_canonicalize
             ],
         )
 
-        @test sort(support(poly, identity)) ==
+        @test sort(support(poly)) ==
             sort([one(x), monomial([z], [1]), x^2 * y, x * y * x])
-
-        @test sort(support(poly, cyclic_canonicalize)) ==
-            sort([x * y * x, monomial([z], [1]), one(x)])
     end
 end

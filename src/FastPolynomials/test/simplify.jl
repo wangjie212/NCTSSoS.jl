@@ -128,35 +128,35 @@ end
     end
 
     @testset "StateWord" begin
-        @test symmetric_canonicalize(
+        @test canonicalize(
             ς(x[2] * y[1] * x[1]) * ς(y[2] * x[2] * x[1] * y[2]), sa1
         ) == ς(x[1] * x[2] * y[1]) * ς(x[1] * x[2] * y[2]^2)
 
-        @test symmetric_canonicalize(
+        @test canonicalize(
             ς(x[2] * y[1] * x[1]) * ς(y[2] * x[2] * x[1] * y[2]), sa2
         ) == ς(x[1] * x[2] * y[1]) * ς(x[1] * x[2])
 
-        @test symmetric_canonicalize(
+        @test canonicalize(
             ς(x[2] * y[1] * x[1]) * ς(y[2] * x[2] * x[1] * y[2]), sa3
         ) == ς(x[1] * x[2] * y[1]) * ς(x[1] * x[2]*y[2])
     end
 
     @testset "NCStateWord" begin
-        @test symmetric_canonicalize(
+        @test canonicalize(
             ς(x[2] * y[1] * x[1]) *
             ς(y[2] * x[2] * x[1] * y[2]) *
             (x[2] * y[1] * x[1] * y[1]),
             sa1,
         ) == ς(x[1] * x[2] * y[1]) * ς(x[1] * x[2] * y[2]^2) * (x[1]*x[2]*y[1]^2)
 
-        @test symmetric_canonicalize(
+        @test canonicalize(
             ς(x[2] * y[1] * x[1]) *
             ς(y[2] * x[2] * x[1] * y[2]) *
             (x[2] * y[1] * x[1] * y[1]),
             sa2,
         ) == ς(x[1] * x[2] * y[1]) * ς(x[1] * x[2]) * (x[1]*x[2])
 
-        @test symmetric_canonicalize(
+        @test canonicalize(
             ς(x[2] * y[1] * x[1]) *
             ς(y[2] * x[2] * x[1] * y[2]) *
             (x[2] * y[1] * x[1] * y[1]),

@@ -141,7 +141,6 @@ Computes the support of a polynomial after canonicalization.
 # Returns
 - `Vector{Monomial}`: Unique canonicalized monomials from the polynomial
 """
-function support(poly::Polynomial{T}, do_canonicalize::Bool) where {T}
-    canon_func = do_canonicalize ? canonicalize : identity
-    return unique!(canon_func.(poly.monos))
+function support(poly::Polynomial{T}) where {T}
+    return unique!(poly.monos)
 end
