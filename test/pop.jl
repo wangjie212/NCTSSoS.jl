@@ -17,11 +17,6 @@ using Test, NCTSSoS, NCTSSoS.FastPolynomials
         @test sort.(pop.comm_gps) == sort.([x])
         @test !pop.is_unipotent
         @test !pop.is_projective
-
-        pop = PolyOpt(objective; comm_gps = [[x[1]], x[2:end]], obj_type = TRACE)
-
-        @test pop.comm_gps == [[x[1]], x[2:end]]
-        @test pop isa PolyOpt{Polynomial{Float64},TRACE}
     end
 
     @testset "Constrainted Optimization Problem" begin

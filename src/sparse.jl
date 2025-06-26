@@ -110,7 +110,7 @@ variable cliques and assigning constraints to cliques, enabling block-structured
   - `global_cons`: Constraint indices not captured by any single clique
   - `cliques_idcs_bases`: Monomial bases for indexing moment/localizing matrices within each clique
 """
-function correlative_sparsity(pop::PolyOpt{P,OBJ}, order::Int, elim_algo::EliminationAlgorithm) where {T,P<:AbstractPolynomial{T},OBJ}
+function correlative_sparsity(pop::PolyOpt{P}, order::Int, elim_algo::EliminationAlgorithm) where {T,P<:AbstractPolynomial{T}}
     all_cons = vcat(pop.eq_constraints, pop.ineq_constraints)
     cliques = map(x -> sort(pop.variables[x]), clique_decomp(get_correlative_graph(pop.variables, pop.objective, all_cons), elim_algo))
 
@@ -164,7 +164,7 @@ function Base.show(io::IO, sparsity::TermSparsity)
 end
 
 function init_activated_supp(partial_obj::P, cons::Vector{P}, mom_mtx_bases::Vector{M}, sa::SimplifyAlgorithm) where {T,P<:AbstractPolynomial{T},M}
-    return sorted_union(symmetric_canonicalize.(monomials(partial_obj), Ref(sa)), mapreduce(a -> simplify.(monomials(a), Ref(sa)), vcat, cons; init=M[]), [simplify(neat_dot(b, b), sa) for b in mom_mtx_bases])
+    return sorted_union(canonicalize.(monomials(partial_obj), Ref(sa)), mapreduce(a -> simplify.(monomials(a), Ref(sa)), vcat, cons; init=M[]), [simplify(neat_dot(b, b), sa) for b in mom_mtx_bases])
 end
 
 function term_sparsities(initial_activated_supp::Vector{M}, cons::Vector{P}, mom_mtx_bases::Vector{M}, localizing_mtx_bases::Vector{Vector{M}}, ts_algo::EliminationAlgorithm, sa::SimplifyAlgorithm) where {T,P<:AbstractPolynomial{T},M}

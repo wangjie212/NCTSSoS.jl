@@ -24,22 +24,22 @@ using .FastPolynomials: expval
 export @ncpolyvar
 
 
-# export PolyOpt, TRACE, EIGEN
-# export SolverConfig
-# export NoElimination, MF, MMD, AsIsElimination, MaximalElimination
-# export cs_nctssos, cs_nctssos_higher
+export PolyOpt 
+export SolverConfig
+export NoElimination, MF, MMD, AsIsElimination, MaximalElimination
+export cs_nctssos, cs_nctssos_higher
 
-# include("pop.jl")
+include("pop.jl")
 
-# include("elimination.jl")
+include("elimination.jl")
 
-# include("solver_utils.jl")
+include("solver_utils.jl")
 
-# include("sparse.jl")
+include("sparse.jl")
 
-# include("moment_solver.jl")
+include("moment_solver.jl")
 
-# include("sos_solver.jl")
+include("sos_solver.jl")
 
-# include("interface.jl")
+include("interface.jl")
 end

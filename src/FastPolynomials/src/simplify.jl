@@ -66,6 +66,8 @@ function canonicalize(sw::StateWord{MaxEntangled}, sa::SimplifyAlgorithm)
     return StateWord{MaxEntangled}(cyclic_canonicalize.(sw.state_monos, Ref(sa)))
 end
 
+canonicalize(m::Monomial,sa::SimplifyAlgorithm) = symmetric_canonicalize(m,sa)
+
 function canonicalize(sw::StateWord{Arbitrary}, sa::SimplifyAlgorithm)
     return StateWord{Arbitrary}(symmetric_canonicalize.(sw.state_monos, Ref(sa)))
 end

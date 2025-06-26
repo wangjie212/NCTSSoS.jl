@@ -99,8 +99,8 @@ function Base.:(+)(a::StateWord, b::StateWord)
     return StatePolynomial([one(Float64); one(Float64)], [a; b])
 end
 
-function Base.:(+)(a::Number, b::StateWord)
-    return StatePolynomial([a; one(a)], [one(StateWord); b])
+function Base.:(+)(a::Number, b::StateWord{ST}) where {ST}
+    return StatePolynomial([a; one(a)], [one(StateWord{ST}); b])
 end
 
 function Base.:(-)(a::StateWord, b::StateWord)
@@ -118,8 +118,8 @@ end
 Base.one(::StatePolynomial{T}) where {T} = StatePolynomial([one(T)], [one(StateWord)])
 Base.one(::Type{StatePolynomial{T}}) where {T} = StatePolynomial([one(T)], [one(StateWord)])
 
-function Base.zero(::StatePolynomial{T}) where {T}
-    return StatePolynomial([zero(T)], [one(StateWord)])
+function Base.zero(::StatePolynomial{T,ST}) where {T,ST}
+    return StatePolynomial(T[], StateWord{ST}[])
 end
 
 terms(sp::StatePolynomial) = zip(sp.coeffs, sp.state_words)
@@ -214,16 +214,16 @@ function Base.:(-)(a::NCStatePolynomial{T}, b::NCStateWord) where {T}
 end
 
 Base.one(::NCStatePolynomial{T,ST}) where {T,ST} = NCStatePolynomial([one(T)], [one(NCStateWord{ST})])
-function Base.one(::Type{NCStatePolynomial{T}}) where {T}
-    return NCStatePolynomial([one(T)], [one(NCStateWord)])
+function Base.one(::Type{NCStatePolynomial{T,ST}}) where {T,ST}
+    return NCStatePolynomial([one(T)], [one(NCStateWord{ST})])
 end
 
-function Base.zero(::NCStatePolynomial{T}) where {T}
-    return NCStatePolynomial([zero(T)], [one(NCStateWord)])
+function Base.zero(::NCStatePolynomial{T,ST}) where {T,ST}
+    return NCStatePolynomial(T[], NCStateWord{ST}[])
 end
 
-function Base.zero(::Type{NCStatePolynomial{T}}) where {T}
-    return NCStatePolynomial([zero(T)], [one(NCStateWord)])
+function Base.zero(::Type{NCStatePolynomial{T,ST}}) where {T,ST}
+    return NCStatePolynomial(T[], NCStateWord{ST}[])
 end
 
 function variables(ncsp::NCStatePolynomial)

@@ -47,7 +47,7 @@ function sos_dualize(moment_problem::MomentProblem{T,M}) where {T,M}
     # TODO: fix this for trace
     unsymmetrized_basis = sort(collect(keys(moment_problem.monomap)))
 
-    symmetric_basis = sorted_unique(symmetric_canonicalize.(unsymmetrized_basis, Ref(moment_problem.sa)))
+    symmetric_basis = sorted_unique(canonicalize.(unsymmetrized_basis, Ref(moment_problem.sa)))
 
     # JuMP variables corresponding to symmetric_basis
     symmetric_variables = getindex.(Ref(moment_problem.monomap), symmetric_basis)
@@ -55,7 +55,7 @@ function sos_dualize(moment_problem::MomentProblem{T,M}) where {T,M}
     # specify constraints
     fα_constraints = [GenericAffExpr{T_coef,VariableRef}(get(primal_objective_terms, α, zero(T_coef))) for α in symmetric_variables]
 
-    symmetrized_α2cons_dict = Dict(zip(unsymmetrized_basis, map(x -> searchsortedfirst(symmetric_basis, symmetric_canonicalize(x, moment_problem.sa)), unsymmetrized_basis)))
+    symmetrized_α2cons_dict = Dict(zip(unsymmetrized_basis, map(x -> searchsortedfirst(symmetric_basis, canonicalize(x, moment_problem.sa)), unsymmetrized_basis)))
 
     unsymmetrized_basis_vals = getindex.(Ref(moment_problem.monomap), unsymmetrized_basis)
 
