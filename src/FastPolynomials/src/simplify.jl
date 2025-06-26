@@ -145,7 +145,7 @@ function get_basis(
 end
 
 
-function canonicalize(sp::Statepolynomial,sa::SimplifyAlgorithm)
+function canonicalize(sp::StatePolynomial,sa::SimplifyAlgorithm)
     return StatePolynomial((sp.coeffs), canonicalize.(sp.state_words, Ref(sa)))
 end
 
