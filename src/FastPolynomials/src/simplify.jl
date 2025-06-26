@@ -11,8 +11,8 @@ function simplify(m::Monomial, sa::SimplifyAlgorithm)
     )
 end
 
-function simplify(sw::StateWord, sa::SimplifyAlgorithm)
-    return StateWord(simplify.(sw.state_monos, Ref(sa)))
+function simplify(sw::StateWord{ST}, sa::SimplifyAlgorithm) where ST
+    return StateWord{ST}(simplify.(sw.state_monos, Ref(sa)))
 end
 
 function simplify(ncsw::NCStateWord, sa::SimplifyAlgorithm)
@@ -35,8 +35,8 @@ function symmetric_canonicalize(mono::Monomial, sa::SimplifyAlgorithm)
     return min(simplify(mono, sa), simplify(star(mono), sa))
 end
 
-function symmetric_canonicalize(sw::StateWord, sa::SimplifyAlgorithm)
-    return StateWord(symmetric_canonicalize.(sw.state_monos, Ref(sa)))
+function symmetric_canonicalize(sw::StateWord{ST}, sa::SimplifyAlgorithm) where ST
+    return StateWord{ST}(symmetric_canonicalize.(sw.state_monos, Ref(sa)))
 end
 
 function symmetric_canonicalize(ncsw::NCStateWord, sa::SimplifyAlgorithm)
@@ -60,15 +60,15 @@ function symmetric_canonicalize(poly::Polynomial, sa::SimplifyAlgorithm)
     return Polynomial(conj.(poly.coeffs), symmetric_canonicalize.(poly.monos, Ref(sa)))
 end
 
-function _unipotent(sw::StateWord)
-    return StateWord(_unipotent.(sw.state_monos))
+function _unipotent(sw::StateWord{ST}) where ST
+    return StateWord{ST}(_unipotent.(sw.state_monos))
 end
 
 function _unipotent(ncsw::NCStateWord)
     return NCStateWord(_unipotent(ncsw.sw), _unipotent(ncsw.nc_word))
 end
 
-_projective(sw::StateWord) = StateWord(_projective.(sw.state_monos))
+_projective(sw::StateWord{ST}) where ST = StateWord{ST}(_projective.(sw.state_monos))
 
 function _projective(ncsw::NCStateWord)
     return NCStateWord(_projective(ncsw.sw), _projective(ncsw.nc_word))
@@ -77,10 +77,12 @@ end
 """
 ς(w) = ς(w') stated in https://arxiv.org/abs/2301.12513, Section 2.1
 """
-function get_state_basis(variables::Vector{Variable}, d::Int, sa::SimplifyAlgorithm)
+function get_state_basis(
+    ::Type{ST}, variables::Vector{Variable}, d::Int, sa::SimplifyAlgorithm
+) where ST
     return unique!(
         map(
-            a -> NCStateWord(StateWord(a[1]), a[2]),
+            a -> NCStateWord(StateWord{ST}(a[1]), a[2]),
             mapreduce(vcat, 0:d) do nc_deg
                 nc_basis = simplify.(monomials(variables, Val(nc_deg)), Ref(sa))
                 cw_deg = d - nc_deg
@@ -103,9 +105,9 @@ function get_state_basis(variables::Vector{Variable}, d::Int, sa::SimplifyAlgori
 end
 
 function get_basis(
-    ::Type{NCStatePolynomial{T}}, variables::Vector{Variable}, d::Int, sa::SimplifyAlgorithm
-) where {T}
-    return get_state_basis(variables, d, sa)
+    ::Type{NCStatePolynomial{T,ST}}, variables::Vector{Variable}, d::Int, sa::SimplifyAlgorithm
+) where {T,ST}
+    return get_state_basis(ST, variables, d, sa)
 end
 
 for symb in [:symmetric_canonicalize, :cyclic_canonicalize]

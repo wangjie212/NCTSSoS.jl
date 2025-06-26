@@ -1,6 +1,6 @@
 module FastPolynomials
 
-export variables, ς
+export variables, ς, tr
 
 export @ncpolyvar, Variable
 include("variables.jl")

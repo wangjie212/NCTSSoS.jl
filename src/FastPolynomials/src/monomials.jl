@@ -97,7 +97,7 @@ function Base.string(obj::Monomial)
     exponents = ('⁰', '¹', '²', '³', '⁴', '⁵', '⁶', '⁷', '⁸', '⁹')
     isempty(obj.vars) && return "1"
     return mapreduce(*, zip(obj.vars, obj.z); init="") do (v, z)
-        iszero(z) ? "" : "$(v.name)$(map(c -> exponents[c-'0'+1], string(z)))"
+        iszero(z) ? "" : "$(string(v))$(map(c -> exponents[c-'0'+1], string(z)))"
     end
 end
 

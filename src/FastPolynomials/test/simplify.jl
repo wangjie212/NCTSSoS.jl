@@ -1,5 +1,6 @@
 using Test, NCTSSoS.FastPolynomials
 using NCTSSoS.FastPolynomials: simplify, get_state_basis, NCStateWord
+using NCTSSoS.FastPolynomials:  symmetric_canonicalize
 
 
 @testset "Simplification Interface" begin
@@ -44,7 +45,7 @@ using NCTSSoS.FastPolynomials: simplify, get_state_basis, NCStateWord
 		)
 
         target_sbasis_1 = [
-            one(NCStateWord),
+            one(NCStateWord{Arbitrary}),
             ς(x) * one(Monomial),
             ς(y) * one(Monomial),
             ς(x * y) * one(Monomial),
@@ -60,10 +61,10 @@ using NCTSSoS.FastPolynomials: simplify, get_state_basis, NCStateWord
             ς(one(Monomial)) * (x * y),
         ]
 
-        @test sort(get_state_basis([x, y], 2, sa1)) == sort(target_sbasis_1)
+        @test sort(get_state_basis(Arbitrary,[x, y], 2, sa1)) == sort(target_sbasis_1)
 
 		target_sbasis_2 = [
-            one(NCStateWord),
+            one(NCStateWord{Arbitrary}),
             ς(x) * one(Monomial),
             ς(y) * one(Monomial),
             ς(x * y) * one(Monomial),
@@ -79,10 +80,10 @@ using NCTSSoS.FastPolynomials: simplify, get_state_basis, NCStateWord
             ς(one(Monomial)) * (x * y),
         ]
 
-        @test sort(get_state_basis([x, y], 2, sa2)) == sort(target_sbasis_2)
+        @test sort(get_state_basis(Arbitrary,[x, y], 2, sa2)) == sort(target_sbasis_2)
 
 		target_sbasis_3 = [
-            one(NCStateWord),
+            one(NCStateWord{Arbitrary}),
             ς(x) * one(Monomial),
             ς(y) * one(Monomial),
             ς(one(Monomial)) * monomial(x),
@@ -102,7 +103,7 @@ using NCTSSoS.FastPolynomials: simplify, get_state_basis, NCStateWord
             ς(one(Monomial)) * (y^2),
         ]
 
-        @test sort(get_state_basis([x, y], 2, sa3)) == sort(target_sbasis_3)
+        @test sort(get_state_basis(Arbitrary,[x, y], 2, sa3)) == sort(target_sbasis_3)
 	end
 end
 
