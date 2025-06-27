@@ -104,7 +104,7 @@ function Base.:(+)(a::Number, b::StateWord{ST}) where {ST}
 end
 
 function Base.:(-)(a::StateWord, b::StateWord)
-    return StatePolynomial([one(Float64); one(Float64)], [a; b])
+    return StatePolynomial([one(Float64); -one(Float64)], [a; b])
 end
 
 function Base.:(-)(a::StatePolynomial{T}, b::StateWord) where {T}

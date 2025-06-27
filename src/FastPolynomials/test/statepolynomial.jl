@@ -181,6 +181,7 @@ end
         [y],
         [x],
         [x * y],
+        [y*x],
         [y^2],
         [x^2],
         [y, y],
@@ -194,7 +195,7 @@ end
         [x],
         fill([one(x)], 4)...,
     ]
-    nc_words = [fill(one(x), 9); fill(y, 3); fill(x, 3); [y * x, y^2, x * y, x^2]]
+    nc_words = [fill(one(x), 10); fill(y, 3); fill(x, 3); [y * x, y^2, x * y, x^2]]
 
     @test sort(get_state_basis(MaxEntangled, [x, y], 2, sa)) ==
         sort(map(a -> NCStateWord(MaxEntangled, a[1], a[2]), zip(c_words, nc_words)))
@@ -417,4 +418,13 @@ end
     ]
     @test sort(get_state_basis(Arbitrary, [x], 3, sa)) ==
         sort(map(x -> NCStateWord(Arbitrary, x[1], x[2]), zip(c_words, nc_words)))
+end
+
+@testset "Arithmetic" begin
+    @ncpolyvar x[1:3]
+    tp =  tr(x[1]*x[2]) -  tr(x[1]) *tr(x[2])
+    @test string(tp) == "-1.0 * tr(x₁¹) * tr(x₂¹) + 1.0 * tr(x₁¹x₂¹)"
+
+    sp = ς(x[1]*x[2]) - ς(x[1]) * ς(x[2])
+    @test string(sp) == "-1.0 * <x₁¹> * <x₂¹> + 1.0 * <x₁¹x₂¹>"
 end

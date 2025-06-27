@@ -113,10 +113,10 @@ end
 """
 ς(w) = ς(w') stated in https://arxiv.org/abs/2301.12513, Section 2.1
 """
+# You NEVER EVER FUCKING CANONICALIZE HERER!!!
 function get_state_basis(
     ::Type{ST}, variables::Vector{Variable}, d::Int, sa::SimplifyAlgorithm
 ) where ST
-    reduce_func = ST == Arbitrary ? simplify : cyclic_canonicalize
     return unique!(
         map(
             a -> NCStateWord(StateWord{ST}(a[1]), a[2]),
@@ -129,7 +129,7 @@ function get_state_basis(
                         isempty(interm) ? [one(variables[1])] : interm
                     end for c_word in Iterators.product(
                         ntuple(
-                            _ -> unique!(reduce_func.(get_basis(variables, cw_deg), Ref(sa))),
+                            _ -> unique!(simplify.(get_basis(variables, cw_deg), Ref(sa))),
                             cw_deg,
                         )...,
                         [one(variables[1])],
