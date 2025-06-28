@@ -7,10 +7,8 @@ else
     using Clarabel
     const SOLVER = Clarabel.Optimizer
 end
-using SparseArrays
-using JuMP
-using Graphs
-using CliqueTrees
+using SparseArrays, JuMP, Graphs, CliqueTrees
+
 using NCTSSoS: get_Cαj
 
 # NOTE: sos_dualize has performance issue have verified locally it's correct

@@ -6,10 +6,9 @@ using NCTSSoS:
     clique_decomp,
     get_term_sparsity_graph,
     term_sparsity_graph_supp,
-    correlative_sparsity,
-    NCStateWord, 
-    get_state_basis
-using NCTSSoS.FastPolynomials: Arbitrary, MaxEntangled
+    correlative_sparsity
+
+using NCTSSoS.FastPolynomials: Arbitrary, get_state_basis, NCStateWord
 
 @testset "Correlative Sparsity without constraints" begin
 

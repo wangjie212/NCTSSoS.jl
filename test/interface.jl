@@ -1,4 +1,5 @@
 using Test, NCTSSoS
+
 if Sys.isapple()
     using MosekTools
     const SOLVER = Mosek.Optimizer

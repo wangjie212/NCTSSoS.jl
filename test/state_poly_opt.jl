@@ -7,6 +7,7 @@ else
     using Clarabel
     const SOLVER = Clarabel.Optimizer
 end
+
 using COSMO
 const QUICK_SOLVER = COSMO.Optimizer
 using JuMP
@@ -14,20 +15,11 @@ using NCTSSoS:
     get_state_basis,
     neat_dot,
     NCStateWord,
-    NCStatePolynomial,
     constrain_moment_matrix!,
     substitute_variables,
-    moment_relax
-
-using NCTSSoS.FastPolynomials: expval, terms, symmetric_canonicalize, monomials, Arbitrary
-
-using NCTSSoS:
-    correlative_sparsity,
-    iterate_term_sparse_supp,
-    sorted_union,
-    MinimalChordal,
     NoElimination
 
+using NCTSSoS.FastPolynomials: expval, terms, Arbitrary
 
 @testset "State Polynomial Opt 7.2.0" begin
     @ncpolyvar x[1:2] y[1:2]

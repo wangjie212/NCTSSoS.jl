@@ -9,4 +9,6 @@ using NCTSSoS, Test
     include("interface.jl")
     include("state_poly_opt.jl")
     include("Aqua.jl")
+    include("Doctest.jl")
+    include("ExplicitImports.jl")
 end

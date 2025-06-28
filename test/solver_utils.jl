@@ -2,7 +2,7 @@ using Test, NCTSSoS
 using JuMP
 using NCTSSoS.FastPolynomials
 using NCTSSoS: get_dim, sorted_unique
-using NCTSSoS.FastPolynomials: sorted_union, get_basis
+using NCTSSoS.FastPolynomials: get_basis
 
 @testset "Utilities" begin
     @ncpolyvar x y z
