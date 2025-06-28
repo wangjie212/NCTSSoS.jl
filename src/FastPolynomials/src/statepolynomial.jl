@@ -14,10 +14,10 @@ Automatically combines like terms and maintains sorted unique state words.
 # Constructor
 Creates a StatePolynomial by combining coefficients for identical state words.
 """
-struct StatePolynomial{T} <: AbstractPolynomial{T}
+struct StatePolynomial{T,ST} <: AbstractPolynomial{T}
     coeffs::Vector{T}
-    state_words::Vector{StateWord}
-    function StatePolynomial(coeffs::Vector{T}, state_words::Vector{StateWord}) where {T}
+    state_words::Vector{StateWord{ST}}
+    function StatePolynomial(coeffs::Vector{T}, state_words::Vector{StateWord{ST}}) where {T,ST}
         uniq_state_words = sorted_unique(state_words)
         uniq_coeffs = zeros(T, length(uniq_state_words))
         for (coef, sw) in zip(coeffs, state_words)
@@ -25,7 +25,7 @@ struct StatePolynomial{T} <: AbstractPolynomial{T}
             uniq_coeffs[idx] += coef
         end
         nz_idcs = filter(a -> !iszero(uniq_coeffs[a]), 1:length(uniq_coeffs))
-        return new{T}(uniq_coeffs[nz_idcs], uniq_state_words[nz_idcs])
+        return new{T,ST}(uniq_coeffs[nz_idcs], uniq_state_words[nz_idcs])
     end
 end
 
@@ -65,18 +65,6 @@ function Base.:(==)(a::StatePolynomial, b::StatePolynomial)
     return true
 end
 
-"""
-    Base.hash(a::StatePolynomial, u::UInt)
-
-Computes hash value for a StatePolynomial.
-
-# Arguments
-- `a::StatePolynomial`: The StatePolynomial to hash
-- `u::UInt`: Hash seed value
-
-# Returns
-- `UInt`: Hash value combining coefficients and state words
-"""
 Base.hash(a::StatePolynomial, u::UInt) = hash(hash.(a.coeffs, u), hash.(a.state_words, u))
 
 function Base.:(*)(a::StatePolynomial{T}, b::StatePolynomial{T}) where {T}
@@ -86,7 +74,7 @@ function Base.:(*)(a::StatePolynomial{T}, b::StatePolynomial{T}) where {T}
     )
 end
 
-function Base.:(*)(a::StatePolynomial{T}, b::Monomial) where {T}
+function Base.:(*)(a::StatePolynomial{T,ST}, b::Monomial) where {T,ST}
     return NCStatePolynomial(a.coeffs, [sw * b for sw in a.state_words])
 end
 
@@ -111,12 +99,12 @@ function Base.:(+)(a::StateWord, b::StateWord)
     return StatePolynomial([one(Float64); one(Float64)], [a; b])
 end
 
-function Base.:(+)(a::Number, b::StateWord)
-    return StatePolynomial([a; one(a)], [one(StateWord); b])
+function Base.:(+)(a::Number, b::StateWord{ST}) where {ST}
+    return StatePolynomial([a; one(a)], [one(StateWord{ST}); b])
 end
 
 function Base.:(-)(a::StateWord, b::StateWord)
-    return StatePolynomial([one(Float64); one(Float64)], [a; b])
+    return StatePolynomial([one(Float64); -one(Float64)], [a; b])
 end
 
 function Base.:(-)(a::StatePolynomial{T}, b::StateWord) where {T}
@@ -130,8 +118,8 @@ end
 Base.one(::StatePolynomial{T}) where {T} = StatePolynomial([one(T)], [one(StateWord)])
 Base.one(::Type{StatePolynomial{T}}) where {T} = StatePolynomial([one(T)], [one(StateWord)])
 
-function Base.zero(::StatePolynomial{T}) where {T}
-    return StatePolynomial([zero(T)], [one(StateWord)])
+function Base.zero(::StatePolynomial{T,ST}) where {T,ST}
+    return StatePolynomial(T[], StateWord{ST}[])
 end
 
 terms(sp::StatePolynomial) = zip(sp.coeffs, sp.state_words)
@@ -150,20 +138,20 @@ Automatically combines like terms and maintains sorted unique NC state words.
 Creates an NCStatePolynomial by combining coefficients for identical NC state words.
 """
 # T: type of coefficient
-struct NCStatePolynomial{T} <: AbstractPolynomial{T}
+struct NCStatePolynomial{T,ST} <: AbstractPolynomial{T}
     coeffs::Vector{T}
-    nc_state_words::Vector{NCStateWord}
+    nc_state_words::Vector{NCStateWord{ST}}
     function NCStatePolynomial(
-        coeffs::Vector{T}, nc_state_words::Vector{NCStateWord}
-    ) where {T}
+        coeffs::Vector{T}, nc_state_words::Vector{NCStateWord{ST}}
+    ) where {T,ST}
         @assert length(coeffs) == length(nc_state_words) "length of coeffs and nc_state_words must be the same, got $(length(coeffs)) and $(length(nc_state_words))"
         @assert issorted(nc_state_words) "nc_state_words must be sorted, got: $(nc_state_words)"
         @assert allunique(nc_state_words) "nc_state_words must be unique, got: $(nc_state_words)"
-        return new{T}(coeffs, nc_state_words)
+        return new{T,ST}(coeffs, nc_state_words)
     end
 end
 # the safer way to construct an NCStatePolynomial
-function ncstatepoly(coeffs::Vector{T}, nc_state_words::Vector{NCStateWord}) where {T}
+function ncstatepoly(coeffs::Vector{T}, nc_state_words::Vector{NCStateWord{ST}}) where {T,ST}
     uniq_nc_state_words = sorted_unique(nc_state_words)
     uniq_coeffs = zeros(T, length(uniq_nc_state_words))
     for (coef, sw) in zip(coeffs, nc_state_words)
@@ -203,18 +191,6 @@ function Base.:(==)(a::NCStatePolynomial, b::NCStatePolynomial)
     return true
 end
 
-"""
-    Base.hash(ncsp::NCStatePolynomial, u::UInt)
-
-Computes hash value for an NCStatePolynomial.
-
-# Arguments
-- `ncsp::NCStatePolynomial`: The NCStatePolynomial to hash
-- `u::UInt`: Hash seed value
-
-# Returns
-- `UInt`: Hash value combining coefficients and NC state words
-"""
 function Base.hash(ncsp::NCStatePolynomial, u::UInt)
     return hash(hash.(ncsp.coeffs, u), hash.(ncsp.nc_state_words, u))
 end
@@ -237,17 +213,17 @@ function Base.:(-)(a::NCStatePolynomial{T}, b::NCStateWord) where {T}
     return ncstatepoly(T[a.coeffs; -one(T)], [a.nc_state_words; b])
 end
 
-Base.one(::NCStatePolynomial{T}) where {T} = NCStatePolynomial([one(T)], [one(NCStateWord)])
-function Base.one(::Type{NCStatePolynomial{T}}) where {T}
-    return NCStatePolynomial([one(T)], [one(NCStateWord)])
+Base.one(::NCStatePolynomial{T,ST}) where {T,ST} = NCStatePolynomial([one(T)], [one(NCStateWord{ST})])
+function Base.one(::Type{NCStatePolynomial{T,ST}}) where {T,ST}
+    return NCStatePolynomial([one(T)], [one(NCStateWord{ST})])
 end
 
-function Base.zero(::NCStatePolynomial{T}) where {T}
-    return NCStatePolynomial([zero(T)], [one(NCStateWord)])
+function Base.zero(::NCStatePolynomial{T,ST}) where {T,ST}
+    return NCStatePolynomial(T[], NCStateWord{ST}[])
 end
 
-function Base.zero(::Type{NCStatePolynomial{T}}) where {T}
-    return NCStatePolynomial([zero(T)], [one(NCStateWord)])
+function Base.zero(::Type{NCStatePolynomial{T,ST}}) where {T,ST}
+    return NCStatePolynomial(T[], NCStateWord{ST}[])
 end
 
 function variables(ncsp::NCStatePolynomial)

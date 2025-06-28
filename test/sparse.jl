@@ -9,37 +9,7 @@ using NCTSSoS:
     correlative_sparsity,
     NCStateWord, 
     get_state_basis
-
-# @testset "Heisenberg Chain" begin
-#     N = 6
-#     @ncpolyvar x[1:N] y[1:N] z[1:N]
-
-#     ham = sum(ComplexF64(1 / 4) * op[i] * op[mod1(i + 1, N)] for op in [x, y, z] for i in 1:N)
-
-#     eq_cons = reduce(vcat, [[x[i] * y[i] - im * z[i], y[i] * x[i] + im * z[i], y[i] * z[i] - im * x[i], z[i] * y[i] + im * x[i], z[i] * x[i] - im * y[i], x[i] * z[i] + im * y[i]] for i in 1:N])
-
-#     pop = PolyOpt(ham; eq_constraints=eq_cons, comm_gps=[[x[i], y[i], z[i]] for i in 1:N], is_unipotent=true)
-#     mom_order = 2
-
-#     csp = correlative_sparsity(pop, mom_order, NoElimination())
-
-#     sa = SimplifyAlgorithm(comm_gps=pop.comm_gps, is_unipotent=pop.is_unipotent, is_projective=pop.is_projective)
-
-#     mom_mtx_bases = NCTSSoS.get_basis([x[2], x[3], x[4], y[3], z[2], z[4]], mom_order)
-
-#     init_act_supp = NCTSSoS.init_activated_supp(ham, eq_cons, mom_mtx_bases, sa)
-
-#     ts_g = NCTSSoS.get_term_sparsity_graph(monomials(one(partial_obj)), init_act_supp, mom_mtx_bases, sa)
-
-#     ts = NCTSSoS.iterate_term_sparse_supp(init_act_supp, one(partial_obj), mom_mtx_bases, MMD(),sa)
-
-#     m1 = x[3]*x[4]
-#     sm = sort([one(Monomial), x[2] * x[3], x[3] * x[4]])
-
-
-
-# end
-
+using NCTSSoS.FastPolynomials: Arbitrary, MaxEntangled
 
 @testset "Correlative Sparsity without constraints" begin
 
@@ -364,9 +334,9 @@ end
         d = 1
 
         sa = SimplifyAlgorithm(comm_gps=[x, y], is_unipotent=true, is_projective=false)
-        basis = get_state_basis([x; y], d, sa)
+        basis = get_state_basis(Arbitrary, [x; y], d, sa)
 
-        init_act_supp = [one(NCStateWord), ς(x[1]) * ς(x[1]) * one(Monomial), ς(x[2]) * ς(x[2]) * one(Monomial), ς(y[1]) * ς(y[1]) * one(Monomial), ς(y[2]) * ς(y[2]) * one(Monomial), ς(x[1] * y[1]) * one(Monomial), ς(x[1] * y[2]) * one(Monomial), ς(x[2] * y[1]) * one(Monomial), ς(x[2] * y[2]) * one(Monomial)]
+        init_act_supp = [one(NCStateWord{Arbitrary}), ς(x[1]) * ς(x[1]) * one(Monomial), ς(x[2]) * ς(x[2]) * one(Monomial), ς(y[1]) * ς(y[1]) * one(Monomial), ς(y[2]) * ς(y[2]) * one(Monomial), ς(x[1] * y[1]) * one(Monomial), ς(x[1] * y[2]) * one(Monomial), ς(x[2] * y[1]) * one(Monomial), ς(x[2] * y[2]) * one(Monomial)]
 
 
         @testset "Initial Activated Support" begin
@@ -378,14 +348,14 @@ end
         @testset "Get Term Sparsity Graph" begin
             using NCTSSoS: get_term_sparsity_graph
 
-            G = get_term_sparsity_graph([one(NCStateWord)], init_act_supp, basis, sa)
+            G = get_term_sparsity_graph([one(NCStateWord{Arbitrary})], init_act_supp, basis, sa)
 
             @test G.fadjlist == [[], [6], [7], [8], [9], [2, 8, 9], [3, 8, 9], [4, 6, 7], [5, 6, 7]]
         end
 
         @testset "Iterate Term Sparse Supp" begin
             using NCTSSoS: iterate_term_sparse_supp
-            ts = iterate_term_sparse_supp(init_act_supp, 1.0 * one(NCStateWord), basis, MMD(), sa)
+            ts = iterate_term_sparse_supp(init_act_supp, 1.0 * one(NCStateWord{Arbitrary}), basis, MMD(), sa)
         end
     end
 end

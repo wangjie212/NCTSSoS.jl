@@ -1,5 +1,6 @@
 using Test, NCTSSoS.FastPolynomials
 using NCTSSoS.FastPolynomials: simplify, get_state_basis, NCStateWord
+using NCTSSoS.FastPolynomials:  symmetric_canonicalize
 
 
 @testset "Simplification Interface" begin
@@ -44,7 +45,7 @@ using NCTSSoS.FastPolynomials: simplify, get_state_basis, NCStateWord
 		)
 
         target_sbasis_1 = [
-            one(NCStateWord),
+            one(NCStateWord{Arbitrary}),
             ς(x) * one(Monomial),
             ς(y) * one(Monomial),
             ς(x * y) * one(Monomial),
@@ -60,10 +61,10 @@ using NCTSSoS.FastPolynomials: simplify, get_state_basis, NCStateWord
             ς(one(Monomial)) * (x * y),
         ]
 
-        @test sort(get_state_basis([x, y], 2, sa1)) == sort(target_sbasis_1)
+        @test sort(get_state_basis(Arbitrary,[x, y], 2, sa1)) == sort(target_sbasis_1)
 
 		target_sbasis_2 = [
-            one(NCStateWord),
+            one(NCStateWord{Arbitrary}),
             ς(x) * one(Monomial),
             ς(y) * one(Monomial),
             ς(x * y) * one(Monomial),
@@ -79,10 +80,10 @@ using NCTSSoS.FastPolynomials: simplify, get_state_basis, NCStateWord
             ς(one(Monomial)) * (x * y),
         ]
 
-        @test sort(get_state_basis([x, y], 2, sa2)) == sort(target_sbasis_2)
+        @test sort(get_state_basis(Arbitrary,[x, y], 2, sa2)) == sort(target_sbasis_2)
 
 		target_sbasis_3 = [
-            one(NCStateWord),
+            one(NCStateWord{Arbitrary}),
             ς(x) * one(Monomial),
             ς(y) * one(Monomial),
             ς(one(Monomial)) * monomial(x),
@@ -102,7 +103,7 @@ using NCTSSoS.FastPolynomials: simplify, get_state_basis, NCStateWord
             ς(one(Monomial)) * (y^2),
         ]
 
-        @test sort(get_state_basis([x, y], 2, sa3)) == sort(target_sbasis_3)
+        @test sort(get_state_basis(Arbitrary,[x, y], 2, sa3)) == sort(target_sbasis_3)
 	end
 end
 
@@ -127,35 +128,35 @@ end
     end
 
     @testset "StateWord" begin
-        @test symmetric_canonicalize(
+        @test canonicalize(
             ς(x[2] * y[1] * x[1]) * ς(y[2] * x[2] * x[1] * y[2]), sa1
         ) == ς(x[1] * x[2] * y[1]) * ς(x[1] * x[2] * y[2]^2)
 
-        @test symmetric_canonicalize(
+        @test canonicalize(
             ς(x[2] * y[1] * x[1]) * ς(y[2] * x[2] * x[1] * y[2]), sa2
         ) == ς(x[1] * x[2] * y[1]) * ς(x[1] * x[2])
 
-        @test symmetric_canonicalize(
+        @test canonicalize(
             ς(x[2] * y[1] * x[1]) * ς(y[2] * x[2] * x[1] * y[2]), sa3
         ) == ς(x[1] * x[2] * y[1]) * ς(x[1] * x[2]*y[2])
     end
 
     @testset "NCStateWord" begin
-        @test symmetric_canonicalize(
+        @test canonicalize(
             ς(x[2] * y[1] * x[1]) *
             ς(y[2] * x[2] * x[1] * y[2]) *
             (x[2] * y[1] * x[1] * y[1]),
             sa1,
         ) == ς(x[1] * x[2] * y[1]) * ς(x[1] * x[2] * y[2]^2) * (x[1]*x[2]*y[1]^2)
 
-        @test symmetric_canonicalize(
+        @test canonicalize(
             ς(x[2] * y[1] * x[1]) *
             ς(y[2] * x[2] * x[1] * y[2]) *
             (x[2] * y[1] * x[1] * y[1]),
             sa2,
         ) == ς(x[1] * x[2] * y[1]) * ς(x[1] * x[2]) * (x[1]*x[2])
 
-        @test symmetric_canonicalize(
+        @test canonicalize(
             ς(x[2] * y[1] * x[1]) *
             ς(y[2] * x[2] * x[1] * y[2]) *
             (x[2] * y[1] * x[1] * y[1]),

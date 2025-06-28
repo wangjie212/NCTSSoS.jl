@@ -221,3 +221,9 @@ function Base.:(^)(a::Variable, expo::Int)
     @assert expo >= 0 "Exponent must be non-negative."
     return iszero(expo) ? one(a) : Monomial([a], [expo])
 end
+
+function Base.string(a::Variable)
+    subscripts = ('₀', '₁', '₂', '₃', '₄', '₅', '₆', '₇', '₈', '₉')
+    m = match(r"(?<var>\w+)(?:\[(?<idx>\d+)\])?",a.name)
+    isnothing(m[:idx]) ? m[:var] :  m[:var] * map(c->subscripts[c-'0'+1], m[:idx])
+end

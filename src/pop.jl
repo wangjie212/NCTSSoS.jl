@@ -1,10 +1,8 @@
 abstract type OptimizationProblem end
 
-@enum Objective EIGEN TRACE
 # T: type of the coefficients, currently removed to reduce redundence
 # P: type of the polynomial, either `Polynomial{T}` or `NCStatePolynomial{T}`
-# OBJ: type of the objective function, one of `Objective`
-struct PolyOpt{P,OBJ} <: OptimizationProblem
+struct PolyOpt{P} <: OptimizationProblem
     objective::P
     eq_constraints::Vector{P} # NOTE: assuming constraints are all simplified using comm_gp, is_unipotent, and is_projective
     ineq_constraints::Vector{P}
@@ -14,7 +12,7 @@ struct PolyOpt{P,OBJ} <: OptimizationProblem
     is_projective::Bool # X^2 = X. Is projective.
 end
 
-function PolyOpt(objective::P; eq_constraints=Any[], ineq_constraints=Any[], comm_gps=Vector{Variable}[], is_unipotent::Bool=false, is_projective::Bool=false, obj_type::Objective=EIGEN) where {T,P<:AbstractPolynomial{T}}
+function PolyOpt(objective::P; eq_constraints=Any[], ineq_constraints=Any[], comm_gps=Vector{Variable}[], is_unipotent::Bool=false, is_projective::Bool=false) where {T,P<:AbstractPolynomial{T}}
     @assert !(T <: Integer) "The polynomial coefficients can not be integers (not supported by JuMP solvers)."
     eq_cons = unique!(collect(P, eq_constraints))
     ineq_cons = unique!(collect(P, ineq_constraints))
@@ -26,7 +24,7 @@ function PolyOpt(objective::P; eq_constraints=Any[], ineq_constraints=Any[], com
         push!(comm_gps, vars)
     end
     @assert !(is_unipotent && is_projective) "The problem cannot be both unipotent and projective."
-    return PolyOpt{P,obj_type}(objective, eq_cons, ineq_cons, vars, comm_gps, is_unipotent, is_projective)
+    return PolyOpt{P}(objective, eq_cons, ineq_cons, vars, comm_gps, is_unipotent, is_projective)
 end
 
 function Base.show(io::IO, pop::PolyOpt)

@@ -1,6 +1,6 @@
 module FastPolynomials
 
-export variables, ς
+export variables, ς, tr
 
 export @ncpolyvar, Variable
 include("variables.jl")
@@ -22,6 +22,6 @@ include("state_word.jl")
 export ncstatepoly
 include("statepolynomial.jl")
 
-export SimplifyAlgorithm, simplify
+export SimplifyAlgorithm, simplify, canonicalize
 include("simplify.jl")
 end

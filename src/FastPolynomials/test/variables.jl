@@ -22,6 +22,15 @@ using NCTSSoS.FastPolynomials:
         @test size(x) == (10, 5)
     end
 
+    @testset "String" begin
+        @ncpolyvar xyd[1:10]
+        @test string(xyd[1]) == "xyd₁"
+        @test string(xyd[10]) == "xyd₁₀"
+
+        @ncpolyvar xyz
+        @test string(xyz) == "xyz"
+    end
+
     @testset "ComplexKind Conversion" begin
         @ncpolyvar x_real
         x_complex = Variable(x_real, COMPLEX)

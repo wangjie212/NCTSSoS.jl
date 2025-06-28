@@ -66,7 +66,7 @@ function moment_relax(pop::PolyOpt{P}, corr_sparsity::CorrelativeSparsity, cliqu
             end]
 
     make_real = T <: Real ? identity : real
-    @objective(model, Min, substitute_variables(mapreduce(p -> make_real(p[1]) * simplify(p[2], sa), +, terms(symmetric_canonicalize(pop.objective, sa)); init=make_real(zero(pop.objective))), monomap))
+    @objective(model, Min, substitute_variables(mapreduce(p -> make_real(p[1]) * simplify(p[2], sa), +, terms(canonicalize(pop.objective, sa)); init=make_real(zero(pop.objective))), monomap))
 
     return MomentProblem(model, constraint_matrices, monomap, sa)
 end

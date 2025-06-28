@@ -24,7 +24,7 @@ using .FastPolynomials: expval
 export @ncpolyvar
 
 
-export PolyOpt, TRACE, EIGEN
+export PolyOpt 
 export SolverConfig
 export NoElimination, MF, MMD, AsIsElimination, MaximalElimination
 export cs_nctssos, cs_nctssos_higher

@@ -97,7 +97,7 @@ function Base.string(obj::Monomial)
     exponents = ('⁰', '¹', '²', '³', '⁴', '⁵', '⁶', '⁷', '⁸', '⁹')
     isempty(obj.vars) && return "1"
     return mapreduce(*, zip(obj.vars, obj.z); init="") do (v, z)
-        iszero(z) ? "" : "$(v.name)$(map(c -> exponents[c-'0'+1], string(z)))"
+        iszero(z) ? "" : "$(string(v))$(map(c -> exponents[c-'0'+1], string(z)))"
     end
 end
 
@@ -160,33 +160,6 @@ Computes the "neat dot" product of two monomials as star(x) * y.
 """
 function neat_dot(x::Monomial, y::Monomial)
     return star(x) * y
-end
-
-"""
-    cyclic_canonicalize(mono::Monomial)
-
-Canonicalizes a monomial using both cyclic and symmetric operations.
-Finds the minimum among all cyclic shifts and their adjoints.
-Chclic canonical is both cyclic and symmetric
-
-# Arguments
-- `mono::Monomial`: The mono to canonicalize
-
-# Returns
-- `Monomial`: Canonicalized monomial (minimum across all cyclic shifts and their stars)
-"""
-function cyclic_canonicalize(mono::Monomial)
-    isempty(mono.vars) && return mono
-    flatten_vars = mapreduce(
-        idx -> fill(mono.vars[idx], mono.z[idx]), vcat, eachindex(mono.z)
-    )
-    flatten_z = ones(Int, sum(mono.z))
-    return minimum(
-        mapreduce(vcat, 1:sum(mono.z)) do shift
-            shifted_mono = monomial(circshift!(flatten_vars, 1), circshift!(flatten_z, 1))
-            [shifted_mono, star(shifted_mono)]
-        end,
-    )
 end
 
 """
