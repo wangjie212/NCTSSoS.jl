@@ -9,17 +9,9 @@ include("FastPolynomials/src/FastPolynomials.jl")
 using .FastPolynomials
 using .FastPolynomials: AbstractPolynomial, Variable, Monomial
 
-# using .FastPolynomials:
-    # NCStatePolynomial,
-    # NCStateWord,
-    # StatePolynomial,
-    # _comm,
-    # StateWord, _projective, _unipotent, get_state_basis, symmetric_canonicalize, Polynomial
-
 using .FastPolynomials: sorted_union, monomials, sorted_unique, maxdegree, get_basis, neat_dot, monomials, coefficients, terms, expval
+
 export @ncpolyvar
-
-
 export PolyOpt 
 export SolverConfig
 export NoElimination, MF, MMD, AsIsElimination, MaximalElimination

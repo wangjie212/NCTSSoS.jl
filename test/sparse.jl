@@ -1,12 +1,15 @@
 using Test, NCTSSoS, NCTSSoS.FastPolynomials
 using Graphs, CliqueTrees
+
 using NCTSSoS:
     assign_constraint,
     get_correlative_graph,
     clique_decomp,
     get_term_sparsity_graph,
     term_sparsity_graph_supp,
-    correlative_sparsity
+    correlative_sparsity,
+    init_activated_supp
+
 
 using NCTSSoS.FastPolynomials: Arbitrary, get_state_basis, NCStateWord
 
@@ -339,7 +342,6 @@ end
 
 
         @testset "Initial Activated Support" begin
-            using NCTSSoS: init_activated_supp, get_state_basis
 
             @test init_activated_supp(sp, typeof(sp)[], basis, sa) == init_act_supp
         end

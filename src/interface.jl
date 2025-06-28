@@ -2,7 +2,7 @@ struct PolyOptResult{T,P,M}
     objective::T # support for high precision solution
     corr_sparsity::CorrelativeSparsity{P,M}
     cliques_term_sparsities::Vector{Vector{TermSparsity{M}}}
-    # should contain objective and moment matrix or gram matrix for manually checking what happened
+    model::GenericModel{T}
 end
 
 function Base.show(io::IO, result::PolyOptResult)
@@ -87,16 +87,12 @@ function cs_nctssos(pop::PolyOpt{P}, solver_config::SolverConfig; dualize::Bool=
     end
 
     moment_problem = moment_relax(pop, corr_sparsity, cliques_term_sparsities)
-    if dualize
-        sos_problem = sos_dualize(moment_problem)
-        set_optimizer(sos_problem.model, solver_config.optimizer)
-        optimize!(sos_problem.model)
-        return PolyOptResult(objective_value(sos_problem.model), corr_sparsity, cliques_term_sparsities)
-    else
-        set_optimizer(moment_problem.model, solver_config.optimizer)
-        optimize!(moment_problem.model)
-        return PolyOptResult(objective_value(moment_problem.model), corr_sparsity, cliques_term_sparsities)
-    end
+
+    problem_to_solve = !dualize ? moment_problem : sos_dualize(moment_problem)
+
+    set_optimizer(problem_to_solve.model, solver_config.optimizer)
+    optimize!(problem_to_solve.model)
+    return PolyOptResult(objective_value(problem_to_solve.model), corr_sparsity, cliques_term_sparsities, problem_to_solve.model)
 end
 
 """
@@ -138,14 +134,10 @@ function cs_nctssos_higher(pop::PolyOpt{T}, prev_res::PolyOptResult, solver_conf
 
 
     moment_problem = moment_relax(pop, prev_res.corr_sparsity, cliques_term_sparsities)
-    if !dualize
-        set_optimizer(moment_problem.model, solver_config.optimizer)
-        optimize!(moment_problem.model)
-        return PolyOptResult(objective_value(moment_problem.model), prev_res.corr_sparsity, cliques_term_sparsities)
-    else
-        sos_problem = sos_dualize(moment_problem)
-        set_optimizer(sos_problem.model, solver_config.optimizer)
-        optimize!(sos_problem.model)
-        return PolyOptResult(objective_value(sos_problem.model), prev_res.corr_sparsity, cliques_term_sparsities)
-    end
+
+    problem_to_solve = !dualize ? moment_problem : sos_dualize(moment_problem)
+
+    set_optimizer(problem_to_solve.model, solver_config.optimizer)
+    optimize!(problem_to_solve.model)
+    return PolyOptResult(objective_value(problem_to_solve.model), prev_res.corr_sparsity, cliques_term_sparsities, problem_to_solve.model)
 end
