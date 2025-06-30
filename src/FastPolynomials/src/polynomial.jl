@@ -123,6 +123,8 @@ Base.one(::Type{Polynomial{T}}) where {T} = Polynomial([one(T)], [one(Monomial)]
 Base.one(::Polynomial{T}) where {T} = Polynomial([one(T)], [one(Monomial)])
 Base.zero(::Polynomial{T}) where {T} = Polynomial([zero(T)], [one(Monomial)])
 
+Base.real(p::Polynomial) = Polynomial(real.(p.coeffs), p.monos)
+
 coefficients(p::Polynomial) = p.coeffs
 monomials(p::Polynomial) = p.monos
 terms(p::Polynomial) = zip(p.coeffs, p.monos)
@@ -134,26 +136,11 @@ Computes the support of a polynomial after canonicalization.
 
 # Arguments
 - `poly::Polynomial{T}`: The polynomial
-- `canonicalize::Function`: Function to canonicalize support
+- `do_canonicalize::Bool`: Function to canonicalize support
 
 # Returns
 - `Vector{Monomial}`: Unique canonicalized monomials from the polynomial
 """
-function support(poly::Polynomial{T}, canonicalize::Function) where {T}
-    return unique!(canonicalize.(poly.monos))
-end
-
-"""
-    cyclic_canonicalize(poly::Polynomial)
-
-Canonicalizes a polynomial by applying cyclic canonicalization to all monomials.
-
-# Arguments
-- `poly::Polynomial`: The polynomial to canonicalize
-
-# Returns
-- `Polynomial`: Canonicalized polynomial with same coefficients and canonicalized monomials
-"""
-function cyclic_canonicalize(poly::Polynomial)
-    return Polynomial(poly.coeffs, cyclic_canonicalize.(poly.monos))
+function support(poly::Polynomial{T}) where {T}
+    return unique!(poly.monos)
 end

@@ -6,13 +6,14 @@ end
 # j: index of the constraint
 # α: the monomial (JuMP variable)
 function get_Cαj(basis::Vector{GenericVariableRef{T}}, localizing_mtx::VectorConstraint{F,S,Shape}) where {T,F,S,Shape}
+    T_coef = get_coef_type(localizing_mtx)
     dim = get_dim(localizing_mtx)
     cis = CartesianIndices((dim, dim))
     nbasis = length(basis)
 
     # Is, Js, Vs: for storing sparse repr. of C_αj,
     # each element corresponds to a monomial in basis.
-    Is, Js, Vs = [Int[] for _ in 1:nbasis], [Int[] for _ in 1:nbasis], [T[] for _ in 1:nbasis]
+    Is, Js, Vs = [Int[] for _ in 1:nbasis], [Int[] for _ in 1:nbasis], [T_coef[] for _ in 1:nbasis]
 
     for (ci, cur_expr) in zip(cis, localizing_mtx.func)
         for (α, coeff) in cur_expr.terms
@@ -26,8 +27,35 @@ function get_Cαj(basis::Vector{GenericVariableRef{T}}, localizing_mtx::VectorCo
     return [sparse(Is[i], Js[i], Vs[i], dim, dim) for i in eachindex(basis)]
 end
 
+"""
+    sos_dualize(moment_problem::MomentProblem{T,M}) where {T,M} -> SOSProblem
+
+Convert a moment problem into its dual SOS (Sum of Squares) problem formulation.
+
+This function takes a moment problem and constructs the corresponding dual optimization
+problem by introducing matrix variables for each constraint and formulating the dual
+constraints that ensure polynomial equality.
+
+# Arguments
+- `moment_problem::MomentProblem{T,M}`: The primal moment problem to dualize
+
+# Returns
+- `SOSProblem`: The dual SOS problem with matrix variables and constraints
+
+# Details
+The dualization process involves:
+1. Creating matrix variables (G_j) for each constraint, either in symmetric matrix space
+   or positive semidefinite cone depending on the constraint type
+2. Introducing a scalar variable `b` to bound the minimum value of the primal problem
+3. Setting up polynomial equality constraints by matching coefficients of monomials
+4. Handling symmetrization of the monomial basis to ensure proper polynomial comparison
+
+The resulting dual problem maximizes `b` subject to the constraint that the sum of
+matrix variables weighted by coefficient matrices equals the objective polynomial.
+"""
 function sos_dualize(moment_problem::MomentProblem{T,M}) where {T,M}
     dual_model = GenericModel{T}()
+    T_coef = get_coef_type(constraint_object(moment_problem.constraints[1]))
 
     # Initialize Gj as variables
     dual_variables = map(constraint_object.(moment_problem.constraints)) do cons
@@ -45,19 +73,19 @@ function sos_dualize(moment_problem::MomentProblem{T,M}) where {T,M}
     # TODO: fix this for trace
     unsymmetrized_basis = sort(collect(keys(moment_problem.monomap)))
 
-    symmetric_basis = sorted_unique(symmetric_canonicalize.(unsymmetrized_basis, Ref(moment_problem.sa)))
+    symmetric_basis = sorted_unique(canonicalize.(unsymmetrized_basis, Ref(moment_problem.sa)))
 
     # JuMP variables corresponding to symmetric_basis
     symmetric_variables = getindex.(Ref(moment_problem.monomap), symmetric_basis)
 
     # specify constraints
-    fα_constraints = [AffExpr(get(primal_objective_terms, α, zero(T))) for α in symmetric_variables]
+    fα_constraints = [GenericAffExpr{T_coef,VariableRef}(get(primal_objective_terms, α, zero(T_coef))) for α in symmetric_variables]
 
-    symmetrized_α2cons_dict = Dict(zip(unsymmetrized_basis, map(x -> searchsortedfirst(symmetric_basis, symmetric_canonicalize(x, moment_problem.sa)), unsymmetrized_basis)))
+    symmetrized_α2cons_dict = Dict(zip(unsymmetrized_basis, map(x -> searchsortedfirst(symmetric_basis, canonicalize(x, moment_problem.sa)), unsymmetrized_basis)))
 
     unsymmetrized_basis_vals = getindex.(Ref(moment_problem.monomap), unsymmetrized_basis)
 
-    add_to_expression!(fα_constraints[1], -1.0, b)
+    add_to_expression!(fα_constraints[1], -one(T_coef), b)
 
     for (i, sdp_constraint) in enumerate(moment_problem.constraints)
         Cαj = get_Cαj(unsymmetrized_basis_vals, constraint_object(sdp_constraint))

@@ -1,5 +1,6 @@
 using Test, NCTSSoS, NCTSSoS.FastPolynomials
 using Graphs, CliqueTrees
+
 using NCTSSoS:
     assign_constraint,
     get_correlative_graph,
@@ -7,11 +8,13 @@ using NCTSSoS:
     get_term_sparsity_graph,
     term_sparsity_graph_supp,
     correlative_sparsity,
-    NCStateWord, 
-    get_state_basis
+    init_activated_supp
 
+
+using NCTSSoS.FastPolynomials: Arbitrary, get_state_basis, NCStateWord
 
 @testset "Correlative Sparsity without constraints" begin
+
     @testset "Example 2" begin
         @ncpolyvar x[1:3]
         @ncpolyvar y[1:3]
@@ -333,13 +336,12 @@ end
         d = 1
 
         sa = SimplifyAlgorithm(comm_gps=[x, y], is_unipotent=true, is_projective=false)
-        basis = get_state_basis([x; y], d, sa)
+        basis = get_state_basis(Arbitrary, [x; y], d, sa)
 
-        init_act_supp = [one(NCStateWord), ς(x[1]) * ς(x[1]) * one(Monomial), ς(x[2]) * ς(x[2]) * one(Monomial), ς(y[1]) * ς(y[1]) * one(Monomial), ς(y[2]) * ς(y[2]) * one(Monomial), ς(x[1] * y[1]) * one(Monomial), ς(x[1] * y[2]) * one(Monomial), ς(x[2] * y[1]) * one(Monomial), ς(x[2] * y[2]) * one(Monomial)]
+        init_act_supp = [one(NCStateWord{Arbitrary}), ς(x[1]) * ς(x[1]) * one(Monomial), ς(x[2]) * ς(x[2]) * one(Monomial), ς(y[1]) * ς(y[1]) * one(Monomial), ς(y[2]) * ς(y[2]) * one(Monomial), ς(x[1] * y[1]) * one(Monomial), ς(x[1] * y[2]) * one(Monomial), ς(x[2] * y[1]) * one(Monomial), ς(x[2] * y[2]) * one(Monomial)]
 
 
         @testset "Initial Activated Support" begin
-            using NCTSSoS: init_activated_supp, get_state_basis
 
             @test init_activated_supp(sp, typeof(sp)[], basis, sa) == init_act_supp
         end
@@ -347,14 +349,14 @@ end
         @testset "Get Term Sparsity Graph" begin
             using NCTSSoS: get_term_sparsity_graph
 
-            G = get_term_sparsity_graph([one(NCStateWord)], init_act_supp, basis, sa)
+            G = get_term_sparsity_graph([one(NCStateWord{Arbitrary})], init_act_supp, basis, sa)
 
             @test G.fadjlist == [[], [6], [7], [8], [9], [2, 8, 9], [3, 8, 9], [4, 6, 7], [5, 6, 7]]
         end
 
         @testset "Iterate Term Sparse Supp" begin
             using NCTSSoS: iterate_term_sparse_supp
-            ts = iterate_term_sparse_supp(init_act_supp, 1.0 * one(NCStateWord), basis, MMD(), sa)
+            ts = iterate_term_sparse_supp(init_act_supp, 1.0 * one(NCStateWord{Arbitrary}), basis, MMD(), sa)
         end
     end
 end

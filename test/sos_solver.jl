@@ -7,10 +7,8 @@ else
     using Clarabel
     const SOLVER = Clarabel.Optimizer
 end
-using SparseArrays
-using JuMP
-using Graphs
-using CliqueTrees
+using SparseArrays, JuMP, Graphs, CliqueTrees
+
 using NCTSSoS: get_Cαj
 
 # NOTE: sos_dualize has performance issue have verified locally it's correct
@@ -244,13 +242,29 @@ end
 
     pop = PolyOpt(f; ineq_constraints = cons)
 
-    solver_config = SolverConfig(
-        optimizer = SOLVER,
-        mom_order = order,
-        cs_algo = MF(),
-    )
+    @testset "Correlative Sparsity" begin
+        solver_config = SolverConfig(
+            optimizer=SOLVER,
+            mom_order=order,
+            cs_algo=MF(),
+        )
 
-    result = cs_nctssos(pop, solver_config; dualize = true)
+        result = cs_nctssos(pop, solver_config; dualize=true)
 
-    @test isapprox(result.objective, 0.9975306427277915, atol = 1e-5)
+        @test isapprox(result.objective, 0.9975306427277915, atol=1e-5)
+    end
+
+    @testset "Term Sparsity" begin
+        solver_config = SolverConfig(
+            optimizer=SOLVER,
+            mom_order=order,
+            ts_algo=MMD(),
+        )
+
+        result = cs_nctssos(pop, solver_config; dualize=true)
+
+        @test isapprox(result.objective, 0.9975306427277915, atol=1e-5)
+    end
+
+
 end

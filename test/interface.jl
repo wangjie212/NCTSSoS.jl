@@ -1,4 +1,5 @@
 using Test, NCTSSoS
+
 if Sys.isapple()
     using MosekTools
     const SOLVER = Mosek.Optimizer
@@ -7,16 +8,32 @@ else
     const SOLVER = Clarabel.Optimizer
 end
 
-@testset "Failed Example" begin
+@testset "1D Heisenberg Chain" begin
+
+    N = 6
+    @ncpolyvar x[1:N] y[1:N] z[1:N]
+
+    ham = sum(ComplexF64(1 / 4) * op[i] * op[mod1(i + 1, N)] for op in [x, y, z] for i in 1:N)
+
+    eq_cons = reduce(vcat, [[x[i] * y[i] - im * z[i], y[i] * x[i] + im * z[i], y[i] * z[i] - im * x[i], z[i] * y[i] + im * x[i], z[i] * x[i] - im * y[i], x[i] * z[i] + im * y[i]] for i in 1:N])
+
+    pop = PolyOpt(ham; eq_constraints=eq_cons, comm_gps=[[x[i], y[i], z[i]] for i in 1:N], is_unipotent=true)
+
+    solver_config = SolverConfig(optimizer=SOLVER, mom_order=2, ts_algo=MMD())
+
+    res = cs_nctssos(pop, solver_config)
+
+    res = cs_nctssos_higher(pop, res, solver_config)
+    @test res.objective / N ≈ -0.467129 atol = 1e-6
+end
+
+@testset "Example" begin
     @ncpolyvar x[1:3]
     @ncpolyvar y[1:3]
     f = 1.0 * x[1] * (y[1] + y[2] + y[3]) + x[2] * (y[1] + y[2] - y[3]) +
         x[3] * (y[1] - y[2]) - x[1] - 2 * y[1] - y[2]  # objective function
 
     pop = PolyOpt(-f; comm_gps=[x, y], is_projective=true)
-
-    solver_config = SolverConfig(optimizer=SOLVER; mom_order=3, cs_algo=MF(), ts_algo=MaximalElimination())
-    result = cs_nctssos(pop, solver_config)
 
     for (cs_algo, ts_algo, ans) in zip([NoElimination(), MF(), MF()],
         [NoElimination(), MMD(),  MaximalElimination()],

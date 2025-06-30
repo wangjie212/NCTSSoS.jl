@@ -7,24 +7,12 @@ import CliqueTrees.cliquetree
 
 include("FastPolynomials/src/FastPolynomials.jl")
 using .FastPolynomials
-using .FastPolynomials: AbstractPolynomial
-using .FastPolynomials:
-    Variable,
-    Monomial,
-    Polynomial,
-    StateWord,
-    NCStateWord,
-    StatePolynomial,
-    NCStatePolynomial
-using .FastPolynomials:
-    sorted_union, monomials, _comm, sorted_unique, _projective, _unipotent
-using .FastPolynomials: monomials, maxdegree, get_basis, symmetric_canonicalize, neat_dot
-using .FastPolynomials: monomials, coefficients, terms, get_state_basis
-using .FastPolynomials: expval
+using .FastPolynomials: AbstractPolynomial, Variable, Monomial
+
+using .FastPolynomials: sorted_union, monomials, sorted_unique, maxdegree, get_basis, neat_dot, monomials, coefficients, terms, expval
+
 export @ncpolyvar
-
-
-export PolyOpt, TRACE, EIGEN
+export PolyOpt 
 export SolverConfig
 export NoElimination, MF, MMD, AsIsElimination, MaximalElimination
 export cs_nctssos, cs_nctssos_higher

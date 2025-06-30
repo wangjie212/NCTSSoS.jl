@@ -11,15 +11,8 @@ else
 end
 using Graphs
 
-using NCTSSoS.FastPolynomials: get_basis, monomials, neat_dot
-using NCTSSoS:
-    substitute_variables,
-    correlative_sparsity,
-    TermSparsity,
-    sorted_union,
-    symmetric_canonicalize,
-    iterate_term_sparse_supp,
-    moment_relax
+using NCTSSoS.FastPolynomials: get_basis 
+using NCTSSoS: substitute_variables
 
 @testset "Special Constraint Type " begin
     @testset "CHSH Inequality" begin
@@ -82,7 +75,7 @@ end
     pop = PolyOpt(f; ineq_constraints = cons)
 
     solver_config =
-        SolverConfig(optimizer = SOLVER; cs_algo = MF(), ts_algo = MMD())
+        SolverConfig(optimizer=SOLVER; mom_order=order, cs_algo=MF(), ts_algo=MMD())
 
     result = cs_nctssos(pop, solver_config; dualize=false)
 
@@ -262,6 +255,8 @@ end
         )
 
         result = cs_nctssos(pop, solver_config; dualize = false)
+
+        result = cs_nctssos_higher(pop, result, solver_config;dualize=false)
 
         @test isapprox(
             result.objective,

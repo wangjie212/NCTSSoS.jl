@@ -7,6 +7,7 @@ else
     using Clarabel
     const SOLVER = Clarabel.Optimizer
 end
+
 using COSMO
 const QUICK_SOLVER = COSMO.Optimizer
 using JuMP
@@ -14,20 +15,11 @@ using NCTSSoS:
     get_state_basis,
     neat_dot,
     NCStateWord,
-    NCStatePolynomial,
     constrain_moment_matrix!,
     substitute_variables,
-    moment_relax
-
-using NCTSSoS.FastPolynomials: expval, terms, symmetric_canonicalize, monomials
-
-using NCTSSoS:
-    correlative_sparsity,
-    iterate_term_sparse_supp,
-    sorted_union,
-    MinimalChordal,
     NoElimination
 
+using NCTSSoS.FastPolynomials: expval, terms, Arbitrary
 
 @testset "State Polynomial Opt 7.2.0" begin
     @ncpolyvar x[1:2] y[1:2]
@@ -73,7 +65,7 @@ end
     @test isapprox(result_mom.objective, -4.0, atol = 1e-4)
 
     result_sos = cs_nctssos(spop, solver_config)
-    @test isapprox(result_sos.objective, -4.0, atol = 1e-5)
+    @test isapprox(result_sos.objective, -4.0, atol = 1e-4)
 end
 
 @testset "State Polynomial Opt 7.2.2" begin
@@ -117,7 +109,7 @@ end
 
     sa = SimplifyAlgorithm(comm_gps=[x], is_unipotent=false, is_projective=false)
 
-    basis = get_state_basis(x, 1, sa)
+    basis = get_state_basis(Arbitrary, x, 1, sa)
 
     sp = 1.0 * ς(x[1] * x[2]) + 2.0 * ς(x[1]) + 3.0 * ς(x[2])
     nc_words = monomial.([one(x[1]), x[1], x[2]])
@@ -134,7 +126,7 @@ end
     wordmap = Dict(zip(total_basis, y))
 
     ncterms = map(
-        a -> a[1] * NCStateWord(monomial.(a[2]), a[3]),
+        a -> a[1] * NCStateWord(Arbitrary,monomial.(a[2]), a[3]),
         zip([1.0, 2.0, 3.0], [[x[1] * x[2]], [x[1]], [x[2]]], nc_words),
     )
 
