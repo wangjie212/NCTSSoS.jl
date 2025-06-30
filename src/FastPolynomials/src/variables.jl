@@ -142,18 +142,6 @@ function print_object(io::IO, obj::Variable; multiline::Bool)
     return multiline ? print(io, "$(obj.name)") : Base.show_default(io, obj)
 end
 
-"""
-    Base.hash(v, u)
-
-Computes hash value for a Variable based on its name.
-
-# Arguments
-- `v::Variable`: The Variable to hash
-- `u::UInt`: Hash seed value
-
-# Returns
-- `UInt`: Hash value of the variable's name
-"""
 function Base.hash(v::Variable, u::UInt)
     return hash(v.name, u)
 end

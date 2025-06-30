@@ -1,13 +1,12 @@
 # NCTSSoS
 
-[NCTSSoS.jl](https://github.com/wangjie212/NCTSSoS) aims to provide a user-friendly and efficient tool for solving optimization problems with non-commutative/trace/state polynomials, which is based on the structured moment-SOHS hierarchy.
+[NCTSSoS.jl](https://github.com/wangjie212/NCTSSoS) aims to provide a user-friendly and efficient tool for solving [polynomial optimization problems](@ref PolynomialOptimization) which is based on the structured [moment-SOHS hierarchy](@ref MomentSOSHierarchy).
 
 ## Features
 
 - Ergonomic API: Easy to use and intuitive interface for defining polynomial optimization problems!
-- General Objectives: Eigenvalue, State, Tracial Polynomial Optimizations are supported!
-- Correlative and Term Sparsities: Plug and play API for utilizing sparsities in reducing cost of solving optimization problems.
-- Open Source: Our code is published on GitHub, feel free to contribute!
+- General Objectives: [Eigenvalue](@ref eigenvalue_polynomial), [State](@ref state_polynomial), [Tracial](@ref tracial_polynomial) Polynomial optimizations are supported!
+- [Correlative and Term Sparsities](@ref sparsities): Plug and play API for utilizing sparsities in reducing cost of solving optimization problems.
 
 ## Installation
 
@@ -17,14 +16,14 @@
 using Pkg
 Pkg.add("NCTSSoS")
 ```
+To make sure everything works, you can execute the test suite.
 
-For a quick test, please refer to [Bell Inequalities Examples](@ref bell-inequalities).
-
-To make sure everything works, you can run the tests by executing the make command in the root directory of the package.
-
-```bash
-make test
+```julia
+using Pkg
+Pkg.test("NCTSSoS")
 ```
+
+Can't wait to try NCTSSoS.jl in action? Hop to [Quick Start](@ref quick-start).
 
 ## Credits
 

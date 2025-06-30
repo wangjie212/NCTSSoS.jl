@@ -1,4 +1,5 @@
-# Correlative and Term Sparsity
+# [Quick Start](@id quick-start)
+<!-- # Correlative and Term Sparsity -->
 
 The non-commutative Broyden banded function is a generalization of the classical Broyden banded function to non-commuting variables. It is often used in optimization and numerical analysis to test the performance of algorithms.
 
@@ -19,8 +20,8 @@ By applying correlative sparsity, we can decompose the problem based on the limi
 
 ## Non-commutative Broyden Banded Function
 
-```julia 
-using NCTSSoS, MosekTools 
+```julia
+using NCTSSoS, MosekTools
 
 function broyden_banded(n::Int)
 	@ncpolyvar x[1:n]

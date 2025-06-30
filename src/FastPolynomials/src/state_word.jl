@@ -85,19 +85,6 @@ end
 
 Base.:(==)(a::StateWord, b::StateWord) = iszero(cmp(a, b))
 
-"""
-    Base.hash(a::StateWord, u::UInt)
-
-Computes hash value for a StateWord based on its state monomials.
-Need to guarantee it is always sorted
-
-# Arguments
-- `a::StateWord`: The StateWord to hash
-- `u::UInt`: Hash seed value
-
-# Returns
-- `UInt`: Hash value of the state monomials (requires sorted invariant)
-"""
 Base.hash(a::StateWord, u::UInt) = hash(a.state_monos, u)
 
 Base.isless(a::StateWord, b::StateWord) = cmp(a, b) < 0

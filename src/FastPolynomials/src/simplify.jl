@@ -110,10 +110,8 @@ function _projective(ncsw::NCStateWord)
     return NCStateWord(_projective(ncsw.sw), _projective(ncsw.nc_word))
 end
 
-"""
-ς(w) = ς(w') stated in https://arxiv.org/abs/2301.12513, Section 2.1
-"""
-# You NEVER EVER FUCKING CANONICALIZE HERER!!!
+# ς(w) = ς(w') stated in https://arxiv.org/abs/2301.12513, Section 2.1
+# You NEVER EVER CANONICALIZE HERER!!!
 function get_state_basis(
     ::Type{ST}, variables::Vector{Variable}, d::Int, sa::SimplifyAlgorithm
 ) where ST

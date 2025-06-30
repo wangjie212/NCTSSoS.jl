@@ -99,18 +99,6 @@ function print_object(io::IO, obj::Polynomial; multiline::Bool)
     end
 end
 
-"""
-    Base.hash(p::Polynomial, u::UInt)
-
-Computes hash value for a polynomial based on its coefficients and monomials.
-
-# Arguments
-- `p::Polynomial`: The polynomial to hash
-- `u::UInt`: Hash seed value
-
-# Returns
-- `UInt`: Hash value combining coefficients and monomials
-"""
 function Base.hash(p::Polynomial, u::UInt)
     return hash(p.coeffs, hash(p.monos, u))
 end
