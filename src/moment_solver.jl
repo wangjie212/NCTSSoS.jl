@@ -20,6 +20,28 @@ end
 # cliques_cons: groups constraints according to cliques,
 # global_cons: constraints that are not in any single clique
 # cliques_term_sparsities: each clique, each obj/constraint, each ts_clique, each basis needed to index moment matrix
+"""
+    moment_relax(pop::PolyOpt{P}, corr_sparsity::CorrelativeSparsity, cliques_term_sparsities::Vector{Vector{TermSparsity{M}}}) where {T,P<:AbstractPolynomial{T},M}
+
+Construct a moment relaxation of a polynomial optimization problem using correlative sparsity.
+
+# Arguments
+- `pop::PolyOpt{P}`: The polynomial optimization problem to relax
+- `corr_sparsity::CorrelativeSparsity`: The correlative sparsity structure defining cliques and global constraints
+- `cliques_term_sparsities::Vector{Vector{TermSparsity{M}}}`: Term sparsity information for each clique, containing block bases for moment matrix indexing
+
+# Returns
+- `MomentProblem`: A moment relaxation problem containing the JuMP model, constraint references, monomial mapping, and simplification algorithm
+
+# Description
+This function creates a semidefinite programming relaxation of the input polynomial optimization problem by:
+1. Computing the total basis from all clique term sparsities
+2. Creating JuMP variables for each monomial in the basis
+3. Constructing moment matrix constraints for each clique and global constraint
+4. Setting up the objective function using variable substitution
+
+The relaxation exploits correlative sparsity to reduce the size of the semidefinite program by partitioning constraints into cliques and handling global constraints separately.
+"""
 function moment_relax(pop::PolyOpt{P}, corr_sparsity::CorrelativeSparsity, cliques_term_sparsities::Vector{Vector{TermSparsity{M}}}) where {T,P<:AbstractPolynomial{T},M}
     # NOTE: objective and constraints may have integer coefficients, but popular JuMP solvers does not support integer coefficients
     # left type here to support BigFloat model for higher precision

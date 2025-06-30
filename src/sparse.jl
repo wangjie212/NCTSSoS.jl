@@ -167,6 +167,22 @@ function init_activated_supp(partial_obj::P, cons::Vector{P}, mom_mtx_bases::Vec
     return sorted_union(canonicalize.(monomials(partial_obj), Ref(sa)), mapreduce(a -> simplify.(monomials(a), Ref(sa)), vcat, cons; init=M[]), [simplify(neat_dot(b, b), sa) for b in mom_mtx_bases])
 end
 
+"""
+    term_sparsities(initial_activated_supp::Vector{M}, cons::Vector{P}, mom_mtx_bases::Vector{M}, localizing_mtx_bases::Vector{Vector{M}}, ts_algo::EliminationAlgorithm, sa::SimplifyAlgorithm) where {T,P<:AbstractPolynomial{T},M}
+
+Computes term sparsity structures for the moment matrix and all localizing matrices.
+
+# Arguments
+- `initial_activated_supp::Vector{M}`: Initial set of activated support monomials
+- `cons::Vector{P}`: Vector of constraint polynomials
+- `mom_mtx_bases::Vector{M}`: Basis monomials for the moment matrix
+- `localizing_mtx_bases::Vector{Vector{M}}`: Basis monomials for each localizing matrix corresponding to constraints
+- `ts_algo::EliminationAlgorithm`: Algorithm for clique tree elimination in term sparsity graphs
+- `sa::SimplifyAlgorithm`: Algorithm for simplifying polynomial expressions
+
+# Returns
+- `Vector{TermSparsity}`: Vector containing term sparsity structures, with the first element corresponding to the moment matrix and subsequent elements corresponding to localizing matrices for each constraint
+"""
 function term_sparsities(initial_activated_supp::Vector{M}, cons::Vector{P}, mom_mtx_bases::Vector{M}, localizing_mtx_bases::Vector{Vector{M}}, ts_algo::EliminationAlgorithm, sa::SimplifyAlgorithm) where {T,P<:AbstractPolynomial{T},M}
     [
         [iterate_term_sparse_supp(initial_activated_supp, one(P), mom_mtx_bases, ts_algo, sa)];

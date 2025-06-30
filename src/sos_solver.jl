@@ -27,6 +27,32 @@ function get_Cαj(basis::Vector{GenericVariableRef{T}}, localizing_mtx::VectorCo
     return [sparse(Is[i], Js[i], Vs[i], dim, dim) for i in eachindex(basis)]
 end
 
+"""
+    sos_dualize(moment_problem::MomentProblem{T,M}) where {T,M} -> SOSProblem
+
+Convert a moment problem into its dual SOS (Sum of Squares) problem formulation.
+
+This function takes a moment problem and constructs the corresponding dual optimization
+problem by introducing matrix variables for each constraint and formulating the dual
+constraints that ensure polynomial equality.
+
+# Arguments
+- `moment_problem::MomentProblem{T,M}`: The primal moment problem to dualize
+
+# Returns
+- `SOSProblem`: The dual SOS problem with matrix variables and constraints
+
+# Details
+The dualization process involves:
+1. Creating matrix variables (G_j) for each constraint, either in symmetric matrix space
+   or positive semidefinite cone depending on the constraint type
+2. Introducing a scalar variable `b` to bound the minimum value of the primal problem
+3. Setting up polynomial equality constraints by matching coefficients of monomials
+4. Handling symmetrization of the monomial basis to ensure proper polynomial comparison
+
+The resulting dual problem maximizes `b` subject to the constraint that the sum of
+matrix variables weighted by coefficient matrices equals the objective polynomial.
+"""
 function sos_dualize(moment_problem::MomentProblem{T,M}) where {T,M}
     dual_model = GenericModel{T}()
     T_coef = get_coef_type(constraint_object(moment_problem.constraints[1]))

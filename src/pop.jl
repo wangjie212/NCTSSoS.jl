@@ -2,6 +2,25 @@ abstract type OptimizationProblem end
 
 # T: type of the coefficients, currently removed to reduce redundence
 # P: type of the polynomial, either `Polynomial{T}` or `NCStatePolynomial{T}`
+"""
+    PolyOpt{P} <: OptimizationProblem
+
+A polynomial optimization problem structure.
+
+# Fields
+- `objective::P`: The polynomial objective function to be optimized
+- `eq_constraints::Vector{P}`: Vector of equality constraints (assumed to equal 0)
+- `ineq_constraints::Vector{P}`: Vector of inequality constraints (assumed to be >= 0)
+- `variables::Vector{Variable}`: All variables appearing in the problem
+- `comm_gps::Vector{Vector{Variable}}`: Commutative groups - vectors of variables that commute with variables not in the same group
+- `is_unipotent::Bool`: Whether variables square to 1 (e.g., Pauli operators, SWAP operators)
+- `is_projective::Bool`: Whether variables are projective (X² = X)
+
+# Notes
+- All constraints are assumed to be simplified using `comm_gp`, `is_unipotent`, and `is_projective`
+- The problem cannot be both unipotent and projective simultaneously
+- Commutative groups must be disjoint sets
+"""
 struct PolyOpt{P} <: OptimizationProblem
     objective::P
     eq_constraints::Vector{P} # NOTE: assuming constraints are all simplified using comm_gp, is_unipotent, and is_projective
