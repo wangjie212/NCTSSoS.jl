@@ -8,6 +8,7 @@ makedocs(;
     sitename="NCTSSoS.jl",
     pages=[
         "Home" => "index.md",
+        # add quick start, put broyden band here
         "Noncommutative Polynomial Optimization" => "ncpop.md",
         "API" => "api.md",
         "Examples" => ["Bell inequalities" => "bell.md", "Broyden Banded Function" => "broyden.md", "Certifying Ground State" => "cert_ground_state.md"],
