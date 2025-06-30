@@ -222,9 +222,10 @@ end
 
         @test sort.(clique_decomp(G, NoElimination())) == [[0x0001, 0x0002, 0x0003, 0x0004, 0x0005, 0x0006, 0x0007, 0x0008, 0x0009, 0x000a]]
 
-        @test sort(sort.(clique_decomp(G, AsIsElimination()))) == [[1, 5, 6, 7, 8, 9, 10], [2, 3, 4, 5, 6, 7, 8], [3, 4, 5, 6, 7, 8, 9], [4, 5, 6, 7, 8, 9, 10]] # raw results from NCTSSOS needs to be processed to match variable order
+        
+        @test sort(sort.(clique_decomp(G, AsIsElimination()))) == [[1, 3, 4, 5, 6, 7, 8], [2, 5, 6, 7, 8, 9, 10], [3, 4, 5, 6, 7, 8, 9], [4, 5, 6, 7, 8, 9, 10]]  # raw results from NCTSSOS needs to be processed to match variable order
 
-        @test sort(sort.(clique_decomp(G, MF()))) == sort(map(a -> sort(mod1.(a .+ 1, 10)), [[0x0004, 0x0005, 0x0006, 0x0007, 0x0008, 0x0009, 0x000a], [0x0003, 0x0004, 0x0005, 0x0006, 0x0007, 0x0008, 0x0009], [0x0002, 0x0003, 0x0004, 0x0005, 0x0006, 0x0007, 0x0008], [0x0001, 0x0002, 0x0003, 0x0004, 0x0005, 0x0006, 0x0007]]))
+        @test sort(sort.(clique_decomp(G, MF()))) == [[1, 3, 4, 5, 6, 7, 8], [2, 5, 6, 7, 8, 9, 10], [3, 4, 5, 6, 7, 8, 9], [4, 5, 6, 7, 8, 9, 10]]
 
         rm("example3.lgz")
 
@@ -245,7 +246,6 @@ end
         @test sort.(clique_decomp(G, MF())) == [[0x0003, 0x0004, 0x0005], [0x0001, 0x0002, 0x0006], [0x0001, 0x0002, 0x0004, 0x0005]]
 
         rm("example5.lgz")
-
     end
 
     @testset "Assign Constraint" begin

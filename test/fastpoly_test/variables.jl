@@ -15,16 +15,20 @@ using NCTSSoS.FastPolynomials:
         @ncpolyvar x[1:10]
         @test x isa Vector{Variable}
         @test length(x) == 10
-        @test x[1].name == Symbol("x[1]")
+        @test x[1].name == Symbol("x₁")
 
         @ncpolyvar x[1:10, 1:5]
         @test x isa Matrix{Variable}
         @test size(x) == (10, 5)
+        @test x[1,3].name == Symbol("x₁,₃")
     end
 
     @testset "String" begin
         @ncpolyvar xyd[1:10]
+        @test xyd[2].name == Symbol("xyd₂")
+
         @ncpolyvar xyz
+        @test xyz.name == :xyz
     end
 
     @testset "Complex Conversion" begin

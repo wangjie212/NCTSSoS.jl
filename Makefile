@@ -31,7 +31,7 @@ format-FastPoly:
 	$(JL) -e 'using JuliaFormatter; JuliaFormatter.format("src/FastPolynomials")'
 
 test-FastPoly:
-	$(JL) -e 'using Pkg; Pkg.status(); include("src/FastPolynomials/test/runtests.jl")'
+	$(JL) -e 'using Pkg; Pkg.status(); include("src/test/fastpoly_test/runtests.jl")'
 
 init-bench:
 	$(JL) -e 'using Pkg; Pkg.activate("benchmark"); Pkg.instantiate()'

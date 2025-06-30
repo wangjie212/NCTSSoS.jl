@@ -32,8 +32,15 @@ Creates an array of variables with indexed names.
 - Array of `Variable` objects with names formatted as `prefix[i1,i2,...]`
 """
 function polyarrayvar(prefix, indices...; iscomplex=false)
+    subscripts = ("₀", "₁", "₂", "₃", "₄", "₅", "₆", "₇", "₈", "₉")
     return map(
-        i -> Variable(Symbol("$(prefix)[$(join(i, ","))]"); iscomplex=iscomplex),
+        idxs -> Variable(
+            Symbol(
+                prefix,
+                join(map(i -> join(reverse(subscripts[digits(i) .+ 1])), idxs), ","),
+            );
+            iscomplex=iscomplex,
+        ),
         Iterators.product(indices...),
     )
 end
@@ -55,7 +62,7 @@ julia> @ncpolyvar x y z     # Creates three real variables
 (x, y, z)
 
 julia> @ncpolyvar u[1:3]     # Creates array of variables u[1], u[2], u[3]
-(Variable[u[1], u[2], u[3]],)
+(Variable[u₁, u₂, u₃],)
 ```
 
 """

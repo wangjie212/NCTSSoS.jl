@@ -423,8 +423,8 @@ end
 @testset "Arithmetic" begin
     @ncpolyvar x[1:3]
     tp =  tr(x[1]*x[2]) -  tr(x[1]) *tr(x[2])
-    @test_broken string(tp) == "-1.0 * tr(x₁¹) * tr(x₂¹) + 1.0 * tr(x₁¹x₂¹)"
+    @test string(tp) == "-1.0 * tr(x₁¹) * tr(x₂¹) + 1.0 * tr(x₁¹x₂¹)"
 
     sp = ς(x[1]*x[2]) - ς(x[1]) * ς(x[2])
-    @test_broken string(sp) == "-1.0 * <x₁¹> * <x₂¹> + 1.0 * <x₁¹x₂¹>"
+    @test string(sp) == "-1.0 * <x₁¹> * <x₂¹> + 1.0 * <x₁¹x₂¹>"
 end
