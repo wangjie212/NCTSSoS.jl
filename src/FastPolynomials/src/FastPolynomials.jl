@@ -1,5 +1,7 @@
 module FastPolynomials
 
+using MLStyle: @match
+
 export variables, ς, tr
 
 export @ncpolyvar, Variable

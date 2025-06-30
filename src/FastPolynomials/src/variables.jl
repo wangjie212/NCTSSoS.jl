@@ -1,105 +1,47 @@
 """
-    ComplexKind
-
-An `Enum` representing whether a variable is complex or real
-"""
-@enum ComplexKind REAL COMPLEX
-
-"""
     Variable
 
 A `Variable` represents a symbolic variable in a polynomial expression.
-It can be either `REAL` or `COMPLEX`.
+
+# Fields
+- `name::Symbol`: The name of the variable
+- `iscomplex::Bool`: Whether the variable is complex
 """
 struct Variable
-    name::String
-    kind::ComplexKind
+    name::Symbol
+    iscomplex::Bool
 
-    function Variable(name::AbstractString, kind::ComplexKind=REAL)
-        return new(convert(String, name), kind)
+    function Variable(name::Symbol; iscomplex::Bool=false)
+        return new(name, iscomplex)
     end
-
-    Variable(from::Variable, kind::ComplexKind) = new(from.name, kind)
 end
 
 """
-    polyarrayvar(complex_kind, prefix, indices...)
+    polyarrayvar(prefix, indices...; iscomplex=false)
 
 Creates an array of variables with indexed names.
 
 # Arguments
-- `complex_kind::ComplexKind`: The kind of variables (REAL or COMPLEX)
 - `prefix::String`: The base name for the variables
 - `indices...`: Variable number of index ranges like `i1, i2, ...`
+
+# Keyword Arguments
+- `iscomplex::Bool`: Whether the variables are complex
 
 # Returns
 - Array of `Variable` objects with names formatted as `prefix[i1,i2,...]`
 """
-function polyarrayvar(complex_kind, prefix, indices...)
+function polyarrayvar(prefix, indices...; iscomplex=false)
     return map(
-        i -> Variable("$(prefix)[$(join(i, ","))]", complex_kind),
+        i -> Variable(Symbol("$(prefix)[$(join(i, ","))]"); iscomplex=iscomplex),
         Iterators.product(indices...),
     )
 end
 
 """
-    buildpolyvar(var, complex_kind)
-
-Builds a polynomial variable declaration from a symbol or expression.
-
-# Arguments
-- `var`: Either a Symbol for single variable or Expr for array variables
-- `complex_kind::ComplexKind`: The kind of variables (REAL or COMPLEX)
-
-# Returns
-- Tuple of (variable_name, expression) for variable creation
-"""
-function buildpolyvar(var, complex_kind)
-    if isa(var, Symbol)
-        var, :($(esc(var)) = $Variable($"$var", $complex_kind))
-    else
-        isa(var, Expr) || error("Expected $var to be a variable name")
-        Base.Meta.isexpr(var, :ref) ||
-            error("Expected $var to be of the form varname[idxset]")
-        (2 ≤ length(var.args)) || error("Expected $var to have at least one index set")
-        varname = var.args[1]
-        prefix = string(varname)
-        varname,
-        :(
-            $(esc(varname)) = polyarrayvar(
-                $(complex_kind), $prefix, $(esc.(var.args[2:end])...)
-            )
-        )
-    end
-end
-
-"""
-    buildpolyvars(args, complex_kind)
-
-Builds multiple polynomial variable declarations from a collection of arguments.
-
-# Arguments
-- `args`: Collection of symbols or expressions for variable names
-- `complex_kind::ComplexKind`: The kind of variables (REAL or COMPLEX)
-
-# Returns
-- Tuple of (variable_names_array, expressions_array) for variable creation
-"""
-function buildpolyvars(args, complex_kind)
-    vars = Symbol[]
-    exprs = []
-    for arg in args
-        var, expr = buildpolyvar(arg, complex_kind)
-        push!(vars, var)
-        push!(exprs, expr)
-    end
-    return vars, exprs
-end
-
-"""
     @ncpolyvar(args...)
 
-Macro to create non-commutative polynomial variables of REAL kind.
+Macro to create non-commutative polynomial variables (hermitian operators).
 
 # Arguments
 - `args...`: Variable arguments specifying variable names (symbols or indexed expressions)
@@ -118,10 +60,49 @@ julia> @ncpolyvar u[1:3]     # Creates array of variables u[1], u[2], u[3]
 
 """
 macro ncpolyvar(args...)
-    vars, exprs = buildpolyvars(args, REAL)
+    vars, exprs = _buildpolyvars(args, false)
     # calls the exprs that initializes the variables
     return :($(foldl((x, y) -> :($x; $y), exprs; init=:()));
     $(Expr(:tuple, esc.(vars)...))) # returns the variables
+end
+
+# Builds multiple polynomial variable declarations from a collection of arguments.
+# Arguments
+# - `args`: Collection of symbols or expressions for variable names
+# - `iscomplex::Bool`: Whether the variables are complex
+# Returns
+# - Tuple of (variable_names_array, expressions_array) for variable creation
+function _buildpolyvars(args, iscomplex)
+    vars = Symbol[]
+    exprs = []
+    for arg in args
+        var, expr = buildpolyvar(arg, iscomplex)
+        push!(vars, var)
+        push!(exprs, expr)
+    end
+    return vars, exprs
+end
+
+"""
+    buildpolyvar(var, iscomplex)
+
+Builds a polynomial variable declaration from a symbol or expression.
+
+# Arguments
+- `var`: Either a Symbol for single variable or Expr for array variables
+- `iscomplex::Bool`: Whether the variables are complex
+
+# Returns
+- Tuple of (variable_name, expression) for variable creation
+"""
+function buildpolyvar(var, iscomplex)
+    @match var begin
+        ::Symbol => (var, :($(esc(var)) = $Variable($(QuoteNode(var)); iscomplex=$iscomplex)))
+        :($varname[$(indices...)]) => begin
+            (varname, :($(esc(varname)) = $polyarrayvar($(QuoteNode(varname)), $(esc.(indices)...); iscomplex=$iscomplex)))
+        end
+        _ => error("Expected $var to be a variable name")
+    end
 end
 
 # from https://scientificcoder.com/user-defined-show-method-in-julia
@@ -220,10 +201,4 @@ end
 function Base.:(^)(a::Variable, expo::Int)
     @assert expo >= 0 "Exponent must be non-negative."
     return iszero(expo) ? one(a) : Monomial([a], [expo])
-end
-
-function Base.string(a::Variable)
-    subscripts = ('₀', '₁', '₂', '₃', '₄', '₅', '₆', '₇', '₈', '₉')
-    m = match(r"(?<var>\w+)(?:\[(?<idx>\d+)\])?",a.name)
-    isnothing(m[:idx]) ? m[:var] :  m[:var] * map(c->subscripts[c-'0'+1], m[:idx])
 end

@@ -23,7 +23,6 @@ const NCTWord = NCStateWord{MaxEntangled}
         sw2 = tr(x[1] * x[2]) * tr(x[2]^2)
         @test sw == sw2
 
-        @test string(sw) == "tr(x₁¹x₂¹) * tr(x₂²)"
         @test sort(variables(sw)) == sort(x)
 
         sw_sorted = TWord([x[2]^2, x[1] * x[2]])
