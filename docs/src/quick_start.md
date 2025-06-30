@@ -42,14 +42,62 @@ end
 
 pop = broyden_banded(6)
 ```
+[Polynomial Optimization](@ref polynomial-optimization) is NP-hard, therefore it
+is considered impossible to solve them efficiently in general. However, it is
+possible to relax the problem into [Semidefinite Programming](@ref SDP). The
+solution of the Semidefinite program will be the lower/upper bound of the
+original minimization/maximization polynomial optimziation problem.
+
+The relaxation can be done in two different forms, [moment relaxation](@ref
+moment-relaxation) and [sum of hermitian square relaxation](@ref
+sum-of-hermitian-square). The relaxation is tight in the limit of a parameter,
+moment order, reaching infinity. However, you may get lucky and be able to sovle the problem at finite moment order. 
+
+Information about the relaxation is encoded in [`NCTSSoS.SolverConfig`](@ref).
+Besides moment order, it also needs to be provided with an [Optimizer](@ref). Different optimizers may have different performance characteristics and may be more or less suitable for a given problem. 
+
+```@repl quick-start
+solver_config = SolverConfig(optimizer=Mosek.Optimizer; mom_order=3)
+```
+
+Finally, we are ready to solve this problem. This is accomplishded with [`NCTSSoS.cs_nctssos`](@ref).
+
+```@repl quick-start
+@time result = cs_nctssos(pop, solver_config)
+
+@assert result.objective ≈ 0.0 atol=1e-5 # find correct value
+```
+
+Although we have reached a tight bound, time to solve the problem can still be significant. As a remedy, [Sparsities](@ref) can be utilized to reduce the problem size. This is achieved by supplying an [`NCTSSoS.EliminationAlgorithm`](@ref) to [`NCTSSoS.SolverConfig`](@ref). 
+
+```@repl quick-start
+solver_config = SolverConfig(optimizer=Mosek.Optimizer; mom_order=3, cs_algo=MF(), ts_algo=AsIsElimination())
+
+@time result = cs_nctssos(pop, solver_config)
+
+@assert result.objective ≈ 0.0 atol=1e-5 # ideally, this has to fail
+```
+
+As expected, the time taken to solve the problem has been significantly reduced.
+However, the result is no longer a tight lower bound. Sparsity is itself a kind
+of relaxation. Luckily, we may tighten the relaxation in the [Term
+Sparsity](@ref term-sparsity) sense, this is done with
+[`NCTSSoS.cs_nctssos_higher`](@ref).
 
 ```@repl quick-start
 
-solver_config = SolverConfig(optimizer=Mosek.Optimizer; mom_order=3, cs_algo=MF(), ts_algo=AsIsElimination())
+@time result_higher = cs_nctssos_higher(pop, solver_config)
 
-result = cs_nctssos(pop, solver_config)
-@assert result.objective ≈ 0.0 atol=1e-5
+@assert result_higher.objective ≈ 0.0 atol=1e-5 # ideally, this should approach the optimal value
 ```
+
+## Workflow
+
+To summarize, the workflow for solving polynomial optimization can be summarized as 
+
+<!-- ![`Workflow for solving Polynomial Optimization problem`](assets/workflow.svg) -->
+
+## Why is Broyden Banded Function Desirable
 
 This function is a good choice for benchmarking and applying term and correlative sparsity for several reasons:
 
@@ -62,5 +110,3 @@ By applying correlative sparsity, we can decompose the problem based on the limi
 
 
 As expected, term sparsity and correlative sparsity techniques significantly reduced the time taken to optimize the non-commutative Broyden banded function while maintaining the accuracy of the solution. The results matched with  [wangExploitingTermSparsity2021](@cite).
-
-To summarize, the workflow for solving polynomial optimization  
