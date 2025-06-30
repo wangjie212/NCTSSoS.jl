@@ -4,6 +4,7 @@
 
 ```@docs
 NCTSSoS.PolyOpt
+NCTSSoS.polyopt
 ```
 
 ## Solver Interface

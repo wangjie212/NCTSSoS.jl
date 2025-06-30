@@ -36,8 +36,8 @@ using NCTSSoS: get_Cαj
 
     cons = vcat([(1 - x[i]^2) for i = 1:n], [(x[i] - 1 / 3) for i = 1:n])
 
-    pop = PolyOpt(f; ineq_constraints = cons)
-    solver_config = SolverConfig(optimizer = SOLVER, mom_order = order, 
+    pop = polyopt(f; ineq_constraints = cons)
+    solver_config = SolverConfig(optimizer = SOLVER, mom_order = order,
         cs_algo = MF(), ts_algo = MMD())
 
     result = cs_nctssos(pop, solver_config)
@@ -83,7 +83,7 @@ end
     g3 = x[1] - r
     g4 = x[2] - r
 
-    pop = PolyOpt(f; ineq_constraints = [g1, g2, g3, g4])
+    pop = polyopt(f; ineq_constraints = [g1, g2, g3, g4])
     order = 2
 
     solver_config = SolverConfig(
@@ -109,7 +109,7 @@ end
     f = 2.0 - x[1]^2 + x[1] * x[2]^2 * x[1] - x[2]^2
     g = 4.0 - x[1]^2 - x[2]^2
     h1 = x[1] * x[2] + x[2] * x[1] - 2.0
-    pop = PolyOpt(f; ineq_constraints = [g], eq_constraints=[h1])
+    pop = polyopt(f; ineq_constraints = [g], eq_constraints=[h1])
 
     order = 2
 
@@ -145,7 +145,7 @@ end
 
     f = x[1]^2 + x[1] * x[2] + x[2] * x[1] + x[2]^2 + true_min
 
-    pop = PolyOpt(f)
+    pop = polyopt(f)
     order = 2
 
     solver_config = SolverConfig(
@@ -169,7 +169,7 @@ end
         9x[2]^2 * x[3] +
         9x[3] * x[2]^2 - 54x[3] * x[2] * x[3] + 142x[3] * x[2]^2 * x[3]
 
-    pop = PolyOpt(f)
+    pop = polyopt(f)
     order = 2
 
     solver_config = SolverConfig(
@@ -207,7 +207,7 @@ end
     ])
 
 
-    pop = PolyOpt(
+    pop = polyopt(
         objective;
         eq_constraints = gs,
         is_unipotent = true,
@@ -240,7 +240,7 @@ end
     order = 3
 
 
-    pop = PolyOpt(f; ineq_constraints = cons)
+    pop = polyopt(f; ineq_constraints = cons)
 
     @testset "Correlative Sparsity" begin
         solver_config = SolverConfig(

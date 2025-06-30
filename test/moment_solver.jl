@@ -20,7 +20,7 @@ using NCTSSoS: substitute_variables
         @ncpolyvar y[1:2]
 
         f = 1.0 * x[1] * y[1] + x[1] * y[2] + x[2] * y[1] - x[2] * y[2]
-        pop = PolyOpt(f; comm_gps = [x, y], is_unipotent = true)
+        pop = polyopt(f; comm_gps = [x, y], is_unipotent = true)
 
         solver_config = SolverConfig(optimizer = SOLVER; mom_order = 1)
 
@@ -36,7 +36,7 @@ using NCTSSoS: substitute_variables
             1.0 * x[1] * (y[1] + y[2] + y[3]) +
             x[2] * (y[1] + y[2] - y[3]) +
             x[3] * (y[1] - y[2]) - x[1] - 2 * y[1] - y[2]
-        pop = PolyOpt(-f; comm_gps = [x, y], is_projective = true)
+        pop = polyopt(-f; comm_gps = [x, y], is_projective = true)
 
         solver_config = SolverConfig(optimizer = SOLVER; mom_order = 3)
 
@@ -72,7 +72,7 @@ end
     # take away some support in the polynomial
     cons = vcat([(1 - x[i]^2) for i = 1:n], [(x[i] - 1 / 3) for i = 1:n])
 
-    pop = PolyOpt(f; ineq_constraints = cons)
+    pop = polyopt(f; ineq_constraints = cons)
 
     solver_config =
         SolverConfig(optimizer=SOLVER; mom_order=order, cs_algo=MF(), ts_algo=MMD())
@@ -107,7 +107,7 @@ end
     ])
 
 
-    pop = PolyOpt(
+    pop = polyopt(
         objective;
         eq_constraints = gs,
         is_unipotent = true,
@@ -148,7 +148,7 @@ end
         9x[2]^2 * x[3] +
         9x[3] * x[2]^2 - 54x[3] * x[2] * x[3] + 142x[3] * x[2]^2 * x[3]
 
-    pop = PolyOpt(f)
+    pop = polyopt(f)
 
     @testset "Dense" begin
 
@@ -189,7 +189,7 @@ end
     f = 2.0 - x[1]^2 + x[1] * x[2]^2 * x[1] - x[2]^2
     g = 4.0 - x[1]^2 - x[2]^2
     h1 = x[1] * x[2] + x[2] * x[1] - 2.0
-    pop = PolyOpt(f; eq_constraints=[h1], ineq_constraints=[g])
+    pop = polyopt(f; eq_constraints=[h1], ineq_constraints=[g])
 
 
     @testset "Dense" begin
@@ -228,7 +228,7 @@ end
     cons = vcat([1.0 - x[i]^2 for i = 1:n], [x[i] - 1.0 / 3 for i = 1:n])
     order = 3
 
-    pop = PolyOpt(f; ineq_constraints = cons)
+    pop = polyopt(f; ineq_constraints = cons)
 
     @testset "Correlative Sparse" begin
         solver_config = SolverConfig(
