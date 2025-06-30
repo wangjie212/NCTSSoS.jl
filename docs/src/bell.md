@@ -1,4 +1,4 @@
-# Bell inequalities
+# [Bell inequalities](@id bell-inequalities)
 
 Bell inequalities are mathematical expressions that test whether the predictions of quantum mechanics can be explained by local hidden variable theories. They were first introduced by John Stewart Bell in 1964 and have since become fundamental tools in quantum information theory and quantum foundations.
 A Bell inequality is typically expressed as a linear combination of expectation values of observables, with bounds that differ between classical and quantum theories. In the classical case, these inequalities must be satisfied if the system can be described by local hidden variables. However, quantum mechanics can violate these inequalities, demonstrating the non-local nature of quantum correlations.
@@ -20,7 +20,7 @@ The CHSH inequality is particularly important because it is the simplest non-tri
 
 The upper bound of the CHSH inequality can be computed using the following code:
 
-```@example chsh
+```julia chsh
 using NCTSSoS, Clarabel
 
 @ncpolyvar x[1:2]  # x = (A_1, A_2)
@@ -65,7 +65,7 @@ In classical mechanics, the inequality $f(A_1, A_2, A_3, B_1, B_2, B_3) \leq 0$ 
 
 The upper bound of the $I_{3322}$ inequality can be computed using the following code:
 
-```@example i3322
+```julia i3322
 using NCTSSoS, Clarabel
 
 @ncpolyvar x[1:3]
@@ -165,15 +165,15 @@ it was shown that $f(A_1,A_2,A_3,B_1,B_2,B_3) \leq \frac{9}{2}$ in classical mod
 
 An *open question* was whether a higher bound can be attained in a spatial quantum model of qudits, i.e., systems with more than two levels. Using State Polynomial Optimization [^Klep], we can certify the upper bound of this inequality:
 
-```@example covariance
+```julia covariance
 using NCTSSoS, COSMO, NCTSSoS.FastPolynomials
-using NCTSSoS: NCStateWord
+using NCTSSoS.FastPolynomials: NCStateWord
 
 @ncpolyvar x[1:3] y[1:3]  # x = (A_1, A_2, A_3), y = (B_1, B_2, B_3)
 
 # covariance function
-cov(a, b) = 1.0 * NCStateWord([x[a] * y[b]], one(x[1])) -
-            1.0 * (NCStateWord(monomial.([x[a]]), one(x[1])) * NCStateWord(monomial.([y[b]]), one(x[1])))
+cov(a, b) = 1.0 * ς(x[a] * y[b]) * one(Monomial) -
+            1.0 * ς(x[a]) * ς(y[b]) * one(Monomial)
 
 # objective function
 sp = cov(1,1) + cov(1,2) + cov(1,3) + cov(2,1) + cov(2,2) - cov(2,3) + cov(3,1) - cov(3,2)

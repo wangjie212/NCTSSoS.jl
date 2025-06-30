@@ -19,7 +19,7 @@ H = \frac{1}{4} \sum_{i < j} J_{ij} \sum_{ a \in \{x,y,z\}} \sigma_i^a \sigma_j^
 Firstly, let's consider the simplest case of 1D Heisenberg chain with nearest
 neighbor interaction and periodic boundary condition.
 
-```@example 1D-Heisenberg
+```julia 1D-Heisenberg
 using NCTSSoS, Clarabel
 N = 6
 @ncpolyvar x[1:N] y[1:N] z[1:N]
@@ -61,7 +61,7 @@ Polynomial Optimization framework is quite general. Almost no modification is
 required to handle more complex Hamiltonian. 1D Heisenberg Model with geometric
 frustration induced by next nearest neighbor interaction can be solved as:
 
-```@example geom-frustration
+```julia geom-frustration
 N = 6
 J1 = 1.0                            # Nearest Neighbor Interaction
 J2 = 0.2                            # Next Nearest Neighbor Interaction
