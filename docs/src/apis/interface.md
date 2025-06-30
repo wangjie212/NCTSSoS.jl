@@ -2,14 +2,14 @@
 
 ## Problem Definition
 
-```@autodocs
-Modules = [NCTSSoS]
-Pages = ["/pop.jl"]
+```@docs
+NCTSSoS.PolyOpt
 ```
 
 ## Solver Interface
 
-```@autodocs
-Modules = [NCTSSoS]
-Pages = ["/interface.jl]
+```@docs
+NCTSSoS.SolverConfig
+NCTSSoS.cs_nctssos
+NCTSSoS.cs_nctssos_higher
 ```

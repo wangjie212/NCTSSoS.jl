@@ -1,13 +1,11 @@
 # Moment Relaxation
 
-```@autodocs
-Modules = [NCTSSoS]
-Pages = ["/moment_solver.jl"]
+```@docs
+NCTSSoS.moment_relax
 ```
 
 # Sum-of-Squares Relaxation
 
-```@autodocs
-Modules = [NCTSSoS]
-Pages = ["/sos_solver.jl"]
+```@docs
+NCTSSoS.sos_dualize
 ```

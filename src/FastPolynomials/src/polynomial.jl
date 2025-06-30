@@ -73,19 +73,6 @@ function Base.show(io::IO, mime::MIME"text/plain", obj::Polynomial)
     return print_object(io, obj; multiline=multiline)
 end
 
-"""
-    print_object(io, obj; multiline)
-
-Prints a Polynomial object to an IO stream.
-
-# Arguments
-- `io::IO`: The output stream
-- `obj::Polynomial`: The polynomial to print
-- `multiline::Bool`: Whether to use expanded format
-
-# Returns
-- Nothing (prints to IO stream)
-"""
 function print_object(io::IO, obj::Polynomial; multiline::Bool)
     if multiline
         return print(io, join(
