@@ -1,12 +1,13 @@
 # NCTSSoS
 
-[NCTSSoS.jl](https://github.com/wangjie212/NCTSSoS) aims to provide a user-friendly and efficient tool for solving [polynomial optimization problems](@ref PolynomialOptimization) which is based on the structured [moment-SOHS hierarchy](@ref MomentSOSHierarchy).
+
+[NCTSSoS.jl](https://github.com/wangjie212/NCTSSoS) aims to provide a *user-friendly* and *efficient* tool for solving [noncommutative polynomial optimization problems](@ref polynomial-optimization) which is based on the structured [moment-SOHS hierarchy](@ref moment-sohs-hierarchy).
 
 ## Features
 
 - Ergonomic API: Easy to use and intuitive interface for defining polynomial optimization problems!
-- General Objectives: [Eigenvalue](@ref eigenvalue_polynomial), [State](@ref state_polynomial), [Tracial](@ref tracial_polynomial) Polynomial optimizations are supported!
-- [Correlative and Term Sparsities](@ref sparsities): Plug and play API for utilizing sparsities in reducing cost of solving optimization problems.
+- General Objectives: [Eigenvalue](@ref eigenvalue-polynomial), [State](@ref state-polynomial), [Tracial](@ref tracial-polynomial) Polynomial optimizations are supported!
+- [Correlative and Term Sparsities](@ref sparsities): Plug-and-Play API for utilizing sparsities in reducing cost of solving optimization problems.
 
 ## Installation
 

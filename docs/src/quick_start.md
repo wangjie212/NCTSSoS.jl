@@ -31,7 +31,7 @@ Firstly, use [`NCTSSoS.PolyOpt`](@ref) object to represent this problem. Since
 the constraints are inequalities, we pass it to `ineq_constraints` argument to
 constructor [`NCTSSoS.polyopt`](@ref).
 
-```@repl quick-start
+```julia quick-start
 using NCTSSoS, MosekTools
 
 function broyden_banded(n::Int)
@@ -68,13 +68,13 @@ Besides moment order, it also needs to be provided with a [SDP Solver](@ref
 overview-of-optimizers). Different optimizers may have different performance
 characteristics and may be more or less suitable for a given problem.
 
-```@repl quick-start
+```julia quick-start
 solver_config = SolverConfig(optimizer=Mosek.Optimizer;mom_order=3)
 ```
 
 Finally, we are ready to solve this problem. This is accomplishded with [`NCTSSoS.cs_nctssos`](@ref).
 
-```@repl quick-start
+```julia quick-start
 @time result = cs_nctssos(pop, solver_config)
 
 @assert result.objective ≈ 0.0 atol=1e-5 # find correct value
@@ -86,7 +86,7 @@ reduce the problem size. This is achieved by supplying an
 [`EliminationAlgorithm`](https://algebraicjulia.github.io/CliqueTrees.jl/stable/api/#Elimination-Algorithms)
 to [`NCTSSoS.SolverConfig`](@ref).
 
-```@repl quick-start
+```julia quick-start
 solver_config = SolverConfig(optimizer=Mosek.Optimizer; mom_order=3, cs_algo=MF(), ts_algo=AsIsElimination())
 
 @time result = cs_nctssos(pop, solver_config)
@@ -100,7 +100,7 @@ of relaxation. Luckily, we may tighten the relaxation in the [Term
 Sparsity](@ref term-sparsity) sense, this is done with
 [`NCTSSoS.cs_nctssos_higher`](@ref).
 
-```@repl quick-start
+```julia quick-start
 
 @time result_higher = cs_nctssos_higher(pop, solver_config)
 
@@ -112,6 +112,8 @@ Sparsity](@ref term-sparsity) sense, this is done with
 To summarize, the workflow for solving polynomial optimization can be summarized as
 
 ![`Workflow for solving Polynomial Optimization problem`](assets/overall_workflow.typ.svg)
+
+If you would like to understand more please refer to [examples section] in the document.
 
 ## Why is Broyden Banded Function Desirable
 
