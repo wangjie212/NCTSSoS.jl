@@ -113,7 +113,7 @@ Finally, we are ready to solve this problem. This is accomplishded with [`NCTSSo
 ```
 
 ```julia
-134.157864 seconds (210.30 M allocations: 7.741 GiB, 0.78% gc time)
+131.787849 seconds (80.18 M allocations: 4.424 GiB, 0.67% gc time, 4.86% compilation time)
 Objective: 2.979657977586228
 ```
 

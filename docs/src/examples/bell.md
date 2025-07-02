@@ -42,7 +42,7 @@ result.objective  # the upper bound of the CHSH inequality
 ```
 
 ```julia
--2.8284271321623207
+-2.8284271321623202
 ```
 
 Here, we first declare some operators as non-commutative variables, and then construct the optimization problem. In `PolyOpt` constructor,
@@ -86,7 +86,7 @@ result.objective
 ```
 
 ```julia
--0.25093972222115607
+-0.25093972222278366
 ```
 
 Here, the `is_projective` argument specifies that the variables are projective, which means they square to themselves (e.g. $|0\rangle\langle 0|$ and $|1\rangle\langle 1|$).
@@ -114,10 +114,11 @@ solver_config = SolverConfig(optimizer=Mosek.Optimizer; mom_order=3)
 ```
 
 ```julia
-3.637607 seconds (33.93 M allocations: 1.733 GiB, 11.48% gc time)
-Objective: -0.25087555008536233
+1.923037 seconds (43.04 M allocations: 2.210 GiB, 20.41% gc time)
+Objective: -0.2508755502587585
 ```
-Indeed, by increasing the order of the moment matrix to 3, have improved the upper bound from $-0.25093972222115607$ to $-0.25087555008536233$.
+
+Indeed, by increasing the order of the moment matrix to 3, have improved the lower bound from $-0.25093972222278366$ to $-0.2508755502587585$.
 
 However, keep increase the order can lead to a large semidefinite programming (SDP) problem size, which can be computationally expensive. To reduce the problem size, we may exploit the sparsity of the problem [magronSparsePolynomialOptimization2023](@cite). There are two sparsity patterns that can be used to reduce the problem size:
 
@@ -202,8 +203,8 @@ result
 ```
 
 ```julia
-Objective: -5.000271539276089
-````
+Objective: -5.000271541108556
+```
 
 The resulting upper bound is very close to the previously known best value of $5$ (accurate up to 3 decimals!!). It accertains the value of $5$ for any system size.
 
@@ -241,7 +242,7 @@ result_higher
 ```
 
 ```julia
-Objective: -4.999999968822425
+Objective: -4.999999981821947
 ```
 
 This is accurate up to $10$ decimals.

@@ -10,7 +10,9 @@ makedocs(;
         "Home"=>"index.md",
         "Quick Start"=>"quick_start.md",
         "Manual"=>Any["Polynomials"=>"manual/polynomials.md", "Polynomial Optimization"=>"manual/polynomial_optimization.md", "Sparsities"=>"manual/sparsities.md", "SDP Relaxation"=>"manual/sdp_relaxation.md", "Optimizers"=>"manual/optimizers.md"],
-        "Examples"=>Any["Bell inequalities"=>"examples/bell.md", "Certifying Ground State"=>"examples/cert_ground_state.md","Trace Polynomial"=>"examples/trace_poly.md", "Werner State"=>"examples/werner_state.md"],
+        "Examples"=>Any["Bell inequalities"=>"examples/bell.md", "Certifying Ground State"=>"examples/cert_ground_state.md","Trace Polynomial"=>"examples/trace_poly.md",
+            # "Werner State"=>"examples/werner_state.md"
+            ],
         "References"=>"reference.md",
         "APIs"=>["User interface" => "apis/interface.md", "Polynomials" => "apis/polynomials.md", "Sparsities" => "apis/sparsities.md", "SDP Relaxation" => "apis/relaxations.md"]
     ],
