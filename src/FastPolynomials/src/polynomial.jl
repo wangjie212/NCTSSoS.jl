@@ -103,6 +103,7 @@ Base.real(p::Polynomial) = Polynomial(real.(p.coeffs), p.monos)
 coefficients(p::Polynomial) = p.coeffs
 monomials(p::Polynomial) = p.monos
 terms(p::Polynomial) = zip(p.coeffs, p.monos)
+expval(p::Polynomial) = p
 
 """
     support(poly::Polynomial{T}, canonicalize::Function) where {T}

@@ -181,7 +181,6 @@ end
         [y],
         [x],
         [x * y],
-        [y*x],
         [y^2],
         [x^2],
         [y, y],
@@ -195,7 +194,7 @@ end
         [x],
         fill([one(x)], 4)...,
     ]
-    nc_words = [fill(one(x), 10); fill(y, 3); fill(x, 3); [y * x, y^2, x * y, x^2]]
+    nc_words = [fill(one(x), 9); fill(y, 3); fill(x, 3); [y * x, y^2, x * y, x^2]]
 
     @test sort(get_state_basis(MaxEntangled, [x, y], 2, sa)) ==
         sort(map(a -> NCStateWord(MaxEntangled, a[1], a[2]), zip(c_words, nc_words)))
@@ -380,7 +379,6 @@ end
         [y],
         [x],
         [x * y],
-        [y * x],
         [y^2],
         [x^2],
         [y, y],
@@ -394,7 +392,7 @@ end
         [x],
         fill([one(x)], 4)...,
     ]
-    nc_words = [fill(one(x), 10); fill(y, 3); fill(x, 3); [y * x, y^2, x * y, x^2]]
+    nc_words = [fill(one(x), 9); fill(y, 3); fill(x, 3); [y * x, y^2, x * y, x^2]]
 
     @test sort(get_state_basis(Arbitrary, [x, y], 2, sa)) ==
         sort(map(x -> NCStateWord(Arbitrary, x[1], x[2]), zip(c_words, nc_words)))

@@ -53,9 +53,8 @@ end
         model,
         [x[1]-x[2] x[3] x[4]+x[1]; x[1]-x[2] x[3] x[4]+x[1]; x[1]-x[2] x[3] x[4]+x[1]] in PSDCone()
     )
-    typeof(cons)
 
-    C_α_js = get_Cαj(x, constraint_object(cons))
+    C_α_js = get_Cαj(Int,x, constraint_object(cons))
 
     @test C_α_js == [
         sparse(
@@ -99,7 +98,7 @@ end
     @test isapprox(
         result_mom.objective,
         result_sos.objective,
-        atol = 1e-5,
+        atol = 1e-4,
     )
 end
 

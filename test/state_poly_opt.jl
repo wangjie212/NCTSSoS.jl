@@ -12,14 +12,12 @@ using COSMO
 const QUICK_SOLVER = COSMO.Optimizer
 using JuMP
 using NCTSSoS:
-    get_state_basis,
     neat_dot,
-    NCStateWord,
     constrain_moment_matrix!,
     substitute_variables,
     NoElimination
 
-using NCTSSoS.FastPolynomials: expval, terms, Arbitrary
+using NCTSSoS.FastPolynomials: expval, terms, Arbitrary, get_state_basis, NCStateWord
 
 @testset "State Polynomial Opt 7.2.0" begin
     @ncpolyvar x[1:2] y[1:2]
@@ -77,11 +75,22 @@ end
 
     spop = polyopt(sp*one(Monomial); is_unipotent = true, comm_gps = [x[1:3], y[1:3]])
 
+    using NCTSSoS.FastPolynomials: neat_dot
+    t1 = ς(x[1]*y[1])*one(Monomial)
+    neat_dot(t1,t1)
     d = 2
     solver_config = SolverConfig(; optimizer = SOLVER, mom_order = d)
 
     result = cs_nctssos(spop, solver_config)
     @test result.objective ≈ -5.0 atol = 1e-2
+
+    @testset "Sparse" begin
+        d = 3
+        solver_config = SolverConfig(; optimizer = SOLVER, mom_order = d, ts_algo=MMD())
+
+        result = cs_nctssos(spop, solver_config)
+        @test result.objective ≈ -5.0 atol = 1e-6
+    end
 
     @ncpolyvar x[1:6]
     sp =
@@ -139,18 +148,17 @@ end
     )
 
     @test map(a -> a[1] * a[2], terms(ncsp)) == ncterms
-    @test substitute_variables(ncsp, wordmap) == 1.0 * y[7] + 3.0 * y[6] + 2.0 * y[4]
+    @test substitute_variables(expval(ncsp), wordmap) == 1.0 * y[7] + 3.0 * y[6] + 2.0 * y[4]
 
     true_mom_mtx = expval.([neat_dot(a, b) for a in basis, b in basis])
     mom_mtx_cons =
         constrain_moment_matrix!(model, one(ncsp), basis, wordmap, PSDCone(), sa)
     mom_mtx = constraint_object(mom_mtx_cons)
-    reshape(mom_mtx.func, 5, 5)
     @test reshape(mom_mtx.func, 5, 5) == AffExpr[
         y[1] y[2] y[3] y[2] y[3];
         y[2] y[4] y[5] y[4] y[5];
         y[3] y[5] y[6] y[5] y[6];
         y[2] y[4] y[5] y[8] y[7];
-        y[3] y[5] y[6] y[9] y[10]
+        y[3] y[5] y[6] y[7] y[10]
     ]
 end

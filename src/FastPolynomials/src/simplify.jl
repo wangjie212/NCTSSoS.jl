@@ -111,10 +111,11 @@ function _projective(ncsw::NCStateWord)
 end
 
 # ς(w) = ς(w') stated in https://arxiv.org/abs/2301.12513, Section 2.1
-# You NEVER EVER CANONICALIZE HERER!!!
+# You DO CANONICALIZE HERER!!!
 function get_state_basis(
     ::Type{ST}, variables::Vector{Variable}, d::Int, sa::SimplifyAlgorithm
 ) where ST
+    canon_algo = ST == MaxEntangled ? cyclic_canonicalize : symmetric_canonicalize
     return unique!(
         map(
             a -> NCStateWord(StateWord{ST}(a[1]), a[2]),
@@ -127,7 +128,7 @@ function get_state_basis(
                         isempty(interm) ? [one(variables[1])] : interm
                     end for c_word in Iterators.product(
                         ntuple(
-                            _ -> unique!(simplify.(get_basis(variables, cw_deg), Ref(sa))),
+                            _ -> unique!(canon_algo.(get_basis(variables, cw_deg), Ref(sa))),
                             cw_deg,
                         )...,
                         [one(variables[1])],
