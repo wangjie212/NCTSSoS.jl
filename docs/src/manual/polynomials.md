@@ -14,13 +14,60 @@ polynomials provide the natural language for this reality. They are the building
 blocks for constructing the **Hamiltonian** of a quantum system, which describes
 its total energy.
 
-## [Expectation Value Polynomials: Probing Non-Local Correlations](@id tracial-polynomial)
+## [Trace Polynomials: Probing Non-Local Correlations](@id tracial-polynomial)
 
-These polynomials represent the expected value of a combination of measurement
-outcomes. A key application is the formulation of **linear Bell inequalities**
-(e.g., the CHSH inequality). By finding the maximum value of these polynomials,
-physicists can test the limits of quantum non-locality and entanglement, often
-by assuming the system is in a maximally entangled state.
+Trace polynomials are a specialized class of mathematical objects that consist
+of polynomials in noncommuting variables combined with traces of their products.
+Unlike ordinary commutative polynomials where variables can be freely rearranged
+(e.g., xy = yx), trace polynomials involve noncommutative variables where order
+matters, and they incorporate the trace operation—a fundamental concept from
+linear algebra and operator theory that computes the sum of diagonal elements of
+a matrix. These mathematical structures have gained significant attention due to
+their applications in quantum information theory, particularly in the context of
+optimizing quantum systems and analyzing violations of polynomial Bell
+inequalities. The optimization of trace polynomials subject to tracial
+constraints represents a natural extension of semidefinite programming
+techniques to the noncommutative setting, drawing from areas such as real
+algebraic geometry, operator theory, and noncommutative algebra to provide
+powerful tools for solving complex problems in quantum mechanics and related
+fields.
+
+## Mathematical Framework
+
+In the context of tracial polynomial optimization, we consider polynomials of the form:
+
+```
+p(X₁, X₂, ..., Xₙ) = Σ cₐ tr(Xₐ)
+```
+
+where:
+- `X₁, X₂, ..., Xₙ` are noncommuting matrix variables
+- `cₐ` are real coefficients
+- `Xₐ` represents monomials in the noncommuting variables
+- `tr(·)` denotes the trace operation
+
+The key challenge in tracial polynomial optimization is to find the minimum or maximum value of such polynomials subject to tracial constraints, which may include:
+- Trace normalization conditions
+- Positivity constraints on trace polynomials
+- Additional structural constraints on the matrix variables
+
+## Optimization Hierarchy
+
+The optimization of trace polynomials can be approached through a hierarchy of semidefinite relaxations that converge monotonically to the optimal value. This hierarchy extends classical semidefinite programming techniques to handle the noncommutative nature of the variables and the trace operations involved.
+
+The method involves:
+1. **Moment relaxations**: Constructing moment matrices associated with the tracial functionals
+2. **Positivstellensatz certificates**: Using algebraic certificates to verify positivity of trace polynomials
+3. **GNS construction**: Applying the Gelfand-Naimark-Segal construction to extract optimal solutions when flatness conditions are satisfied
+
+## Applications
+
+Tracial polynomial optimization has found important applications in:
+
+- **Quantum Information Theory**: Optimizing quantum states and operations
+- **Bell Inequality Violations**: Analyzing and maximizing violations of polynomial Bell inequalities
+- **Quantum Error Correction**: Designing optimal quantum error correction codes
+- **Semidefinite Programming**: Extending classical SDP techniques to noncommutative settings
 
 ## [State Polynomials: Testing Advanced Quantum Phenomena](@id state-polynomial)
 

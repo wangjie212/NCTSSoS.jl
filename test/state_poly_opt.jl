@@ -25,7 +25,7 @@ using NCTSSoS.FastPolynomials: expval, terms, Arbitrary
     @ncpolyvar x[1:2] y[1:2]
     sp =
         -1.0 * ς(x[1] * y[1]) - 1.0 * ς(x[1] * y[2]) - 1.0 * ς(x[2] * y[1]) +
-        1.0 * ς(x[2] * y[2]) 
+        1.0 * ς(x[2] * y[2])
     spop = polyopt(sp * one(Monomial); is_unipotent = true, comm_gps = [x, y])
 
     d = 1
@@ -101,6 +101,14 @@ end
 
     result = cs_nctssos(spop, solver_config)
     @test result.objective ≈ -5.0 atol = 1e-2
+
+    @testset "Sparse" begin
+        d = 2
+        solver_config = SolverConfig(; optimizer = SOLVER, mom_order = d, ts_algo=MMD())
+
+        result = cs_nctssos(spop, solver_config)
+        @test result.objective ≈ -5.0 atol = 1e-6
+    end
 end
 
 
