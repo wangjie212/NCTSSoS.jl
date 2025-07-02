@@ -1,9 +1,3 @@
-"""
-   PolynomialLike
-
-Type alias for objects that can be either a Variable or a Monomial or a Polynomial.
-Used in arithmetic operations to allow flexible input types.
-"""
 const PolynomialLike = Union{Variable,Monomial,Polynomial}
 
 function Base.:(+)(a::PolynomialLike, b::PolynomialLike)

@@ -5,8 +5,7 @@ end
 # Decompose the matrix into the form sum_j C_αj * g_j
 # j: index of the constraint
 # α: the monomial (JuMP variable)
-function get_Cαj(basis::Vector{GenericVariableRef{T}}, localizing_mtx::VectorConstraint{F,S,Shape}) where {T,F,S,Shape}
-    T_coef = get_coef_type(localizing_mtx)
+function get_Cαj(::Type{T_coef},basis::Vector{GenericVariableRef{T}}, localizing_mtx::VectorConstraint{F,S,Shape}) where {T,T_coef,F,S,Shape}
     dim = get_dim(localizing_mtx)
     cis = CartesianIndices((dim, dim))
     nbasis = length(basis)
@@ -88,7 +87,7 @@ function sos_dualize(moment_problem::MomentProblem{T,M}) where {T,M}
     add_to_expression!(fα_constraints[1], -one(T_coef), b)
 
     for (i, sdp_constraint) in enumerate(moment_problem.constraints)
-        Cαj = get_Cαj(unsymmetrized_basis_vals, constraint_object(sdp_constraint))
+        Cαj = get_Cαj(T_coef,unsymmetrized_basis_vals, constraint_object(sdp_constraint))
         for (k, α) in enumerate(unsymmetrized_basis)
             for jj in 1:size(Cαj[k], 2)
                 for ii in nzrange(Cαj[k], jj)

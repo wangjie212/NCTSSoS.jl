@@ -105,18 +105,6 @@ function print_object(io::IO, obj::Monomial; multiline::Bool)
     return multiline ? print(io, string(obj)) : Base.show_default(io, obj)
 end
 
-"""
-    Base.hash(m::Monomial, u::UInt)
-
-Computes hash value for a monomial based on its variables and exponents.
-
-# Arguments
-- `m::Monomial`: The monomial to hash
-- `u::UInt`: Hash seed value
-
-# Returns
-- `UInt`: Hash value combining variables and exponents
-"""
 function Base.hash(m::Monomial, u::UInt)
     return hash(m.vars, hash(m.z, u))
 end

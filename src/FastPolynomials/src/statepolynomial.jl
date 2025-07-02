@@ -121,6 +121,7 @@ Base.one(::Type{StatePolynomial{T}}) where {T} = StatePolynomial([one(T)], [one(
 function Base.zero(::StatePolynomial{T,ST}) where {T,ST}
     return StatePolynomial(T[], StateWord{ST}[])
 end
+Base.zero(::Type{StatePolynomial{T,ST}}) where {T,ST} = StatePolynomial(T[], StateWord{ST}[])
 
 terms(sp::StatePolynomial) = zip(sp.coeffs, sp.state_words)
 
@@ -232,6 +233,10 @@ end
 
 function degree(ncsp::NCStatePolynomial)
     return reduce(max, degree.(ncsp.nc_state_words))
+end
+
+function expval(ncsp::NCStatePolynomial)
+    return sum(ncsp.coeffs .* expval.(ncsp.nc_state_words))
 end
 
 monomials(ncsp::NCStatePolynomial) = ncsp.nc_state_words

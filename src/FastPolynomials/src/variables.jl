@@ -125,35 +125,10 @@ function Base.show(io::IO, mime::MIME"text/plain", obj::Variable)
     return print_object(io, obj; multiline=multiline)
 end
 
-"""
-    print_object(io, obj; multiline)
-
-Prints a Variable object to an IO stream.
-
-# Arguments
-- `io::IO`: The output stream
-- `obj::Variable`: The Variable to print
-- `multiline::Bool`: Whether to use multiline format
-
-# Returns
-- Nothing (prints to IO stream)
-"""
 function print_object(io::IO, obj::Variable; multiline::Bool)
     return multiline ? print(io, "$(obj.name)") : Base.show_default(io, obj)
 end
 
-"""
-    Base.hash(v, u)
-
-Computes hash value for a Variable based on its name.
-
-# Arguments
-- `v::Variable`: The Variable to hash
-- `u::UInt`: Hash seed value
-
-# Returns
-- `UInt`: Hash value of the variable's name
-"""
 function Base.hash(v::Variable, u::UInt)
     return hash(v.name, u)
 end

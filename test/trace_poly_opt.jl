@@ -17,7 +17,7 @@ end
 
     p = (tr(x[1] * x[2] * x[3]) + tr(x[1] * x[2]) * tr(x[3])) * one(Monomial)
 
-    spop = PolyOpt(p; is_projective=true, comm_gps=[x])
+    spop = polyopt(p; is_projective=true, comm_gps=[x])
 
     solver_config = SolverConfig(; optimizer=SOLVER, mom_order=2)
 
@@ -37,7 +37,7 @@ end
 
     p = -1.0 * tr(x[1] * y[1]) - 1.0 * tr(x[1] * y[2]) - 1.0 * tr(x[2] * y[1]) + 1.0 * tr(x[2] * y[2])
 
-	tpop = PolyOpt(p * one(Monomial); is_unipotent=true)
+	tpop = polyopt(p * one(Monomial); is_unipotent=true)
 
 	solver_config = SolverConfig(; optimizer=SOLVER, mom_order=1, ts_algo=MaximalElimination())
 
@@ -51,7 +51,7 @@ end
 
     p = (1.0 * tr(x[1] * y[2]) + tr(x[2] * y[1])) * (1.0 * tr(x[1] * y[2]) + tr(x[2] * y[1])) + (1.0 * tr(x[1] * y[1]) - tr(x[2] * y[2])) * (1.0 * tr(x[1] * y[1]) - tr(x[2] * y[2]))
 
-    tpop = PolyOpt((-1.0 * p) * one(Monomial); is_unipotent=true)
+    tpop = polyopt((-1.0 * p) * one(Monomial); is_unipotent=true)
 
 	solver_config = SolverConfig(; optimizer=SOLVER, mom_order=2)
 
@@ -66,7 +66,7 @@ end
 
     cov(i, j) = tr(x[i] * y[j]) - tr(x[i]) * tr(y[j])
     p = -1.0 * (cov(1, 1) + cov(1, 2) + cov(1, 3) + cov(2, 1) + cov(2, 2) - cov(2, 3) + cov(3, 1) - cov(3, 2))
-    tpop = PolyOpt(p * one(Monomial); is_unipotent=true)
+    tpop = polyopt(p * one(Monomial); is_unipotent=true)
 
 	solver_config = SolverConfig(; optimizer=SOLVER, mom_order=2)
 

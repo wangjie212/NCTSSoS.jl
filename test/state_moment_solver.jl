@@ -31,8 +31,8 @@ using NCTSSoS:
     @ncpolyvar x[1:2] y[1:2]
     sp =
         -1.0 * ς(x[1] * y[1]) - 1.0 * ς(x[1] * y[2]) - 1.0 * ς(x[2] * y[1]) +
-        1.0 * ς(x[2] * y[2]) 
-    spop = PolyOpt(sp * one(Monomial); is_unipotent = true, comm_gps = [x, y])
+        1.0 * ς(x[2] * y[2])
+    spop = polyopt(sp * one(Monomial); is_unipotent = true, comm_gps = [x, y])
 
     d = 1
 
@@ -53,7 +53,7 @@ end
     sp2 = 1.0 * ς(x[1] * y[1]) + -1.0 * ς(x[2] * y[2])
     sp = -1.0 * sp1 * sp1 - 1.0 * sp2 * sp2
 
-    spop = PolyOpt(sp * one(Monomial); is_unipotent=true, comm_gps=[x, y])
+    spop = polyopt(sp * one(Monomial); is_unipotent=true, comm_gps=[x, y])
 
     d = 3
     cr = correlative_sparsity(spop, d, NoElimination())
@@ -107,7 +107,7 @@ end
         cov(1, 1) + cov(1, 2) + cov(1, 3) + cov(2, 1) + cov(2, 2) - cov(2, 3) + cov(3, 1) -
         cov(3, 2)
 
-    spop = StatePolyOpt(sp*one(Monomial); is_unipotent = true, comm_gps = [x[1:3], y[1:3]])
+    spop = polyopt(sp*one(Monomial); is_unipotent = true, comm_gps = [x[1:3], y[1:3]])
 
     solver_config = SolverConfig(; optimizer = SOLVER, mom_order = 2)
 
@@ -124,7 +124,7 @@ end
         1 * ς(x[3] * x[5]) - 1 * ς(x[3]) * ς(x[5])
 
 
-    spop = StatePolyOpt(sp; is_unipotent = true, comm_gps = [x[1:3], x[4:6]])
+    spop = polyopt(sp; is_unipotent = true, comm_gps = [x[1:3], x[4:6]])
 
     solver_config = SolverConfig(; optimizer = SOLVER, mom_order = 2)
 

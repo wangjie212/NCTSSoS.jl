@@ -73,19 +73,6 @@ function Base.show(io::IO, mime::MIME"text/plain", obj::Polynomial)
     return print_object(io, obj; multiline=multiline)
 end
 
-"""
-    print_object(io, obj; multiline)
-
-Prints a Polynomial object to an IO stream.
-
-# Arguments
-- `io::IO`: The output stream
-- `obj::Polynomial`: The polynomial to print
-- `multiline::Bool`: Whether to use expanded format
-
-# Returns
-- Nothing (prints to IO stream)
-"""
 function print_object(io::IO, obj::Polynomial; multiline::Bool)
     if multiline
         return print(io, join(
@@ -99,18 +86,6 @@ function print_object(io::IO, obj::Polynomial; multiline::Bool)
     end
 end
 
-"""
-    Base.hash(p::Polynomial, u::UInt)
-
-Computes hash value for a polynomial based on its coefficients and monomials.
-
-# Arguments
-- `p::Polynomial`: The polynomial to hash
-- `u::UInt`: Hash seed value
-
-# Returns
-- `UInt`: Hash value combining coefficients and monomials
-"""
 function Base.hash(p::Polynomial, u::UInt)
     return hash(p.coeffs, hash(p.monos, u))
 end
@@ -128,6 +103,7 @@ Base.real(p::Polynomial) = Polynomial(real.(p.coeffs), p.monos)
 coefficients(p::Polynomial) = p.coeffs
 monomials(p::Polynomial) = p.monos
 terms(p::Polynomial) = zip(p.coeffs, p.monos)
+expval(p::Polynomial) = p
 
 """
     support(poly::Polynomial{T}, canonicalize::Function) where {T}

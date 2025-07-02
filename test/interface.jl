@@ -17,7 +17,7 @@ end
 
     eq_cons = reduce(vcat, [[x[i] * y[i] - im * z[i], y[i] * x[i] + im * z[i], y[i] * z[i] - im * x[i], z[i] * y[i] + im * x[i], z[i] * x[i] - im * y[i], x[i] * z[i] + im * y[i]] for i in 1:N])
 
-    pop = PolyOpt(ham; eq_constraints=eq_cons, comm_gps=[[x[i], y[i], z[i]] for i in 1:N], is_unipotent=true)
+    pop = polyopt(ham; eq_constraints=eq_cons, comm_gps=[[x[i], y[i], z[i]] for i in 1:N], is_unipotent=true)
 
     solver_config = SolverConfig(optimizer=SOLVER, mom_order=2, ts_algo=MMD())
 
@@ -33,7 +33,7 @@ end
     f = 1.0 * x[1] * (y[1] + y[2] + y[3]) + x[2] * (y[1] + y[2] - y[3]) +
         x[3] * (y[1] - y[2]) - x[1] - 2 * y[1] - y[2]  # objective function
 
-    pop = PolyOpt(-f; comm_gps=[x, y], is_projective=true)
+    pop = polyopt(-f; comm_gps=[x, y], is_projective=true)
 
     for (cs_algo, ts_algo, ans) in zip([NoElimination(), MF(), MF()],
         [NoElimination(), MMD(),  MaximalElimination()],
@@ -83,7 +83,7 @@ end
         (i != j && j != k && i != k)
     ])
 
-    pop = PolyOpt(
+    pop = polyopt(
         -objective;
         eq_constraints = gs,
         is_projective = true,
@@ -103,7 +103,7 @@ end
     g = 4.0 - x[1]^2 - x[2]^2
     h1 = x[1] * x[2] + x[2] * x[1] - 2.0
     # change struct name
-    pop = PolyOpt(f; ineq_constraints = [g], eq_constraints=[h1])
+    pop = polyopt(f; ineq_constraints = [g], eq_constraints=[h1])
 
     solver_config = SolverConfig(
         optimizer = SOLVER;
@@ -132,7 +132,7 @@ end
         x[2] * x[3] +
         x[3] * x[2]
 
-    pop = PolyOpt(f)
+    pop = polyopt(f)
 
     solver_config_dense = SolverConfig(optimizer = SOLVER)
 
@@ -157,7 +157,7 @@ end
     g = 4.0 - x[1]^2 - x[2]^2
     h1 = x[1] * x[2] + x[2] * x[1] - 2.0
 
-    pop = PolyOpt(f; ineq_constraints = [g], eq_constraints= [h1])
+    pop = polyopt(f; ineq_constraints = [g], eq_constraints= [h1])
 
     result_dense = cs_nctssos(pop, SolverConfig(optimizer = SOLVER))
 
