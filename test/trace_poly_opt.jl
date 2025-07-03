@@ -9,9 +9,6 @@ else
 	const SOLVER = Clarabel.Optimizer
 end
 
-# https://arxiv.org/abs/2006.12510
-
-# Example 6.1
 @testset "Example 6.1" begin
     @ncpolyvar x[1:3]
 
