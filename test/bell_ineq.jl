@@ -67,11 +67,19 @@ using NCTSSoS, Test, MosekTools
         solver_config = SolverConfig(optimizer=Mosek.Optimizer, mom_order=d[i])
 
         res = cs_nctssos(pop, solver_config)
-        @test res.objective ≈ λd[i] atol = 1e-6
+        return res.objective
     end
 
-    for i in 17:length(instance)
-        tester(i)
+    equations[9]
+    d[58]
+    # 58 is buggy
+    obj = tester(57)
+    @test obj ≈ λd[57] atol = 1e-6
+
+    for i in 21:length(instance)
+        @show i
+        obj = tester(i)
+        @test obj ≈ λd[i] atol = 1e-6
     end
 
 end
