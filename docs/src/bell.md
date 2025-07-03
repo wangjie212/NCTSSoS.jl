@@ -11,14 +11,14 @@ where $A_i$ and $B_j$ are observables measured by two parties (traditionally cal
 ## Linear Bell inequalities
 
 ### CHSH inequality
-The most famous Bell inequality is the CHSH (Clauser-Horne-Shimony-Holt) inequality, which involves two parties, each measuring two observables. For unipotent (square to 1) observables $A_1, A_2$ measured by Alice and $B_1, B_2$ measured by Bob. We define the objective function as:
+The most famous Bell inequality is the CHSH (Clauser-Horne-Shimony-Holt) inequality, which involves two parties, each measuring two observables. For unipotent (squared to 1) observables $A_1, A_2$ measured by Alice and $B_1, B_2$ measured by Bob. We define the objective function as:
 
-$$f(A_1, A_2, B_1, B_2) = \langle A_1B_1 \rangle + \langle A_1B_2 \rangle + \langle A_2B_1 \rangle - \langle A_2B_2 \rangle$$
+$$f(A_1, A_2, B_1, B_2) = \langle A_1B_1 \rangle + \langle A_1B_2 \rangle + \langle A_2B_1 \rangle - \langle A_2B_2 \rangle.$$
 
 The CHSH inequality is then given by $$f(A_1, A_2, B_1, B_2) \leq 2$$, which must be satisfied by any local hidden variable theory. However, quantum mechanics can violate this inequality up to the value $2\sqrt{2}$, known as the Tsirelson bound. This violation demonstrates that quantum mechanics cannot be described by any local hidden variable theory.
 The CHSH inequality is particularly important because it is the simplest non-trivial Bell inequality and has been experimentally verified numerous times, providing strong evidence for the non-local nature of quantum mechanics.
 
-The upper bound of the CHSH inequality can be computed using the following code:
+The quantum bound of the CHSH inequality can be computed using the following code:
 
 ```@example chsh
 using NCTSSoS, Clarabel
@@ -42,8 +42,8 @@ result.objective  # the upper bound of the CHSH inequality
 ```
 
 Here, we first declare some operators as non-commutative variables, and then construct the optimization problem. In `PolyOpt` constructor,
-- `comm_gps` argument specifies the commutative group of the variables, which means variables in different commutative groups commute with each other. 
-- `is_unipotent` argument specifies that the variables are unipotent, which means they square to 1 (e.g. Pauli operators).
+- `comm_gps` argument specifies the commutative group of the variables, which means that variables in different commutative groups commute with each other. 
+- `is_unipotent` argument specifies that the variables are unipotent, which means that they are squared to 1 (e.g. Pauli operators).
 
 Here, since the variables on different qubits commute with each other, we can group them into different commutative groups.
 
@@ -53,7 +53,7 @@ The resulting upper bound is very close to the theoretical exact value $2\sqrt{2
 
 ### $I_{3322}$ inequality
 
-The $I_{3322}$ inequality is a more complex inequality that involves three parties, each measuring three observables. Let $A_1, A_2, A_3$ be the projective (square to itself) observables measured by Alice and $B_1, B_2, B_3$ be the projective observables measured by Bob. We define the objective function as[^Pal2010]:
+The $I_{3322}$ inequality is a more complex inequality that involves two parties, each measuring three observables. Let $A_1, A_2, A_3$ be the projective (squared to itself) observables measured by Alice and $B_1, B_2, B_3$ be the projective observables measured by Bob. We define the objective function as[^Pal2010]:
 
 ```math
 f(A_1, A_2, A_3, B_1, B_2, B_3) = \langle A_1(B_1+B_2+B_3) \rangle + \langle A_2(B_1+B_2-B_3) \rangle\\
@@ -81,13 +81,13 @@ result = cs_nctssos(pop, solver_config)
 result.objective
 ```
 
-Here, the `is_projective` argument specifies that the variables are projective, which means they square to themselves (e.g. $|0\rangle\langle 0|$ and $|1\rangle\langle 1|$).
+Here, the `is_projective` argument specifies that the variables are projective, which means they are squared to themselves (e.g. $|0\rangle\langle 0|$ and $|1\rangle\langle 1|$).
 
-The resulting upper bound is close to the theoretical exact value $0.25$. By increasing the order of the moment matrix, this upper bound can be improved.
+The resulting upper bound is close to the theoretical exact value $0.25$. By increasing the relaxation order, this upper bound can be improved.
 
 #### Reducing SDP Problem Size with Sparsity
 
-To reach the theoretical exact value of $0.25$, we can increase the order of the moment matrix [^Magron]. 
+To reach the theoretical exact value of $0.25$, we can increase the relaxation order [^Magron]. 
 
 ```julia 
 using NCTSSoS, Clarabel
@@ -109,9 +109,9 @@ solver_config = SolverConfig(optimizer=Clarabel.Optimizer; mom_order=3)
 73.675848 seconds (8.21 M allocations: 1.420 GiB, 0.44% gc time, 0.02% compilation time)
 result.objective = -0.25087557826010604
 ```
-Indeed, by increasing the order of the moment matrix to 3, have improved the upper bound from $-0.2509397262650706$ to $-0.25087557826010604$. 
+Indeed, by increasing the relaxation order, we have improved the upper bound from $-0.2509397262650706$ to $-0.25087557826010604$. 
 
-However, keep increase the order can lead to a large semidefinite programming (SDP) problem size, which can be computationally expensive. To reduce the problem size, we may exploit the sparsity of the problem [^Magron]. There are two sparsity patterns that can be used to reduce the problem size:
+However, keep increasing the order can lead to large semidefinite programs (SDP), which can be computationally expensive. To reduce the problem size, we may exploit the sparsity of the problem [^Magron]. There are two sparsity patterns that can be used to reduce the problem size:
 
 1. **Correlation Sparsity**: exploits the fact that few variable products exists in the objective function. Therefore, we could break down the objective function into smaller parts, each involving fewer variables. This reduces the moment matrix size and the number of constraints in the SDP problem, making it more tractable. 
 
@@ -161,7 +161,7 @@ Let us define the objective function as:
 f(A_1,A_2,A_3, B_1,B_2,B_3) = \text{Cov}(A_1, B_1) + \text{Cov}(A_1, B_2) + \text{Cov}(A_1,B_3)  + \\ \text{Cov}(A_2, B_1) + \text{Cov}(A_2, B_2) - \text{Cov}(A_2, B_3) + \text{Cov}(A_3, B_1) - \text{Cov}(A_3,B_2)
 ```
 
-it was shown that $f(A_1,A_2,A_3,B_1,B_2,B_3) \leq \frac{9}{2}$ in classical models, while it can attain a maximum value of $5$ in spatial quantum model of qubits and a maximally entangled state [^Pozsgay].
+It was shown that $f(A_1,A_2,A_3,B_1,B_2,B_3) \leq \frac{9}{2}$ in classical models, while it can attain a maximum value of $5$ in spatial quantum model of qubits and a maximally entangled state [^Pozsgay].
 
 An *open question* was whether a higher bound can be attained in a spatial quantum model of qudits, i.e., systems with more than two levels. Using State Polynomial Optimization [^Klep], we can certify the upper bound of this inequality:
 
@@ -193,8 +193,6 @@ result = cs_nctssos(spop, solver_config)
 result
 ```
 The resulting upper bound is very close to the previously known best value of $5$ (accurate up to 7 decimals!!). It accertains the value of $5$ for any system size.
-
-Q: Why this number can be higher than $-5$ ($-4.999999975854065$)? Is it related to the algorithm to solve SDP?
 
 TODO: use sparsity to improve the performance of the algorithm.
 
