@@ -21,27 +21,27 @@ function Base.show(io::IO, result::PolyOptResult)
 end
 
 """
-    SolverConfig(; optimizer, mom_order, cs_algo=NoElimination(), ts_algo=NoElimination())
+    SolverConfig(; optimizer, order, cs_algo=NoElimination(), ts_algo=NoElimination())
 
 Configuration for solving polynomial optimization problems.
 
 # Keyword Arguments
 - `optimizer` (required): The optimizer to use for solving the SDP problem (e.g. Clarabel.Optimizer)
-- `mom_order::Int`: The order of the moment relaxation (default: 0)
+- `order::Int`: The order of the moment relaxation (default: 0)
 - `cs_algo::EliminationAlgorithm`: Algorithm for correlative sparsity exploitation (default: NoElimination())
 - `ts_algo::EliminationAlgorithm`: Algorithm for term sparsity exploitation (default: NoElimination())
 
 
 # Examples
 ```jldoctest; setup=:(using NCTSSoS, Clarabel)
-julia> solver_config = SolverConfig(optimizer=Clarabel.Optimizer, mom_order=2) # default elimination algorithms
+julia> solver_config = SolverConfig(optimizer=Clarabel.Optimizer, order=2) # default elimination algorithms
 SolverConfig(Clarabel.MOIwrapper.Optimizer, 2, NoElimination(), NoElimination())
 ```
 
 """
 @kwdef struct SolverConfig
     optimizer
-    mom_order::Int = 0
+    order::Int = 0
     cs_algo::EliminationAlgorithm = NoElimination()
     ts_algo::EliminationAlgorithm = NoElimination()
 end
@@ -72,9 +72,9 @@ The moment order is automatically determined from the polynomial degrees if not 
 """
 function cs_nctssos(pop::PolyOpt{P}, solver_config::SolverConfig; dualize::Bool=true) where {P}
     sa = SimplifyAlgorithm(comm_gps=pop.comm_gps, is_projective=pop.is_projective, is_unipotent=pop.is_unipotent)
-    mom_order = iszero(solver_config.mom_order) ? maximum([ceil(Int, maxdegree(poly) / 2) for poly in [pop.objective; pop.eq_constraints; pop.ineq_constraints]]) : solver_config.mom_order
+    order = iszero(solver_config.order) ? maximum([ceil(Int, maxdegree(poly) / 2) for poly in [pop.objective; pop.eq_constraints; pop.ineq_constraints]]) : solver_config.order
 
-    corr_sparsity = correlative_sparsity(pop, mom_order, solver_config.cs_algo)
+    corr_sparsity = correlative_sparsity(pop, order, solver_config.cs_algo)
 
     cliques_objective = [reduce(+, [issubset(sort!(variables(mono)), clique) ? coef * mono : zero(coef) * one(mono) for (coef, mono) in zip(coefficients(pop.objective), monomials(pop.objective))]) for clique in corr_sparsity.cliques]
 

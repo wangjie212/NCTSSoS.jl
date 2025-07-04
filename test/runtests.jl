@@ -1,6 +1,7 @@
 using NCTSSoS, Test
 
 @testset "NCTSSoS.jl" begin
+    include("fastpoly_test/runtests.jl")
     include("pop.jl")
     include("sparse.jl")
     include("solver_utils.jl")

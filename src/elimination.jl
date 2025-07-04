@@ -1,4 +1,3 @@
-# implement NoElimination on clique_decomp
 struct NoElimination <: EliminationAlgorithm end
 struct AsIsElimination <: EliminationAlgorithm end
 struct MaximalElimination <: EliminationAlgorithm end

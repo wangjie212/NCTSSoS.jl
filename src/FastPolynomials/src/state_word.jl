@@ -46,6 +46,27 @@ julia> ς(x^2*y)
 """
 ς(m::Union{Monomial,Variable}) = StateWord{Arbitrary}([monomial(m)])
 
+"""
+    tr(m::Union{Monomial,Variable})
+
+Creates a StateWord with MaxEntangled state type from a monomial or variable.
+The name tr stands for trace, commonly used in quantum contexts.
+
+# Arguments
+- `m::Union{Monomial,Variable}`: Monomial or variable to convert
+
+# Returns
+- `StateWord{MaxEntangled}`: StateWord with MaxEntangled state type containing the input as a single state monomial
+
+# Example
+```jldoctest; setup=:(using NCTSSoS.FastPolynomials; using NCTSSoS.FastPolynomials: tr)
+julia> @ncpolyvar x y z
+(x, y, z)
+
+julia> tr(x^2*y)
+tr(x²y¹)
+```
+"""
 tr(m::Union{Monomial,Variable})= StateWord{MaxEntangled}([monomial(m)])
 
 variables(sw::StateWord) = sorted_union(variables.(sw.state_monos)...)
@@ -85,19 +106,6 @@ end
 
 Base.:(==)(a::StateWord, b::StateWord) = iszero(cmp(a, b))
 
-"""
-    Base.hash(a::StateWord, u::UInt)
-
-Computes hash value for a StateWord based on its state monomials.
-Need to guarantee it is always sorted
-
-# Arguments
-- `a::StateWord`: The StateWord to hash
-- `u::UInt`: Hash seed value
-
-# Returns
-- `UInt`: Hash value of the state monomials (requires sorted invariant)
-"""
 Base.hash(a::StateWord, u::UInt) = hash(a.state_monos, u)
 
 Base.isless(a::StateWord, b::StateWord) = cmp(a, b) < 0

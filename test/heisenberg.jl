@@ -11,9 +11,9 @@ ham = sum(ComplexF64(J1 / 4) * op[i] * op[mod1(i + 1, N)] for op in [x, y, z] fo
 
 eq_cons = reduce(vcat, [[x[i] * y[i] - im * z[i], y[i] * x[i] + im * z[i], y[i] * z[i] - im * x[i], z[i] * y[i] + im * x[i], z[i] * x[i] - im * y[i], x[i] * z[i] + im * y[i]] for i in 1:N])
 
-pop = PolyOpt(ham; eq_constraints=eq_cons, comm_gps=[[x[i], y[i], z[i]] for i in 1:N], is_unipotent=true)
+pop = polyopt(ham; eq_constraints=eq_cons, comm_gps=[[x[i], y[i], z[i]] for i in 1:N], is_unipotent=true)
 
-solver_config = SolverConfig(optimizer=SOLVER, mom_order=2, ts_algo = MMD())
+solver_config = SolverConfig(optimizer=SOLVER, order=2, ts_algo = MMD())
 
 res = cs_nctssos(pop, solver_config)
 
@@ -30,9 +30,9 @@ ham = sum(ComplexF64(J1 / 4) * op[i] * op[mod1(i + 1, N)] + ComplexF64(J2 / 4) *
 
 eq_cons = reduce(vcat, [[x[i] * y[i] - im * z[i], y[i] * x[i] + im * z[i], y[i] * z[i] - im * x[i], z[i] * y[i] + im * x[i], z[i] * x[i] - im * y[i], x[i] * z[i] + im * y[i]] for i in 1:N])
 
-pop = PolyOpt(ham; eq_constraints=eq_cons, comm_gps=[[x[i], y[i], z[i]] for i in 1:N], is_unipotent=true)
+pop = polyopt(ham; eq_constraints=eq_cons, comm_gps=[[x[i], y[i], z[i]] for i in 1:N], is_unipotent=true)
 
-solver_config = SolverConfig(optimizer=SOLVER, mom_order=2, ts_algo = MMD())
+solver_config = SolverConfig(optimizer=SOLVER, order=2, ts_algo = MMD())
 
 res = cs_nctssos(pop, solver_config)
 
@@ -52,9 +52,9 @@ ham = sum(ComplexF64(J1 / 4) * op[i] * op[mod1(i + 1, N)] + ComplexF64(J2 / 4) *
 
 eq_cons = reduce(vcat, [[x[i] * y[i] - im * z[i], y[i] * x[i] + im * z[i], y[i] * z[i] - im * x[i], z[i] * y[i] + im * x[i], z[i] * x[i] - im * y[i], x[i] * z[i] + im * y[i]] for i in 1:N])
 
-pop = PolyOpt(ham; eq_constraints=eq_cons, comm_gps=[[x[i], y[i], z[i]] for i in 1:N], is_unipotent=true)
+pop = polyopt(ham; eq_constraints=eq_cons, comm_gps=[[x[i], y[i], z[i]] for i in 1:N], is_unipotent=true)
 
-solver_config = SolverConfig(optimizer=SOLVER, mom_order=2, ts_algo = MMD())
+solver_config = SolverConfig(optimizer=SOLVER, order=2, ts_algo = MMD())
 
 res = cs_nctssos(pop, solver_config)
 
@@ -72,9 +72,9 @@ eq_cons = reduce(vcat, [[x[i] * y[i] - im * z[i], y[i] * x[i] + im * z[i], y[i] 
 
 ineq_cons = [energy_upper_bounds[idx] - ham, ham - energy_lower_bound]
 
-pop = PolyOpt(obj; eq_constraints=eq_cons, ineq_constraints=ineq_cons, comm_gps=[[x[i], y[i], z[i]] for i in 1:N], is_unipotent=true)
+pop = polyopt(obj; eq_constraints=eq_cons, ineq_constraints=ineq_cons, comm_gps=[[x[i], y[i], z[i]] for i in 1:N], is_unipotent=true)
 
-solver_config = SolverConfig(optimizer=SOLVER, mom_order=2, ts_algo = MMD())
+solver_config = SolverConfig(optimizer=SOLVER, order=2, ts_algo = MMD())
 
 res = cs_nctssos(pop, solver_config)
 
@@ -82,9 +82,9 @@ res = cs_nctssos_higher(pop,res,solver_config)
 
 operator_lower_bound = res.objective
 
-pop = PolyOpt(-obj; eq_constraints=eq_cons, ineq_constraints=ineq_cons, comm_gps=[[x[i], y[i], z[i]] for i in 1:N], is_unipotent=true)
+pop = polyopt(-obj; eq_constraints=eq_cons, ineq_constraints=ineq_cons, comm_gps=[[x[i], y[i], z[i]] for i in 1:N], is_unipotent=true)
 
-solver_config = SolverConfig(optimizer=SOLVER, mom_order=2, ts_algo = MMD())
+solver_config = SolverConfig(optimizer=SOLVER, order=2, ts_algo = MMD())
 
 res = cs_nctssos(pop, solver_config)
 
@@ -107,9 +107,9 @@ ham = sum(ComplexF64(J1 / 4) * op[LI[CartesianIndex(i, j)]] * op[LI[CartesianInd
 
 eq_cons = reduce(vcat, [[x[i] * y[i] - im * z[i], y[i] * x[i] + im * z[i], y[i] * z[i] - im * x[i], z[i] * y[i] + im * x[i], z[i] * x[i] - im * y[i], x[i] * z[i] + im * y[i]] for i in 1:N])
 
-pop = PolyOpt(ham; eq_constraints=eq_cons, comm_gps=[[x[i], y[i], z[i]] for i in 1:N], is_unipotent=true)
+pop = polyopt(ham; eq_constraints=eq_cons, comm_gps=[[x[i], y[i], z[i]] for i in 1:N], is_unipotent=true)
 
-solver_config = SolverConfig(optimizer=SOLVER, mom_order=3, cs_algo=MF(), ts_algo=MMD())
+solver_config = SolverConfig(optimizer=SOLVER, order=3, cs_algo=MF(), ts_algo=MMD())
 
 res = cs_nctssos(pop, solver_config)
 

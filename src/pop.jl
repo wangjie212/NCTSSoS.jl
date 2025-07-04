@@ -1,11 +1,12 @@
 abstract type OptimizationProblem end
 
-# T: type of the coefficients, currently removed to reduce redundence
-# P: type of the polynomial, either `Polynomial{T}` or `NCStatePolynomial{T}`
 """
     PolyOpt{P} <: OptimizationProblem
 
 A polynomial optimization problem structure.
+
+# Type Parameters
+- `P`: Type of polynomial, either `Polynomial{T}` or `NCStatePolynomial{T}`
 
 # Fields
 - `objective::P`: The polynomial objective function to be optimized
@@ -31,7 +32,28 @@ struct PolyOpt{P} <: OptimizationProblem
     is_projective::Bool # X^2 = X. Is projective.
 end
 
-function PolyOpt(objective::P; eq_constraints=Any[], ineq_constraints=Any[], comm_gps=Vector{Variable}[], is_unipotent::Bool=false, is_projective::Bool=false) where {T,P<:AbstractPolynomial{T}}
+"""
+    polyopt(objective::P; eq_constraints=Any[], ineq_constraints=Any[], comm_gps=Vector{Variable}[], is_unipotent::Bool=false, is_projective::Bool=false) where {T,P<:AbstractPolynomial{T}}
+
+Create a polynomial optimization problem.
+
+# Arguments
+- `objective::P`: The polynomial objective function to optimize.
+- `eq_constraints=Any[]`: Equality constraints as polynomials (p = 0).
+- `ineq_constraints=Any[]`: Inequality constraints as polynomials (p ≥ 0).
+- `comm_gps=Vector{Variable}[]`: Groups of variables that commute. If empty, all variables are assumed to commute.
+- `is_unipotent::Bool=false`: Flag indicating if the problem is unipotent.
+- `is_projective::Bool=false`: Flag indicating if the problem is projective.
+
+# Returns
+A `PolyOpt{P}` structure representing the polynomial optimization problem.
+
+# Notes
+- The polynomial coefficients cannot be integers as they are not supported by JuMP solvers.
+- Commutative groups must be disjoint, and all commutative variables must be a subset of all variables.
+- A problem cannot be both unipotent and projective simultaneously.
+"""
+function polyopt(objective::P; eq_constraints=Any[], ineq_constraints=Any[], comm_gps=Vector{Variable}[], is_unipotent::Bool=false, is_projective::Bool=false) where {T,P<:AbstractPolynomial{T}}
     @assert !(T <: Integer) "The polynomial coefficients can not be integers (not supported by JuMP solvers)."
     eq_cons = unique!(collect(P, eq_constraints))
     ineq_cons = unique!(collect(P, ineq_constraints))
@@ -48,13 +70,13 @@ end
 
 function Base.show(io::IO, pop::PolyOpt)
     cons_str(cons::Vector{P}, iseq::Bool) where {P} =
-        join(["$(string(c)) " * (iseq ? "= 0" : ">= 0") for c in cons], " \n")
+        join(["$(string(c)) " * (iseq ? "= 0" : ">= 0 \n") for c in cons], " \t")
     res_str = """
         obj: \n
             $(string(pop.objective)) \n
         constraints: \n
-            $(cons_str(pop.eq_constraints,true)) \n
-            $(cons_str(pop.ineq_constraints,false)) \n
+            $(cons_str(pop.eq_constraints,true))
+            $(cons_str(pop.ineq_constraints,false))
         variables:
             $(join(string.(pop.variables)," ")) \n
         is_unipotent:

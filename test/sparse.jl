@@ -20,20 +20,20 @@ using NCTSSoS.FastPolynomials: Arbitrary, get_state_basis, NCStateWord
         @ncpolyvar y[1:3]
         f = 1.0 * x[1] * (y[1] + y[2] + y[3]) + x[2] * (y[1] + y[2] - y[3]) +
             x[3] * (y[1] - y[2]) - x[1] - 2 * y[1] - y[2]  # objective function
-        pop = PolyOpt(-f)
-        mom_order = 3
+        pop = polyopt(-f)
+        order = 3
         @testset "No Elimination" begin
-            corr_sparsity = correlative_sparsity(pop, mom_order, NoElimination())
+            corr_sparsity = correlative_sparsity(pop, order, NoElimination())
             @test maximum(length.(corr_sparsity.cliques)) == 6
         end
 
         @testset "MF" begin
-            corr_sparsity = correlative_sparsity(pop, mom_order, MF())
+            corr_sparsity = correlative_sparsity(pop, order, MF())
             @test maximum(length.(corr_sparsity.cliques)) == 4
         end
 
         @testset "AsIS" begin
-            corr_sparsity = correlative_sparsity(pop, mom_order, AsIsElimination())
+            corr_sparsity = correlative_sparsity(pop, order, AsIsElimination())
             @test maximum(length.(corr_sparsity.cliques)) == 2
         end
     end
@@ -49,22 +49,22 @@ using NCTSSoS.FastPolynomials: Arbitrary, get_state_basis, NCStateWord
             f += (2 * x[i] + 5 * x[i]^3 + 1 - g)^2
         end
 
-        pop = PolyOpt(f)
+        pop = polyopt(f)
 
-        mom_order = 3
+        order = 3
 
         @testset "No Elimination" begin
-            corr_sparsity = correlative_sparsity(pop, mom_order, NoElimination())
+            corr_sparsity = correlative_sparsity(pop, order, NoElimination())
             @test maximum(length.(corr_sparsity.cliques)) == 10
         end
 
         @testset "MF" begin
-            corr_sparsity = correlative_sparsity(pop, mom_order, MF())
+            corr_sparsity = correlative_sparsity(pop, order, MF())
             @test maximum(length.(corr_sparsity.cliques)) == 7
         end
 
         @testset "AsIS" begin
-            corr_sparsity = correlative_sparsity(pop, mom_order, AsIsElimination())
+            corr_sparsity = correlative_sparsity(pop, order, AsIsElimination())
             @test maximum(length.(corr_sparsity.cliques)) == 7
         end
     end
@@ -77,25 +77,25 @@ end
     f = 2.0 - x[1]^2 + x[1] * x[2]^2 * x[1] - x[2]^2
     g = 4.0 - x[1]^2 - x[2]^2
     h1 = x[1] * x[2] + x[2] * x[1] - 2.0
-    pop = PolyOpt(f; ineq_constraints=[g], eq_constraints=[h1])
-    mom_order = 2
+    pop = polyopt(f; ineq_constraints=[g], eq_constraints=[h1])
+    order = 2
 
     @testset "No Elimination" begin
-        corr_sparsity = correlative_sparsity(pop, mom_order, NoElimination())
+        corr_sparsity = correlative_sparsity(pop, order, NoElimination())
         @test maximum(length.(corr_sparsity.cliques)) == 2
         @test length.(corr_sparsity.clq_mom_mtx_bases) == [7]
         @test length.(corr_sparsity.clq_localizing_mtx_bases[1]) == [3, 3]
     end
 
     @testset "MF" begin
-        corr_sparsity = correlative_sparsity(pop, mom_order, MF())
+        corr_sparsity = correlative_sparsity(pop, order, MF())
         @test maximum(length.(corr_sparsity.cliques)) == 2
         @test length.(corr_sparsity.clq_mom_mtx_bases) == [7]
         @test length.(corr_sparsity.clq_localizing_mtx_bases[1]) == [3, 3]
     end
 
     @testset "AsIS" begin
-        corr_sparsity = correlative_sparsity(pop, mom_order, AsIsElimination())
+        corr_sparsity = correlative_sparsity(pop, order, AsIsElimination())
         @test maximum(length.(corr_sparsity.cliques)) == 2
         @test length.(corr_sparsity.clq_mom_mtx_bases) == [7]
         @test length.(corr_sparsity.clq_localizing_mtx_bases[1]) == [3, 3]
@@ -222,9 +222,10 @@ end
 
         @test sort.(clique_decomp(G, NoElimination())) == [[0x0001, 0x0002, 0x0003, 0x0004, 0x0005, 0x0006, 0x0007, 0x0008, 0x0009, 0x000a]]
 
-        @test sort(sort.(clique_decomp(G, AsIsElimination()))) == [[1, 5, 6, 7, 8, 9, 10], [2, 3, 4, 5, 6, 7, 8], [3, 4, 5, 6, 7, 8, 9], [4, 5, 6, 7, 8, 9, 10]] # raw results from NCTSSOS needs to be processed to match variable order
 
-        @test sort(sort.(clique_decomp(G, MF()))) == sort(map(a -> sort(mod1.(a .+ 1, 10)), [[0x0004, 0x0005, 0x0006, 0x0007, 0x0008, 0x0009, 0x000a], [0x0003, 0x0004, 0x0005, 0x0006, 0x0007, 0x0008, 0x0009], [0x0002, 0x0003, 0x0004, 0x0005, 0x0006, 0x0007, 0x0008], [0x0001, 0x0002, 0x0003, 0x0004, 0x0005, 0x0006, 0x0007]]))
+        @test sort(sort.(clique_decomp(G, AsIsElimination()))) == [[1, 3, 4, 5, 6, 7, 8], [2, 5, 6, 7, 8, 9, 10], [3, 4, 5, 6, 7, 8, 9], [4, 5, 6, 7, 8, 9, 10]]  # raw results from NCTSSOS needs to be processed to match variable order
+
+        @test sort(sort.(clique_decomp(G, MF()))) == [[1, 3, 4, 5, 6, 7, 8], [2, 5, 6, 7, 8, 9, 10], [3, 4, 5, 6, 7, 8, 9], [4, 5, 6, 7, 8, 9, 10]]
 
         rm("example3.lgz")
 
@@ -245,7 +246,6 @@ end
         @test sort.(clique_decomp(G, MF())) == [[0x0003, 0x0004, 0x0005], [0x0001, 0x0002, 0x0006], [0x0001, 0x0002, 0x0004, 0x0005]]
 
         rm("example5.lgz")
-
     end
 
     @testset "Assign Constraint" begin
@@ -360,7 +360,3 @@ end
         end
     end
 end
-
-
-
-

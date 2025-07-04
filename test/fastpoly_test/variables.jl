@@ -1,7 +1,7 @@
 using Test, NCTSSoS.FastPolynomials
-using NCTSSoS.FastPolynomials: Variable, COMPLEX, REAL
+using NCTSSoS.FastPolynomials: Variable
 using NCTSSoS.FastPolynomials:
-    polyarrayvar, buildpolyvar, buildpolyvars, get_basis, monomials
+    polyarrayvar, buildpolyvar, get_basis, monomials
 
 @testset "Variable" begin
     @testset "Creation by Macros" begin
@@ -9,44 +9,44 @@ using NCTSSoS.FastPolynomials:
         @test my_vars isa Tuple
         @test x isa Variable
         @test y isa Variable
-        @test x.name == "x"
-        @test y.name == "y"
+        @test x.name == :x
+        @test y.name == :y
 
         @ncpolyvar x[1:10]
         @test x isa Vector{Variable}
         @test length(x) == 10
-        @test x[1].name == "x[1]"
+        @test x[1].name == Symbol("x₁")
 
         @ncpolyvar x[1:10, 1:5]
         @test x isa Matrix{Variable}
         @test size(x) == (10, 5)
+        @test x[1,3].name == Symbol("x₁,₃")
     end
 
     @testset "String" begin
         @ncpolyvar xyd[1:10]
-        @test string(xyd[1]) == "xyd₁"
-        @test string(xyd[10]) == "xyd₁₀"
+        @test xyd[2].name == Symbol("xyd₂")
 
         @ncpolyvar xyz
-        @test string(xyz) == "xyz"
+        @test xyz.name == :xyz
     end
 
-    @testset "ComplexKind Conversion" begin
+    @testset "Complex Conversion" begin
         @ncpolyvar x_real
-        x_complex = Variable(x_real, COMPLEX)
+        x_complex = Variable(:x_real; iscomplex=true)
         @test x_complex isa Variable
-        @test x_complex.name == "x_real"
-        @test x_complex.kind == COMPLEX
+        @test x_complex.name == :x_real
+        @test x_complex.iscomplex == true
     end
 
     @testset "Utils: polyarrayvar" begin
-        x = polyarrayvar(REAL, "x", 1:3, 1:2)
+        x = polyarrayvar(:x, 1:3, 1:2; iscomplex=false)
         @test x isa Matrix{Variable}
         @test size(x) == (3, 2)
     end
 
     @testset "Utils: buildpolyvar" begin
-        @test_throws ErrorException buildpolyvar(Expr(:call, :x, +), REAL)
+        @test_throws ErrorException buildpolyvar(Expr(:call, :x, +), false)
     end
 
     @testset "Hash" begin

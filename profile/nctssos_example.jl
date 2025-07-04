@@ -19,7 +19,7 @@ for i = 1:n
     push!(cons, x[i] - 1 / 3)
 end
 pop =  PolyOpt(f; constraints = cons);
-solver_config = SolverConfig(optimizer=Mosek.Optimizer; mom_order=3, cs_algo=MF(), ts_algo=AsIsElimination())
+solver_config = SolverConfig(optimizer=Mosek.Optimizer; order=3, cs_algo=MF(), ts_algo=AsIsElimination())
 
 result = cs_nctssos(pop, solver_config)
 # Problem

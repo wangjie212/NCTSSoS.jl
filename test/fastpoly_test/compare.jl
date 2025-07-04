@@ -12,7 +12,7 @@ using Test, NCTSSoS.FastPolynomials
         @test sort([z, y, x]) == [x, y, z]
 
         @ncpolyvar x[1:10]
-        @test cmp(x[1], x[10]) == 1
+        @test cmp(x[1], x[10]) == -1
 
         @test x[1] == x[1]
         @test x[1] != x[2]
