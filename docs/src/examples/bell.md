@@ -206,6 +206,9 @@ result
 Objective: -5.000271541108556
 ```
 
+!!! note "Typing Unicodes"
+    You can type the unicode characters in the code by using `\varsigma` and pressing `Tab` to get the unicode character `ς`.
+
 The resulting upper bound is very close to the previously known best value of $5$ (accurate up to 3 decimals!!). It accertains the value of $5$ for any system size.
 
 We can use sparsity to improve the performance of the algorithm.
