@@ -19,7 +19,7 @@ end
 
     pop = polyopt(ham; eq_constraints=eq_cons, comm_gps=[[x[i], y[i], z[i]] for i in 1:N], is_unipotent=true)
 
-    solver_config = SolverConfig(optimizer=SOLVER, mom_order=2, ts_algo=MMD())
+    solver_config = SolverConfig(optimizer=SOLVER, order=2, ts_algo=MMD())
 
     res = cs_nctssos(pop, solver_config)
 
@@ -38,7 +38,7 @@ end
     for (cs_algo, ts_algo, ans) in zip([NoElimination(), MF(), MF()],
         [NoElimination(), MMD(),  MaximalElimination()],
         [-0.2508755573198166, -0.9999999892255513,  -0.2512780696727863])
-        solver_config = SolverConfig(optimizer=Mosek.Optimizer; mom_order=3, cs_algo=cs_algo, ts_algo=ts_algo)
+        solver_config = SolverConfig(optimizer=Mosek.Optimizer; order=3, cs_algo=cs_algo, ts_algo=ts_algo)
         result = cs_nctssos(pop, solver_config)
         @test isapprox(result.objective, ans; atol=1e-5)
     end
@@ -89,7 +89,7 @@ end
         is_projective = true,
     )
 
-    solver_config = SolverConfig(optimizer = SOLVER; mom_order = 1)
+    solver_config = SolverConfig(optimizer = SOLVER; order = 1)
 
     result = cs_nctssos(pop, solver_config)
 
@@ -107,7 +107,7 @@ end
 
     solver_config = SolverConfig(
         optimizer = SOLVER;
-        mom_order = 2,
+        order = 2,
         cs_algo = MF(),
         ts_algo = MMD(),
     )

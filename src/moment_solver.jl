@@ -49,12 +49,12 @@ function moment_relax(pop::PolyOpt{P}, corr_sparsity::CorrelativeSparsity, cliqu
     sa = SimplifyAlgorithm(comm_gps=pop.comm_gps, is_unipotent=pop.is_unipotent, is_projective=pop.is_projective)
     # the union of clique_total_basis
     total_basis = sorted_union(map(zip(corr_sparsity.clq_cons, cliques_term_sparsities)) do (cons_idx, term_sparsities)
-        union(vec(reduce(vcat, [
+        reduce(vcat, [
             map(monomials(poly)) do m
                 canonicalize(expval(neat_dot(rol_idx, m * col_idx)), sa)
             end
             for (poly, term_sparsity) in zip([one(pop.objective); corr_sparsity.cons[cons_idx]], term_sparsities) for basis in term_sparsity.block_bases for rol_idx in basis for col_idx in basis
-        ])))
+        ])
     end...)
 
     # map the monomials to JuMP variables, the first variable must be 1

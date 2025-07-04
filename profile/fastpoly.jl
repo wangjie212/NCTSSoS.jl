@@ -9,7 +9,7 @@ sp = cov(1, 1) + cov(1, 2) + cov(1, 3) + cov(2, 1) + cov(2, 2) - cov(2, 3) + cov
 
 spop = StatePolyOpt(sp; is_unipotent=true, comm_gps=[x[1:3], y[1:3]])
 
-solver_config = SolverConfig(; optimizer=Mosek.Optimizer, mom_order=2)
+solver_config = SolverConfig(; optimizer=Mosek.Optimizer, order=2)
 
 @btime cs_nctssos($spop, $solver_config)
 

@@ -16,13 +16,13 @@ end
 
     spop = polyopt(p; is_projective=true, comm_gps=[x])
 
-    solver_config = SolverConfig(; optimizer=SOLVER, mom_order=2)
+    solver_config = SolverConfig(; optimizer=SOLVER, order=2)
 
     result = cs_nctssos(spop, solver_config)
 
     @test result.objective ≈ -0.046717378455438933 atol = 1e-6
 
-    solver_config = SolverConfig(; optimizer=SOLVER, mom_order=3)
+    solver_config = SolverConfig(; optimizer=SOLVER, order=3)
 
     result = cs_nctssos(spop, solver_config)
 
@@ -36,7 +36,7 @@ end
 
 	tpop = polyopt(p * one(Monomial); is_unipotent=true)
 
-	solver_config = SolverConfig(; optimizer=SOLVER, mom_order=1, ts_algo=MaximalElimination())
+	solver_config = SolverConfig(; optimizer=SOLVER, order=1, ts_algo=MaximalElimination())
 
 	result = cs_nctssos(tpop, solver_config)
 
@@ -50,7 +50,7 @@ end
 
     tpop = polyopt((-1.0 * p) * one(Monomial); is_unipotent=true)
 
-	solver_config = SolverConfig(; optimizer=SOLVER, mom_order=2)
+	solver_config = SolverConfig(; optimizer=SOLVER, order=2)
 
 	result = cs_nctssos(tpop, solver_config)
 
@@ -65,7 +65,7 @@ end
     p = -1.0 * (cov(1, 1) + cov(1, 2) + cov(1, 3) + cov(2, 1) + cov(2, 2) - cov(2, 3) + cov(3, 1) - cov(3, 2))
     tpop = polyopt(p * one(Monomial); is_unipotent=true)
 
-	solver_config = SolverConfig(; optimizer=SOLVER, mom_order=2)
+	solver_config = SolverConfig(; optimizer=SOLVER, order=2)
 
 	result = cs_nctssos(tpop, solver_config)
 

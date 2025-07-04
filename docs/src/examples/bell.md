@@ -35,7 +35,7 @@ pop = polyopt(             # the optimization problem
 
 solver_config = SolverConfig(;
     optimizer=Mosek.Optimizer,  # the solver backend
-    mom_order=1                    # the order of the moment matrix
+    order=1                    # the order of the moment matrix
 )
 result = cs_nctssos(pop, solver_config)
 result.objective  # the upper bound of the CHSH inequality
@@ -79,7 +79,7 @@ f = 1.0 * x[1] * (y[1] + y[2] + y[3]) + x[2] * (y[1] + y[2] - y[3]) +
 
 pop = polyopt(-f; comm_gps= [x, y], is_projective=true)
 
-solver_config = SolverConfig(optimizer=Mosek.Optimizer; mom_order=2)
+solver_config = SolverConfig(optimizer=Mosek.Optimizer; order=2)
 
 result = cs_nctssos(pop, solver_config)
 result.objective
@@ -107,7 +107,7 @@ f = 1.0 * x[1] * (y[1] + y[2] + y[3]) + x[2] * (y[1] + y[2] - y[3]) +
 
 pop = polyopt(-f; comm_gps= [x,y], is_projective=true)
 
-solver_config = SolverConfig(optimizer=Mosek.Optimizer; mom_order=3)
+solver_config = SolverConfig(optimizer=Mosek.Optimizer; order=3)
 
 @time result = cs_nctssos(pop, solver_config)
 @show result.objective
@@ -138,7 +138,7 @@ f = 1.0 * x[1] * (y[1] + y[2] + y[3]) + x[2] * (y[1] + y[2] - y[3]) +
 
 pop = polyopt(-f; comm_gps= [x,y], is_projective=true)
 
-solver_config = SolverConfig(optimizer=Mosek.Optimizer; mom_order=6, cs_algo=MF())
+solver_config = SolverConfig(optimizer=Mosek.Optimizer; order=6, cs_algo=MF())
 
 @time result = cs_nctssos(pop, solver_config)
 @show result.objective
@@ -195,7 +195,7 @@ spop = polyopt(
 
 solver_config = SolverConfig(
     optimizer=Mosek.Optimizer;           # the solver backend
-    mom_order=2                             # the order of the moment matrix
+    order=2                             # the order of the moment matrix
 )
 
 result = cs_nctssos(spop, solver_config)
@@ -231,7 +231,7 @@ spop = polyopt(
 
 solver_config = SolverConfig(
     optimizer=Mosek.Optimizer;              # the solver backend
-    mom_order=3,                            # the order of the moment matrix
+    order=3,                            # the order of the moment matrix
     cs_algo = MF()                         # term sparse algorithm
 )
 

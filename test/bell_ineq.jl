@@ -64,7 +64,7 @@ using NCTSSoS, Test, MosekTools
         p = 1.0 * eval(Meta.parse(equations[idx]))
         pop = polyopt(p, comm_gps=[X[1:ms[idx]], Y[1:ns[idx]]], is_projective=true)
 
-        solver_config = SolverConfig(optimizer=Mosek.Optimizer, mom_order=d[i])
+        solver_config = SolverConfig(optimizer=Mosek.Optimizer, order=d[i])
 
         res = cs_nctssos(pop, solver_config)
         return res.objective

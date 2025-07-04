@@ -101,7 +101,7 @@ overview-of-optimizers). Different optimizers may have different performance
 characteristics and may be more or less suitable for a given problem.
 
 ```julia quick-start
-solver_config = SolverConfig(optimizer=Mosek.Optimizer;mom_order=3)
+solver_config = SolverConfig(optimizer=Mosek.Optimizer;order=3)
 ```
 
 Finally, we are ready to solve this problem. This is accomplishded with [`NCTSSoS.cs_nctssos`](@ref).
@@ -124,7 +124,7 @@ reduce the problem size. This is achieved by supplying an
 to [`NCTSSoS.SolverConfig`](@ref).
 
 ```julia
-solver_config = SolverConfig(optimizer=Mosek.Optimizer; mom_order=3, cs_algo=MF(), ts_algo=MMD())
+solver_config = SolverConfig(optimizer=Mosek.Optimizer; order=3, cs_algo=MF(), ts_algo=MMD())
 
 @time result_ts_cs = cs_nctssos(pop, solver_config)
 

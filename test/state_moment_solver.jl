@@ -36,7 +36,7 @@ using NCTSSoS:
 
     d = 1
 
-    solver_config = SolverConfig(; optimizer = SOLVER, mom_order = d)
+    solver_config = SolverConfig(; optimizer = SOLVER, order = d)
 
     result_mom = cs_nctssos(spop, solver_config; dualize=false)
     result_sos = cs_nctssos(spop, solver_config)
@@ -91,7 +91,7 @@ end
         ]
     end
 
-    solver_config = SolverConfig(; optimizer = QUICK_SOLVER, mom_order = d)
+    solver_config = SolverConfig(; optimizer = QUICK_SOLVER, order = d)
 
     result_mom =  cs_nctssos(spop, solver_config; dualize=false)
     @test isapprox(result_mom.objective, -4.0, atol = 1e-4)
@@ -109,7 +109,7 @@ end
 
     spop = polyopt(sp*one(Monomial); is_unipotent = true, comm_gps = [x[1:3], y[1:3]])
 
-    solver_config = SolverConfig(; optimizer = SOLVER, mom_order = 2)
+    solver_config = SolverConfig(; optimizer = SOLVER, order = 2)
 
     @test cs_nctssos(spop, solver_config) ≈ -5.0 atol = 1e-2
 
@@ -126,7 +126,7 @@ end
 
     spop = polyopt(sp; is_unipotent = true, comm_gps = [x[1:3], x[4:6]])
 
-    solver_config = SolverConfig(; optimizer = SOLVER, mom_order = 2)
+    solver_config = SolverConfig(; optimizer = SOLVER, order = 2)
 
     @test cs_nctssos(spop, solver_config) ≈ -5.0 atol = 1e-2
 

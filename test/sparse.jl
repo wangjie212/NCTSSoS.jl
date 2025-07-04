@@ -21,19 +21,19 @@ using NCTSSoS.FastPolynomials: Arbitrary, get_state_basis, NCStateWord
         f = 1.0 * x[1] * (y[1] + y[2] + y[3]) + x[2] * (y[1] + y[2] - y[3]) +
             x[3] * (y[1] - y[2]) - x[1] - 2 * y[1] - y[2]  # objective function
         pop = polyopt(-f)
-        mom_order = 3
+        order = 3
         @testset "No Elimination" begin
-            corr_sparsity = correlative_sparsity(pop, mom_order, NoElimination())
+            corr_sparsity = correlative_sparsity(pop, order, NoElimination())
             @test maximum(length.(corr_sparsity.cliques)) == 6
         end
 
         @testset "MF" begin
-            corr_sparsity = correlative_sparsity(pop, mom_order, MF())
+            corr_sparsity = correlative_sparsity(pop, order, MF())
             @test maximum(length.(corr_sparsity.cliques)) == 4
         end
 
         @testset "AsIS" begin
-            corr_sparsity = correlative_sparsity(pop, mom_order, AsIsElimination())
+            corr_sparsity = correlative_sparsity(pop, order, AsIsElimination())
             @test maximum(length.(corr_sparsity.cliques)) == 2
         end
     end
@@ -51,20 +51,20 @@ using NCTSSoS.FastPolynomials: Arbitrary, get_state_basis, NCStateWord
 
         pop = polyopt(f)
 
-        mom_order = 3
+        order = 3
 
         @testset "No Elimination" begin
-            corr_sparsity = correlative_sparsity(pop, mom_order, NoElimination())
+            corr_sparsity = correlative_sparsity(pop, order, NoElimination())
             @test maximum(length.(corr_sparsity.cliques)) == 10
         end
 
         @testset "MF" begin
-            corr_sparsity = correlative_sparsity(pop, mom_order, MF())
+            corr_sparsity = correlative_sparsity(pop, order, MF())
             @test maximum(length.(corr_sparsity.cliques)) == 7
         end
 
         @testset "AsIS" begin
-            corr_sparsity = correlative_sparsity(pop, mom_order, AsIsElimination())
+            corr_sparsity = correlative_sparsity(pop, order, AsIsElimination())
             @test maximum(length.(corr_sparsity.cliques)) == 7
         end
     end
@@ -78,24 +78,24 @@ end
     g = 4.0 - x[1]^2 - x[2]^2
     h1 = x[1] * x[2] + x[2] * x[1] - 2.0
     pop = polyopt(f; ineq_constraints=[g], eq_constraints=[h1])
-    mom_order = 2
+    order = 2
 
     @testset "No Elimination" begin
-        corr_sparsity = correlative_sparsity(pop, mom_order, NoElimination())
+        corr_sparsity = correlative_sparsity(pop, order, NoElimination())
         @test maximum(length.(corr_sparsity.cliques)) == 2
         @test length.(corr_sparsity.clq_mom_mtx_bases) == [7]
         @test length.(corr_sparsity.clq_localizing_mtx_bases[1]) == [3, 3]
     end
 
     @testset "MF" begin
-        corr_sparsity = correlative_sparsity(pop, mom_order, MF())
+        corr_sparsity = correlative_sparsity(pop, order, MF())
         @test maximum(length.(corr_sparsity.cliques)) == 2
         @test length.(corr_sparsity.clq_mom_mtx_bases) == [7]
         @test length.(corr_sparsity.clq_localizing_mtx_bases[1]) == [3, 3]
     end
 
     @testset "AsIS" begin
-        corr_sparsity = correlative_sparsity(pop, mom_order, AsIsElimination())
+        corr_sparsity = correlative_sparsity(pop, order, AsIsElimination())
         @test maximum(length.(corr_sparsity.cliques)) == 2
         @test length.(corr_sparsity.clq_mom_mtx_bases) == [7]
         @test length.(corr_sparsity.clq_localizing_mtx_bases[1]) == [3, 3]

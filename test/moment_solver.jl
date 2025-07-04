@@ -22,7 +22,7 @@ using NCTSSoS: substitute_variables
         f = 1.0 * x[1] * y[1] + x[1] * y[2] + x[2] * y[1] - x[2] * y[2]
         pop = polyopt(f; comm_gps = [x, y], is_unipotent = true)
 
-        solver_config = SolverConfig(optimizer = SOLVER; mom_order = 1)
+        solver_config = SolverConfig(optimizer = SOLVER; order = 1)
 
         result = cs_nctssos(pop, solver_config; dualize=false)
 
@@ -38,7 +38,7 @@ using NCTSSoS: substitute_variables
             x[3] * (y[1] - y[2]) - x[1] - 2 * y[1] - y[2]
         pop = polyopt(-f; comm_gps = [x, y], is_projective = true)
 
-        solver_config = SolverConfig(optimizer = SOLVER; mom_order = 3)
+        solver_config = SolverConfig(optimizer = SOLVER; order = 3)
 
         result = cs_nctssos(pop, solver_config)
 
@@ -75,7 +75,7 @@ end
     pop = polyopt(f; ineq_constraints = cons)
 
     solver_config =
-        SolverConfig(optimizer=SOLVER; mom_order=order, cs_algo=MF(), ts_algo=MMD())
+        SolverConfig(optimizer=SOLVER; order=order, cs_algo=MF(), ts_algo=MMD())
 
     result = cs_nctssos(pop, solver_config; dualize=false)
 
@@ -117,7 +117,7 @@ end
 
     solver_config = SolverConfig(
         optimizer = SOLVER,
-        mom_order = order,
+        order = order,
         cs_algo = cs_algo
     )
 
@@ -154,7 +154,7 @@ end
 
         solver_config = SolverConfig(
             optimizer = SOLVER,
-            mom_order = order,
+            order = order,
             cs_algo = NoElimination(),
         )
 
@@ -172,7 +172,7 @@ end
     @testset "Sprase" begin
         solver_config = SolverConfig(
             optimizer = SOLVER,
-            mom_order = order,
+            order = order,
             ts_algo = MMD(),
         )
 
@@ -195,7 +195,7 @@ end
     @testset "Dense" begin
         solver_config = SolverConfig(
             optimizer = SOLVER,
-            mom_order = order)
+            order = order)
 
         result = cs_nctssos(pop, solver_config; dualize = false)
         @test isapprox(result.objective, -1.0, atol = 1e-6)
@@ -204,7 +204,7 @@ end
     @testset "Term Sparse" begin
         solver_config = SolverConfig(
             optimizer = SOLVER,
-            mom_order = order,
+            order = order,
             cs_algo = MF(),
             ts_algo = MMD(),
         )
@@ -233,7 +233,7 @@ end
     @testset "Correlative Sparse" begin
         solver_config = SolverConfig(
             optimizer = SOLVER,
-            mom_order = order,
+            order = order,
             cs_algo = MF(),
         )
         result = cs_nctssos(pop, solver_config; dualize = false)
@@ -250,7 +250,7 @@ end
     @testset "Term Sparse" begin
         solver_config = SolverConfig(
             optimizer = SOLVER,
-            mom_order = order,
+            order = order,
             ts_algo = MMD(),
         )
 

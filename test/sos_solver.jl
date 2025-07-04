@@ -37,7 +37,7 @@ using NCTSSoS: get_Cαj
     cons = vcat([(1 - x[i]^2) for i = 1:n], [(x[i] - 1 / 3) for i = 1:n])
 
     pop = polyopt(f; ineq_constraints = cons)
-    solver_config = SolverConfig(optimizer = SOLVER, mom_order = order,
+    solver_config = SolverConfig(optimizer = SOLVER, order = order,
         cs_algo = MF(), ts_algo = MMD())
 
     result = cs_nctssos(pop, solver_config)
@@ -87,7 +87,7 @@ end
 
     solver_config = SolverConfig(
         optimizer = SOLVER,
-        mom_order = order
+        order = order
     )
 
 
@@ -117,7 +117,7 @@ end
 
         solver_config = SolverConfig(
             optimizer = SOLVER,
-            mom_order = order,
+            order = order,
         )
 
         result = cs_nctssos(pop, solver_config; dualize = true)
@@ -127,7 +127,7 @@ end
     @testset "Term Sparse" begin
         solver_config = SolverConfig(
             optimizer = SOLVER,
-            mom_order = order,
+            order = order,
             ts_algo = MMD(),
         )
 
@@ -149,7 +149,7 @@ end
 
     solver_config = SolverConfig(
         optimizer = SOLVER,
-        mom_order = order
+        order = order
     )
 
     result = cs_nctssos(pop, solver_config; dualize = true)
@@ -173,7 +173,7 @@ end
 
     solver_config = SolverConfig(
         optimizer = SOLVER,
-        mom_order = order,
+        order = order,
     )
 
     result = cs_nctssos(pop, solver_config; dualize = true)
@@ -216,7 +216,7 @@ end
 
     solver_config = SolverConfig(
         optimizer = SOLVER,
-        mom_order = order,
+        order = order,
     )
 
     result = cs_nctssos(pop, solver_config; dualize = true)
@@ -244,7 +244,7 @@ end
     @testset "Correlative Sparsity" begin
         solver_config = SolverConfig(
             optimizer=SOLVER,
-            mom_order=order,
+            order=order,
             cs_algo=MF(),
         )
 
@@ -256,7 +256,7 @@ end
     @testset "Term Sparsity" begin
         solver_config = SolverConfig(
             optimizer=SOLVER,
-            mom_order=order,
+            order=order,
             ts_algo=MMD(),
         )
 

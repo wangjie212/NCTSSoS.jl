@@ -32,7 +32,7 @@ algebraic geometry, operator theory, and noncommutative algebra to provide
 powerful tools for solving complex problems in quantum mechanics and related
 fields.
 
-## Mathematical Framework
+### Mathematical Framework
 
 In the context of tracial polynomial optimization, we consider polynomials of the form:
 
@@ -51,25 +51,7 @@ The key challenge in tracial polynomial optimization is to find the minimum or m
 - Positivity constraints on trace polynomials
 - Additional structural constraints on the matrix variables
 
-## Optimization Hierarchy
-
-The optimization of trace polynomials can be approached through a hierarchy of semidefinite relaxations that converge monotonically to the optimal value. This hierarchy extends classical semidefinite programming techniques to handle the noncommutative nature of the variables and the trace operations involved.
-
-The method involves:
-1. **Moment relaxations**: Constructing moment matrices associated with the tracial functionals
-2. **Positivstellensatz certificates**: Using algebraic certificates to verify positivity of trace polynomials
-3. **GNS construction**: Applying the Gelfand-Naimark-Segal construction to extract optimal solutions when flatness conditions are satisfied
-
-## Applications
-
-Tracial polynomial optimization has found important applications in:
-
-- **Quantum Information Theory**: Optimizing quantum states and operations
-- **Bell Inequality Violations**: Analyzing and maximizing violations of polynomial Bell inequalities
-- **Quantum Error Correction**: Designing optimal quantum error correction codes
-- **Semidefinite Programming**: Extending classical SDP techniques to noncommutative settings
-
-## [State Polynomials: Testing Advanced Quantum Phenomena](@id state-polynomial)
+## [State Polynomials](@id state-polynomial)
 
 State polynomials are functions of the expectation values themselves. This
 structure is essential for defining **nonlinear Bell inequalities**. These more
@@ -77,10 +59,9 @@ complex inequalities provide powerful and subtle tests of quantum mechanics,
 allowing researchers to explore the boundary between the quantum and classical
 worlds in greater detail.
 
-## [Eigenvalue Polynomials: Finding the Energy Spectrum](@id eigenvalue-polynomial)
+## [Eigenvalue Polynomials](@id eigenvalue-polynomial)
 
 These polynomials are used to find the possible energy levels (eigenvalues) of a
 quantum Hamiltonian. A primary application is to find the **ground state
 energy**—the lowest possible energy of a many-body system. This is a fundamental
-problem in condensed matter physics and quantum chemistry, with applications in
-materials science and drug discovery.
+problem in condensed matter physics.
