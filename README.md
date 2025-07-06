@@ -14,7 +14,7 @@
 [codecov-url]: https://codecov.io/gh/wangjie212/NCTSSoS.jl
 
 [docs-stable-img]: https://img.shields.io/badge/docs-stable-blue.svg
-[docs-stable-url]: https://wangjie212.github.io/NCTSSoS.jl/stable 
+[docs-stable-url]: https://wangjie212.github.io/NCTSSoS.jl/stable
 
 NCTSSoS has been tested on Ubuntu and MacOS.
 
