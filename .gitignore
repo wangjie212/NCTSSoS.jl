@@ -26,6 +26,8 @@ Manifest.toml
 # Benchmark Results
 benchmark/tune.json
 benchmark/result.json
+*.json
+*.json.tmp
 
 # Garbage Generate by MacOS and VSCode
 */.DS_Store

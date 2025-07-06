@@ -20,26 +20,23 @@ test:
 servedocs:
 	$(JL) -e 'using Pkg; Pkg.activate("docs"); using LiveServer; servedocs(;skip_dirs = ["docs/src/assets", "docs/src/generated"])'
 
-format:
-	$(JL) -e 'using JuliaFormatter; JuliaFormatter.format("test")'
-
 clean:
 	rm -rf docs/build
 	find . -name "*.cov" -type f -print0 | xargs -0 /bin/rm -f
-
-format-FastPoly:
-	$(JL) -e 'using JuliaFormatter; JuliaFormatter.format("src/FastPolynomials")'
 
 test-FastPoly:
 	$(JL) -e 'using Pkg; Pkg.status(); include("test/fastpoly_test/runtests.jl")'
 
 init-bench:
-	$(JL) -e 'using Pkg; Pkg.activate("benchmark"); Pkg.instantiate()'
+	$(JL) -e 'using Pkg; Pkg.activate(temp=true); Pkg.add("AirspeedVelocity"); Pkg.build("AirspeedVelocity")'
 
-bench-FastPoly:
-	$(JL) -e 'using Pkg; cd("benchmark") ; Pkg.activate("."); include("run_benchmarks.jl")'
+bench:
+	benchpkg \
+	--script "benchmark/benchmarks.jl"
 
-format-Bench:
-	$(JL) -e 'using JuliaFormatter; JuliaFormatter.format("benchmark")'
+bench-plot:
+	benchpkgplot  \
+    --format=pdf \
+    --npart=5
 
 .PHONY: init test

@@ -1,12 +1,11 @@
 module BenchMonomials
 using BenchmarkTools
-using NCTSSoS.FastPolynomials
-using NCTSSoS.FastPolynomials: monomials
-
-@ncpolyvar x[1:10]
+using NCTSSoS.FastPolynomials 
+using NCTSSoS.FastPolynomials: monomial, monomials
 
 const SUITE = BenchmarkGroup()
 
+@ncpolyvar x[1:10]
 var_vec = [x[1], x[2], x[2], x[1], x[3]]
 z_vec = [10, 20, 2, 0, 3]
 
