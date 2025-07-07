@@ -22,7 +22,6 @@ function Base.cmp(a::Monomial, b::Monomial)
 end
 
 function Base.in(a::Monomial, collection::Vector{Monomial})
-    @assert issorted(collection)
     return !isempty(searchsorted(collection, a))
 end
 
