@@ -31,11 +31,6 @@ solver_config = SolverConfig(optimizer=Mosek.Optimizer, order=order,
 
 
 @benchmark result = cs_nctssos($pop, $solver_config) 
-# used to be 11 second
-# BenchmarkTools.Trial: 2 samples with 1 evaluation per sample.
-#  Range (min … max):  3.764 s …   3.801 s  ┊ GC (min … max): 11.23% … 11.84%
-#  Time  (median):     3.783 s              ┊ GC (median):    11.54%
-#  Time  (mean ± σ):   3.783 s ± 26.299 ms  ┊ GC (mean ± σ):  11.54% ±  0.43%
 
 Profile.clear()
 @profile result = cs_nctssos(pop, solver_config)

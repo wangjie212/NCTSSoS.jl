@@ -10,11 +10,12 @@ function get_Cαj(::Type{T_coef}, basis_dict::Dict{GenericVariableRef{T},Int}, l
     cis = CartesianIndices((dim, dim))
     nbasis = length(basis_dict)
 
-    dictionary_of_keys = [Dict{Tuple{Int,Int},T_coef}() for _ in 1:nbasis]
+    # basis idx, row, col
+    dictionary_of_keys = Dict{Tuple{Int,Int,Int},T_coef}()
 
     for (ci, cur_expr) in zip(cis, localizing_mtx.func)
         for (α, coeff) in cur_expr.terms
-            dictionary_of_keys[basis_dict[α]][ci.I] = coeff
+            dictionary_of_keys[(basis_dict[α], ci.I[1], ci.I[2])] = coeff
         end
     end
 
@@ -82,11 +83,14 @@ function sos_dualize(moment_problem::MomentProblem{T,M}) where {T,M}
 
     for (i, sdp_constraint) in enumerate(moment_problem.constraints)
         Cαjs = get_Cαj(T_coef, unsymmetrized_basis_vals_dict, constraint_object(sdp_constraint))
-        for (Cαj, α) in zip(Cαjs, unsymmetrized_basis)
-            for (idcs, coef) in Cαj
-                add_to_expression!(fα_constraints[symmetrized_α2cons_dict[α]], -coef, dual_variables[i][idcs...])
-            end
+        for (ky, coef) in Cαjs
+            add_to_expression!(fα_constraints[symmetrized_α2cons_dict[unsymmetrized_basis[ky[1]]]], -coef, dual_variables[i][ky[2], ky[3]])
         end
+        # for (Cαj, α) in zip(Cαjs, unsymmetrized_basis)
+        #     for (idcs, coef) in Cαj
+        #         add_to_expression!(fα_constraints[symmetrized_α2cons_dict[α]], -coef, dual_variables[i][idcs...])
+        #     end
+        # end
     end
     @constraint(dual_model, fα_constraints .== 0)
 
