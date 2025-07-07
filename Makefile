@@ -34,9 +34,4 @@ bench:
 	benchpkg \
 	--script "benchmark/benchmarks.jl"
 
-bench-plot:
-	benchpkgplot  \
-    --format=pdf \
-    --npart=5
-
 .PHONY: init test

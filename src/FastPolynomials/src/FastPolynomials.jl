@@ -1,7 +1,9 @@
 module FastPolynomials
 
+using DispatchDoctor
 using MLStyle: @match
 
+@stable begin
 export variables, ς, tr
 
 export @ncpolyvar, Variable
@@ -26,4 +28,5 @@ include("statepolynomial.jl")
 
 export SimplifyAlgorithm, simplify, canonicalize
 include("simplify.jl")
+end
 end
