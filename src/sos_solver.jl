@@ -5,17 +5,16 @@ end
 # Decompose the matrix into the form sum_j C_αj * g_j
 # j: index of the constraint
 # α: the monomial (JuMP variable)
-function get_Cαj(::Type{T_coef}, basis::Vector{GenericVariableRef{T}}, localizing_mtx::VectorConstraint{F,S,Shape}) where {T,T_coef,F,S,Shape}
+function get_Cαj(::Type{T_coef}, basis_dict::Dict{GenericVariableRef{T},Int}, localizing_mtx::VectorConstraint{F,S,Shape}) where {T,T_coef,F,S,Shape}
     dim = get_dim(localizing_mtx)
     cis = CartesianIndices((dim, dim))
-    nbasis = length(basis)
+    nbasis = length(basis_dict)
 
     dictionary_of_keys = [Dict{Tuple{Int,Int},T_coef}() for _ in 1:nbasis]
 
     for (ci, cur_expr) in zip(cis, localizing_mtx.func)
         for (α, coeff) in cur_expr.terms
-            α_idx = findfirst(==(α), basis)
-            dictionary_of_keys[α_idx][ci.I] = coeff
+            dictionary_of_keys[basis_dict[α]][ci.I] = coeff
         end
     end
 
@@ -77,12 +76,12 @@ function sos_dualize(moment_problem::MomentProblem{T,M}) where {T,M}
 
     symmetrized_α2cons_dict = Dict(zip(unsymmetrized_basis, map(x -> searchsortedfirst(symmetric_basis, canonicalize(x, moment_problem.sa)), unsymmetrized_basis)))
 
-    unsymmetrized_basis_vals = getindex.(Ref(moment_problem.monomap), unsymmetrized_basis)
+    unsymmetrized_basis_vals_dict = Dict(zip(getindex.(Ref(moment_problem.monomap), unsymmetrized_basis), 1:length(unsymmetrized_basis)))
 
     add_to_expression!(fα_constraints[1], -one(T_coef), b)
 
     for (i, sdp_constraint) in enumerate(moment_problem.constraints)
-        Cαjs = get_Cαj(T_coef, unsymmetrized_basis_vals, constraint_object(sdp_constraint))
+        Cαjs = get_Cαj(T_coef, unsymmetrized_basis_vals_dict, constraint_object(sdp_constraint))
         for (Cαj, α) in zip(Cαjs, unsymmetrized_basis)
             for (idcs, coef) in Cαj
                 add_to_expression!(fα_constraints[symmetrized_α2cons_dict[α]], -coef, dual_variables[i][idcs...])
