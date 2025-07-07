@@ -3,12 +3,13 @@ Base.cmp(a::Variable, b::Variable) = (a.name == b.name) ? 0 : (a.name < b.name ?
 Base.isless(a::Variable, b::Variable) = cmp(a, b) < 0
 
 function Base.in(a::Variable, collection::Vector{Variable})
-    @assert issorted(collection)
     return !isempty(searchsorted(collection, a))
 end
 
 function Base.cmp(a::Monomial, b::Monomial)
-    degree(a) != degree(b) && return degree(a) < degree(b) ? -1 : 1
+    da = degree(a)
+    db = degree(b)
+    da != db && return da < db ? -1 : 1
     a_idx, b_idx = 1, 1
     while a_idx <= length(a.vars) && b_idx <= length(b.vars)
         iszero(a.z[a_idx]) && (a_idx += 1; continue)
