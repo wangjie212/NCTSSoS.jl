@@ -1,5 +1,6 @@
 module NCTSSoS
 
+using ThreadsX
 using SparseArrays, LinearAlgebra, JuMP
 using CliqueTrees, ChordalGraph, Graphs
 using CliqueTrees: EliminationAlgorithm, SupernodeType

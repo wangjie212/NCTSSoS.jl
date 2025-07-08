@@ -50,7 +50,31 @@ function Base.:(*)(x::Monomial, y::Monomial)
         w = [view(x.vars, 1:i); view(y.vars, j:length(y.vars))]
         z = [view(x.z, 1:i); view(y.z, j:length(y.z))]
     end
-    return monomial(w, z)
+    return Monomial(w, z)
+end
+
+function Base.:(*)(x::AdjointMonomial, y::Monomial)
+    i = findfirst(z -> z > 0, x.parent.z)
+    isnothing(i) && return y
+    j = findfirst(z -> z > 0, y.z)
+    isnothing(j) && return collect(x)
+
+    lx = length(x.parent.vars)
+    if x.parent.vars[i] == y.vars[j]
+        w = [
+            view(x.parent.vars, lx:-1:i)
+            view(y.vars, (j + 1):length(y.vars))
+        ]
+        z = [
+            view(x.parent.z, lx:-1:(i + 1))
+            x.parent.z[i] + y.z[j]
+            view(y.z, (j + 1):length(y.z))
+        ]
+    else
+        w = [view(x.parent.vars, lx:-1:i); view(y.vars, j:length(y.vars))]
+        z = [view(x.parent.z, lx:-1:i); view(y.z, j:length(y.z))]
+    end
+    return Monomial(w, z)
 end
 
 Base.:(*)(a::Number, b::Polynomial) = Polynomial(a .* b.coeffs, b.monos)

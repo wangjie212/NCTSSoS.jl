@@ -11,7 +11,7 @@ function simplify(m::Monomial, sa::SimplifyAlgorithm)
     )
 end
 
-function simplify(sw::StateWord{ST}, sa::SimplifyAlgorithm) where ST
+function simplify(sw::StateWord{ST}, sa::SimplifyAlgorithm) where {ST}
     return StateWord{ST}(simplify.(sw.state_monos, Ref(sa)))
 end
 
@@ -41,7 +41,8 @@ function cyclic_canonicalize(mono::Monomial, sa::SimplifyAlgorithm)
     return minimum(
         mapreduce(vcat, 1:sum(mono.z)) do shift
             shifted_mono = monomial(circshift!(flatten_vars, 1), circshift!(flatten_z, 1))
-            [simplify(shifted_mono,sa), simplify(star(shifted_mono),sa)]
+            #TODO: make `simplify` also memory efficient by removing collect
+            [simplify(shifted_mono, sa), simplify(collect(star(shifted_mono)), sa)]
         end,
     )
 end
@@ -59,7 +60,8 @@ Canonicalizes a mono by taking the minimum between itself and its adjoint.
 """
 function symmetric_canonicalize(mono::Monomial, sa::SimplifyAlgorithm)
     isempty(mono.vars) && return mono
-    return min(simplify(mono, sa), simplify(star(mono), sa))
+    # TODO: make this memory efficient by removing `collect`
+    return min(simplify(mono, sa), simplify(collect(star(mono)), sa))
 end
 
 function canonicalize(sw::StateWord{MaxEntangled}, sa::SimplifyAlgorithm)

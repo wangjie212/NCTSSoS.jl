@@ -1,3 +1,4 @@
+abstract type AbstractMonomial end
 """
     Monomial
 
@@ -13,7 +14,7 @@ Automatically consolidates consecutive identical variables and removes zero expo
 - `vars` does not contain consecutive same variables
 - Length of `vars` equals length of `z`
 """
-struct Monomial
+struct Monomial <: AbstractMonomial
     vars::Vector{Variable}
     z::Vector{Int}
     function Monomial(vars::Vector{Variable}, z::Vector{Int})
@@ -22,6 +23,12 @@ struct Monomial
         return new(vars, z)
     end
 end
+
+struct AdjointMonomial <: AbstractMonomial
+    parent::Monomial
+end
+
+Base.collect(m::AdjointMonomial) = monomial(reverse(m.parent.vars), reverse(m.parent.z))
 
 function consecutive_unique(vars::Vector{Variable})
     return all(i -> vars[i] != vars[i + 1], 1:(length(vars) - 1))
@@ -130,9 +137,8 @@ Computes the adjoint (star) of a monomial by reversing variable order and expone
 # Returns
 - `Monomial`: Adjoint monomial with reversed variables and exponents
 """
-function star(m::Monomial)
-    return Monomial(reverse(m.vars), reverse(m.z))
-end
+star(m::Monomial) = AdjointMonomial(m)
+star(m::AdjointMonomial) = m.parent
 
 """
     neat_dot(x::Monomial, y::Monomial)

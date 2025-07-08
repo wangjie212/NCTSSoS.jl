@@ -54,23 +54,25 @@ using NCTSSoS.FastPolynomials: neat_dot, star
     end
 
     @testset "Star Operation" begin
+        # TODO: adds test for star, collect, neat_dot, * 
         @ncpolyvar x y z
         mono1 = monomial([x, y, z], [2, 0, 1])
 
+        @test (@allocated star(mono1)) == 0
         # NOTE: I am assuming all variables are Hermitian
-        mono1_star = star(mono1)
+        mono1_star = collect(star(mono1))
 
         @test mono1_star.vars == [z, x]
         @test mono1_star.z == [1, 2]
 
         mono2 = monomial([x, y, z], [0, 0, 0])
-        mono2_star = star(mono2)
+        mono2_star = collect(star(mono2))
 
         @test isempty(mono2_star.vars)
         @test isempty(mono2_star.z)
 
         mono3 = monomial([x, y, z], [1, 1, 1])
-        mono3_star = star(mono3)
+        mono3_star = collect(star(mono3))
         @test mono3_star.vars == [z, y, x]
         @test mono3_star.z == [1, 1, 1]
     end

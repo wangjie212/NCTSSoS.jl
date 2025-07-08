@@ -71,7 +71,7 @@ tr(m::Union{Monomial,Variable})= StateWord{MaxEntangled}([monomial(m)])
 
 variables(sw::StateWord) = sorted_union(variables.(sw.state_monos)...)
 
-star(sw::StateWord{ST}) where ST = StateWord{ST}(star.(sw.state_monos))
+star(sw::StateWord{ST}) where ST = StateWord{ST}(collect.(star.(sw.state_monos)))
 
 function degree(sw::StateWord)
     return mapreduce(degree, +, sw.state_monos; init=zero(Int))
@@ -154,7 +154,7 @@ function variables(ncsw::NCStateWord)
     return sorted_union(variables(ncsw.nc_word), variables(ncsw.sw))
 end
 
-Base.adjoint(a::NCStateWord) = NCStateWord(star(a.sw), star(a.nc_word))
+Base.adjoint(a::NCStateWord) = NCStateWord(star(a.sw), collect(star(a.nc_word)))
 
 function neat_dot(x::NCStateWord, y::NCStateWord)
     return adjoint(x) * y
