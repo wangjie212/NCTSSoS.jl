@@ -1,9 +1,10 @@
 using BenchmarkTools
 using MosekTools, NCTSSoS
 using Profile 
+using JET
 
 order = 3
-n = 15 
+n = 20 
 @ncpolyvar x[1:n]
 f = 0.0
 for i = 1:n
@@ -30,8 +31,52 @@ solver_config = SolverConfig(optimizer=Mosek.Optimizer, order=order,
     cs_algo=MF(), ts_algo=MMD())
 
 
-@benchmark result = cs_nctssos($pop, $solver_config) 
+# @benchmark result = cs_nctssos($pop, $solver_config) 
 
+result = cs_nctssos(pop, solver_config)
 Profile.clear()
 @profile result = cs_nctssos(pop, solver_config)
 Profile.print(mincount=300)
+
+
+# constrain moment matrix
+using NCTSSoS
+using NCTSSoS: iterate_term_sparse_supp, monomials, get_basis, SimplifyAlgorithm
+
+@ncpolyvar y[1:10]
+
+sa = SimplifyAlgorithm(comm_gps=[y], is_unipotent=false, is_projective=false)
+
+basis = get_basis(y, 3)
+init_act_supp = basis[[1,300,20,34,48,59,60]] 
+mono = 1.0*y[1]*y[2] + 2.0 * y[2]^3
+
+@benchmark iterate_term_sparse_supp($init_act_supp, $mono, $basis, MMD(), $sa)
+
+Profile.clear()
+@profile for _ in 1:10 iterate_term_sparse_supp(init_act_supp, mono, basis, MMD(), sa) end
+Profile.print(mincount=300)
+
+@code_warntype iterate_term_sparse_supp(init_act_supp, mono, basis, MMD(), sa)
+report = @report_opt iterate_term_sparse_supp(init_act_supp, mono, basis, MMD(), sa)
+report = @report_call iterate_term_sparse_supp(init_act_supp, mono, basis, MMD(), sa)
+
+show(report)
+
+report
+
+ts = iterate_term_sparse_supp(init_act_supp, mono, basis, MMD(), sa)
+
+using NCTSSoS.FastPolynomials: neat_dot, star , monomial
+
+a = monomial(x[[6,8,7,1,2,5,8,3,4,2]], [8,5,3,6,5,10,2,8,10,7]) 
+b = monomial(x[[5,1,3,7,4,8,7,6,3,9]], [8,4,3,2,9,8,10,6,8,9])
+
+@benchmark collect(reverse(i)) setup=(i = collect(UInt16,1:sum(a.z)))
+
+@benchmark star(a) setup = (a = monomial(x[[6, 8, 7, 1, 2, 5, 8, 3, 4, 2]], [8, 5, 3, 6, 5, 10, 2, 8, 10, 7]))
+
+@benchmark a * b setup = (a = monomial(x[[6, 8, 7, 1, 2, 5, 8, 3, 4, 2]], [8, 5, 3, 6, 5, 10, 2, 8, 10, 7]); b = monomial(x[[5, 1, 3, 7, 4, 8, 7, 6, 3, 9]], [8, 4, 3, 2, 9, 8, 10, 6, 8, 9]))
+
+@benchmark neat_dot(a,b) setup=(a = monomial(x[[6,8,7,1,2,5,8,3,4,2]], [8,5,3,6,5,10,2,8,10,7]); b = monomial(x[[5,1,3,7,4,8,7,6,3,9]], [8,4,3,2,9,8,10,6,8,9]))
+

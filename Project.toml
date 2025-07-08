@@ -13,6 +13,7 @@ JuMP = "4076af6c-e467-56ae-b986-b466b2749572"
 LinearAlgebra = "37e2e46d-f89d-539d-b4ee-838fcccc9c8e"
 MLStyle = "d8e11817-5142-5d16-987a-aa16d5891078"
 SparseArrays = "2f01184e-e22b-5df5-ae63-d93ebab69eaf"
+ThreadsX = "ac1d9e8a-700a-412c-b207-f0111f4b6c0d"
 
 [compat]
 Aqua = "0.8.13"
@@ -31,6 +32,7 @@ MLStyle = "0.4.17"
 MosekTools = "0.15.9"
 SparseArrays = "1.11.0"
 Test = "1.11.0"
+ThreadsX = "0.1.12"
 julia = "1"
 
 [extras]

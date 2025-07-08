@@ -42,3 +42,17 @@ end
 
 
 BenchPolyOpt.SUITE
+
+# current record
+# |                                      | main             | dirty             | main / dirty   |
+# |:-------------------------------------|:----------------:|:-----------------:|:--------------:|
+# | monomials/Basis Creation             | 0.105 ± 0.004 ms | 0.105 ± 0.0039 ms | 0.999 ± 0.053  |
+# | monomials/Compare different degree   | 0.001 ± 41 ns    | 0.001 ± 41 ns     | 1 ± 5.8e+04    |
+# | monomials/Compare same degree        | 0.001 ± 41 ns    | 0.001 ± 41 ns     | 1 ± 5.8e+04    |
+# | monomials/Monomial Creation          | 0.084 ± 0.042 μs | 0.084 ± 0.042 μs  | 1 ± 0.71       |
+# | polynomials/Polynomial Creation      | 0.806 ± 0.023 ms | 0.823 ± 0.016 ms  | 0.98 ± 0.034   |
+# | polynomials/Polynomial get variables | 0.542 ± 0.043 μs | 0.542 ± 0.083 μs  | 1 ± 0.17       |
+# | pop/Example1                         | 14.2 s           | 3.46 ± 0.078 s    | 4.1            |
+# | variables/Variable Test `in`         | 23.8 ± 2 μs      | 0.166 ± 0.042 μs  | 143 ± 38       |
+# | variables/Variables Creation         | 5.44 ± 0.78 ms   | 5.45 ± 0.89 ms    | 0.998 ± 0.22   |
+# | time_to_load                         | 0.915 ± 0.0065 s | 1.11 ± 0.0019 s   | 0.827 ± 0.0061 |
