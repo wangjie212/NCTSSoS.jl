@@ -18,7 +18,7 @@ struct Monomial <: AbstractMonomial
     vars::Vector{Variable}
     z::Vector{Int}
     function Monomial(vars::Vector{Variable}, z::Vector{Int})
-        @assert length(vars) == length(z) "There should be as many variables as exponents, got $(length(vars)) and $(length(z))"
+        @assert length(vars) == length(z) "Tere should be as many variables as exponents, got $(length(vars)) and $(length(z))"
         @assert consecutive_unique(vars) "Variables should be consecutive unique, got $(vars)"
         return new(vars, z)
     end
@@ -28,7 +28,7 @@ struct AdjointMonomial <: AbstractMonomial
     parent::Monomial
 end
 
-Base.collect(m::AdjointMonomial) = monomial(reverse(m.parent.vars), reverse(m.parent.z))
+Base.collect(m::AdjointMonomial) = Monomial(reverse(m.parent.vars), reverse(m.parent.z))
 
 function consecutive_unique(vars::Vector{Variable})
     return all(i -> vars[i] != vars[i + 1], 1:(length(vars) - 1))
