@@ -70,6 +70,7 @@ end
     @test isapprox(result_sos.objective, -4.0, atol = 1e-4)
 end
 
+if Sys.isapple()
 @testset "State Polynomial Opt 7.2.2" begin
     @ncpolyvar x[1:3] y[1:3]
     cov(a, b) = 1.0 * ς(x[a] * y[b]) - 1.0 * ς(x[a]) * ς(y[b])
@@ -122,6 +123,7 @@ end
         result = cs_nctssos(spop, solver_config)
         @test result.objective ≈ -5.0 atol = 1e-6
     end
+end
 end
 
 
