@@ -67,7 +67,7 @@ report
 
 ts = iterate_term_sparse_supp(init_act_supp, mono, basis, MMD(), sa)
 
-using NCTSSoS.FastPolynomials: neat_dot, star , monomial, Monomial
+using NCTSSoS.FastPolynomials: neat_dot, star , monomial, Monomial, ProdMonomial
 using NCTSSoS
 
 using BenchmarkTools
@@ -79,6 +79,20 @@ using JET
 
 a = Monomial(x[[6,8,7,1,2,5,8,3,4,2]], [8,5,3,6,5,10,2,8,10,7]) 
 b = Monomial(x[[5,1,3,7,4,8,7,6,3,9]], [8,4,3,2,9,8,10,6,8,9])
+c = Monomial(x[[3,4,5,7]],[4,4,2,4])
+
+function lazy_prod(a::Monomial, b::Monomial)
+    return ProdMonomial(a, b)
+end
+
+using NCTSSoS.FastPolynomials: _concat_var_expos
+function lazy_mult(a::Monomial, b::Monomial,c::Monomial)
+    w1,z1 = _concat_var_expos(b.vars,b.z, c.vars, c.z)
+    return Monomial(_concat_var_expos(a.vars, a.z, w1, z1)...)
+end
+
+@benchmark  ($a * ($b * $c))
+@benchmark lazy_mult($a, $b, $c)
 
 @benchmark Monomial(vars, [8, 5, 3, 6, 5, 10, 2, 8, 10, 7, 8, 4, 3, 2, 9, 8, 10, 6, 8, 9]) setup = (vars = x[[[6, 8, 7, 1, 2, 5, 8, 3, 4, 2]; [5, 1, 3, 7, 4, 8, 7, 6, 3, 9]]])
 

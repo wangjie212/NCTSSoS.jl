@@ -28,6 +28,11 @@ struct AdjointMonomial <: AbstractMonomial
     parent::Monomial
 end
 
+struct ProdMonomial <: AbstractMonomial
+    a::Monomial
+    b::Monomial
+end
+
 Base.collect(m::AdjointMonomial) = Monomial(reverse(m.parent.vars), reverse(m.parent.z))
 
 function consecutive_unique(vars::Vector{Variable})

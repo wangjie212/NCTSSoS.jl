@@ -37,43 +37,29 @@ Base.promote_rule(::Type{Polynomial{T}}, ::Type{Variable}) where {T} = Polynomia
 Base.:(*)(a::PolynomialLike, b::PolynomialLike) = *(promote(a, b)...)
 Base.:(*)(a::Variable, b::Variable) = monomial([a, b], [1, 1])
 
-function Base.:(*)(x::Monomial, y::Monomial)
-    i = findlast(z -> z > 0, x.z)
-    isnothing(i) && return y
-    j = findfirst(z -> z > 0, y.z)
-    isnothing(j) && return x
+function _concat_var_expos(a::Vector{Variable},a_z::Vector{Int}, b::Vector{Variable},b_z::Vector{Int})
+    i = findlast(z -> z > 0, a_z)
+    isnothing(i) && return (b, b_z)
+    j = findfirst(z -> z > 0, b_z)
+    isnothing(j) && return (a, a_z)
 
-    if x.vars[i] == y.vars[j]
-        w = [view(x.vars, 1:i); view(y.vars, (j + 1):length(y.vars))]
-        z = [view(x.z, 1:(i - 1)); x.z[i] + y.z[j]; view(y.z, (j + 1):length(y.z))]
+    if a[i] == b[j]
+        w = [view(a, 1:i); view(b, (j + 1):length(b))]
+        z = [view(a_z, 1:(i - 1)); a_z[i] + b_z[j]; view(b_z, (j + 1):length(b_z))]
     else
-        w = [view(x.vars, 1:i); view(y.vars, j:length(y.vars))]
-        z = [view(x.z, 1:i); view(y.z, j:length(y.z))]
+        w = [view(a, 1:i); view(b, j:length(b))]
+        z = [view(a_z, 1:i); view(b_z, j:length(b_z))]
     end
-    return Monomial(w, z)
+    return (w,z)
+end
+
+function Base.:(*)(x::Monomial, y::Monomial)
+    w,z = _concat_var_expos(x.vars,x.z,y.vars,y.z)
+    return Monomial(w,z)
 end
 
 function Base.:(*)(x::AdjointMonomial, y::Monomial)
-    i = findfirst(z -> z > 0, x.parent.z)
-    isnothing(i) && return y
-    j = findfirst(z -> z > 0, y.z)
-    isnothing(j) && return collect(x)
-
-    lx = length(x.parent.vars)
-    if x.parent.vars[i] == y.vars[j]
-        w = [
-            view(x.parent.vars, lx:-1:i)
-            view(y.vars, (j + 1):length(y.vars))
-        ]
-        z = [
-            view(x.parent.z, lx:-1:(i + 1))
-            x.parent.z[i] + y.z[j]
-            view(y.z, (j + 1):length(y.z))
-        ]
-    else
-        w = [view(x.parent.vars, lx:-1:i); view(y.vars, j:length(y.vars))]
-        z = [view(x.parent.z, lx:-1:i); view(y.z, j:length(y.z))]
-    end
+    w,z = _concat_var_expos(reverse(x.parent.vars),reverse(x.parent.z),y.vars, y.z)
     return Monomial(w, z)
 end
 
