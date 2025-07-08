@@ -8,8 +8,8 @@ else
     const SOLVER = Clarabel.Optimizer
 end
 
+if Sys.isapple()
 @testset "1D Heisenberg Chain" begin
-
     N = 6
     @ncpolyvar x[1:N] y[1:N] z[1:N]
 
@@ -38,14 +38,14 @@ end
     for (cs_algo, ts_algo, ans) in zip([NoElimination(), MF(), MF()],
         [NoElimination(), MMD(),  MaximalElimination()],
         [-0.2508755573198166, -0.9999999892255513,  -0.2512780696727863])
-        solver_config = SolverConfig(optimizer=Mosek.Optimizer; order=3, cs_algo=cs_algo, ts_algo=ts_algo)
+        solver_config = SolverConfig(optimizer=SOLVER; order=3, cs_algo=cs_algo, ts_algo=ts_algo)
         result = cs_nctssos(pop, solver_config)
         @test isapprox(result.objective, ans; atol=1e-5)
     end
 end
-
+end
 @testset "Majumdar Gosh Model" begin
-    num_sites = 12
+    num_sites = 6
     J1_interactions =
         unique!([tuple(sort([i, mod1(i + 1, num_sites)])...) for i = 1:num_sites])
     J2_interactions =

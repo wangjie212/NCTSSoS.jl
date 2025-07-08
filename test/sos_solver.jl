@@ -264,6 +264,4 @@ end
 
         @test isapprox(result.objective, 0.9975306427277915, atol=1e-5)
     end
-
-
 end
