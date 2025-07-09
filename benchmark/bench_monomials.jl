@@ -31,10 +31,6 @@ SUITE["Multiplication small total degree"] = @benchmarkable a * b setup = (a = m
 
 SUITE["Neat dot with multiplication"] = @benchmarkable neat_dot(a, b * c) setup = (
     a = monomial(x[[6, 8, 7, 1, 2, 5, 8, 3, 4, 2]], [1, 1, 2, 1, 2, 2, 1, 2, 2, 1]); b = monomial(x[[5, 1, 3, 7, 4, 8, 7, 6, 3, 9]], [2, 1, 1, 2, 1, 1, 2, 1, 2, 1]); c = monomial(x[[3, 4, 5, 7]], [2, 1, 2, 1]))
-	
-SUITE["Neat dot with lazy multiplication"] = @benchmarkable neat_dot(a, lazy_prod(b , c)) setup = (
-    a = monomial(x[[6, 8, 7, 1, 2, 5, 8, 3, 4, 2]], [1, 1, 2, 1, 2, 2, 1, 2, 2, 1]); b = monomial(x[[5, 1, 3, 7, 4, 8, 7, 6, 3, 9]], [2, 1, 1, 2, 1, 1, 2, 1, 2, 1]); c = monomial(x[[3, 4, 5, 7]], [2, 1, 2, 1]))
-
 
 end
 
