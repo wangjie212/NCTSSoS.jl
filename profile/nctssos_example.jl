@@ -75,6 +75,33 @@ using MosekTools, NCTSSoS
 using Profile 
 using JET
 
+function vec_append1(a::Vector{Int}, b::Vector{Int}, ast::Int, alen::Int, bst::Int, blen::Int)
+    total_len = alen + blen
+    res = Vector{Int}(undef, total_len)
+    @inbounds for i in 1:alen
+        res[i] = a[ast+i-1]
+    end
+    @inbounds for i in alen+1:total_len
+        res[i] = b[bst+i-alen-1]
+    end
+end
+
+
+
+function vec_append2(a::Vector{Int},b::Vector{Int},ast::Int, alen::Int, bst::Int, blen::Int)
+    return [view(a,ast:ast+alen-1);view(b,bst:bst+blen-1)]
+end
+
+@benchmark vec_append1(a, b, ast, alen, bst, blen) setup = (ast = 1; alen = 10; a = collect(1:2*alen); bst = 2; blen = 10; b = collect(1:3*blen))
+@benchmark vec_append2(a, b, ast, alen, bst, blen) setup = (ast = 1; alen = 100; a = collect(1:2*alen); bst = 10; blen = 20; b = collect(1:3*blen))
+
+@benchmark vec_append3(a,b) setup=(a=collect(1:12);b =collect(1:10))
+
+@benchmark vec_append2(a,b) setup=(a=collect(1:12);b =collect(1:10))
+@benchmark vec_append1(a,b) setup=(a=collect(1:12);b =collect(1:10))
+
+
+
 @ncpolyvar x[1:10]
 
 a = Monomial(x[[6,8,7,1,2,5,8,3,4,2]], [8,5,3,6,5,10,2,8,10,7]) 
@@ -107,8 +134,6 @@ end
 @benchmark neat_dot(a, b) setup = (a = monomial(x[[6, 8, 7, 1, 2, 5, 8, 3, 4, 2]], [8, 5, 3, 6, 5, 10, 2, 8, 10, 7]); b = monomial(x[[5, 1, 3, 7, 4, 8, 7, 6, 3, 9]], [8, 4, 3, 2, 9, 8, 10, 6, 8, 9]))
 
 # neat_dot (168ns) = product (75ns) + reverse etc  + monomial creation (43ns)
-
-
 
 a = collect(1:100)
 ra = reverse(a)

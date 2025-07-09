@@ -37,29 +37,58 @@ Base.promote_rule(::Type{Polynomial{T}}, ::Type{Variable}) where {T} = Polynomia
 Base.:(*)(a::PolynomialLike, b::PolynomialLike) = *(promote(a, b)...)
 Base.:(*)(a::Variable, b::Variable) = monomial([a, b], [1, 1])
 
-function _concat_var_expos(a::Vector{Variable},a_z::Vector{Int}, b::Vector{Variable},b_z::Vector{Int})
+function _concat_var_expos(
+    a::Vector{Variable}, a_z::Vector{Int}, b::Vector{Variable}, b_z::Vector{Int}
+)
     i = findlast(z -> z > 0, a_z)
     isnothing(i) && return (b, b_z)
     j = findfirst(z -> z > 0, b_z)
     isnothing(j) && return (a, a_z)
 
+    lb = length(b)
     if a[i] == b[j]
-        w = [view(a, 1:i); view(b, (j + 1):length(b))]
-        z = [view(a_z, 1:(i - 1)); a_z[i] + b_z[j]; view(b_z, (j + 1):length(b_z))]
+        total_len = i + lb - j
+        w = Vector{Variable}(undef, total_len)
+        z = Vector{Int}(undef, total_len)
+        @inbounds for k in 1:(i - 1)
+            w[k] = a[k]
+            z[k] = a_z[k]
+        end
+
+        w[i] = a[i]
+        z[i] = a_z[i] + b_z[j]
+
+        @inbounds for k in (j + 1):lb
+            w[i + k - j] = b[k]
+            z[i + k - j] = b_z[k]
+        end
+        # w = [view(a, 1:i); view(b, (j + 1):lb)]
+        # z = [view(a_z, 1:(i - 1)); a_z[i] + b_z[j]; view(b_z, (j + 1):lb)]
     else
-        w = [view(a, 1:i); view(b, j:length(b))]
-        z = [view(a_z, 1:i); view(b_z, j:length(b_z))]
+        total_len = i + lb - j + 1
+        w = Vector{Variable}(undef, total_len)
+        z = Vector{Int}(undef, total_len)
+        @inbounds for k in 1:i
+            w[k] = a[k]
+            z[k] = a_z[k]
+        end
+        @inbounds for k in j:lb
+            w[i + k - j + 1] = b[k]
+            z[i + k - j + 1] = b_z[k]
+        end
+        # w = [view(a, 1:i); view(b, j:length(b))]
+        # z = [view(a_z, 1:i); view(b_z, j:length(b_z))]
     end
-    return (w,z)
+    return (w, z)
 end
 
 function Base.:(*)(x::Monomial, y::Monomial)
-    w,z = _concat_var_expos(x.vars,x.z,y.vars,y.z)
-    return Monomial(w,z)
+    w, z = _concat_var_expos(x.vars, x.z, y.vars, y.z)
+    return Monomial(w, z)
 end
 
 function Base.:(*)(x::AdjointMonomial, y::Monomial)
-    w,z = _concat_var_expos(reverse(x.parent.vars),reverse(x.parent.z),y.vars, y.z)
+    w, z = _concat_var_expos(reverse(x.parent.vars), reverse(x.parent.z), y.vars, y.z)
     return Monomial(w, z)
 end
 
