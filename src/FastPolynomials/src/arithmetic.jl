@@ -63,6 +63,10 @@ function Base.:(*)(x::AdjointMonomial, y::Monomial)
     return Monomial(w, z)
 end
 
+function lazy_prod(a::Monomial, b::Monomial)
+    return a * b
+end
+
 Base.:(*)(a::Number, b::Polynomial) = Polynomial(a .* b.coeffs, b.monos)
 Base.:(*)(a::Polynomial, b::Number) = Polynomial(b .* a.coeffs, a.monos)
 Base.:(*)(a::Number, b::PolynomialLike) = a * Polynomial(b)

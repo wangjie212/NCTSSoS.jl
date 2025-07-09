@@ -19,9 +19,22 @@ SUITE["Compare same degree"] = @benchmarkable cmp(a, b) setup = (a = monomial([x
 
 SUITE["Neat dot"] = @benchmarkable neat_dot(a,b) setup=(a = monomial(x[[6,8,7,1,2,5,8,3,4,2]], [8,5,3,6,5,10,2,8,10,7]); b = monomial(x[[5,1,3,7,4,8,7,6,3,9]], [8,4,3,2,9,8,10,6,8,9]))
 
+SUITE["Neat dot small total degree"] = @benchmarkable neat_dot(a, b) setup = (
+    a = monomial(x[[6, 8, 7, 1, 2, 5, 8, 3, 4, 2]], [1, 2, 1, 1, 2, 1, 2, 1, 1, 2]); b = monomial(x[[5, 1, 3, 7, 4, 8, 7, 6, 3, 9]], [2, 1, 1, 2, 1, 2, 2, 2, 1, 1])
+)
+
 SUITE["Star"] = @benchmarkable star(a) setup = (a = monomial(x[[6, 8, 7, 1, 2, 5, 8, 3, 4, 2]], [8, 5, 3, 6, 5, 10, 2, 8, 10, 7]))
 
 SUITE["Multiplication"] = @benchmarkable a * b setup = (a = monomial(x[[6, 8, 7, 1, 2, 5, 8, 3, 4, 2]], [8, 5, 3, 6, 5, 10, 2, 8, 10, 7]); b = monomial(x[[5, 1, 3, 7, 4, 8, 7, 6, 3, 9]], [8, 4, 3, 2, 9, 8, 10, 6, 8, 9]))
+
+SUITE["Multiplication small total degree"] = @benchmarkable a * b setup = (a = monomial(x[[6, 8, 7, 1, 2, 5, 8, 3, 4, 2]], [1, 1, 2, 1, 2, 2, 1, 2, 2, 1]); b = monomial(x[[5, 1, 3, 7, 4, 8, 7, 6, 3, 9]], [2, 1, 1, 2, 1, 1, 2, 1, 2, 1]))
+
+SUITE["Neat dot with multiplication"] = @benchmarkable neat_dot(a, b * c) setup = (
+    a = monomial(x[[6, 8, 7, 1, 2, 5, 8, 3, 4, 2]], [1, 1, 2, 1, 2, 2, 1, 2, 2, 1]); b = monomial(x[[5, 1, 3, 7, 4, 8, 7, 6, 3, 9]], [2, 1, 1, 2, 1, 1, 2, 1, 2, 1]); c = monomial(x[[3, 4, 5, 7]], [2, 1, 2, 1]))
+	
+SUITE["Neat dot with lazy multiplication"] = @benchmarkable neat_dot(a, lazy_prod(b , c)) setup = (
+    a = monomial(x[[6, 8, 7, 1, 2, 5, 8, 3, 4, 2]], [1, 1, 2, 1, 2, 2, 1, 2, 2, 1]); b = monomial(x[[5, 1, 3, 7, 4, 8, 7, 6, 3, 9]], [2, 1, 1, 2, 1, 1, 2, 1, 2, 1]); c = monomial(x[[3, 4, 5, 7]], [2, 1, 2, 1]))
+
 
 end
 
