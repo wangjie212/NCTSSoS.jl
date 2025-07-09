@@ -1,5 +1,5 @@
 using Test, NCTSSoS.FastPolynomials
-using NCTSSoS.FastPolynomials: neat_dot, star
+using NCTSSoS.FastPolynomials: neat_dot, star, _neat_dot3
 
 @testset "Monomials" begin
     @testset "Creation" begin
@@ -54,7 +54,6 @@ using NCTSSoS.FastPolynomials: neat_dot, star
     end
 
     @testset "Star Operation" begin
-        # TODO: adds test for star, collect, neat_dot, * 
         @ncpolyvar x y z
         mono1 = monomial([x, y, z], [2, 0, 1])
 
@@ -84,6 +83,27 @@ using NCTSSoS.FastPolynomials: neat_dot, star
 
         @test neat_dot(mono1, mono2) == monomial([x, y], [2, 1])
         @test neat_dot(mono2, mono2) == monomial([y, x, y], [1, 2, 1])
+    end
+
+    @testset "_neat_dot3" begin
+        @ncpolyvar x y z
+        mono1 = monomial([x, y], [1, 0])
+        mono2 = monomial([x, y], [1, 1])
+        mono3 = monomial([z, x], [2, 1])
+
+        @test _neat_dot3(mono1, mono2, mono3) == neat_dot(mono1, mono2 * mono3)
+
+        mono1 = monomial([x, y,x], [1, 0,3])
+        mono2 = monomial([x], [2])
+        mono3 = monomial([x, z], [2, 1])
+
+        @test _neat_dot3(mono1, mono2, mono3) == neat_dot(mono1, mono2 * mono3)
+
+        mono1 = monomial([x, y], [1, 0])
+        mono2 = monomial([], [])
+        mono3 = monomial([z, x], [2, 1])
+
+        @test _neat_dot3(mono1, mono2, mono3) == neat_dot(mono1, mono2 * mono3)
     end
 
     @testset "degree" begin

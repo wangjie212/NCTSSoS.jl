@@ -102,6 +102,9 @@ total = [fill(a, 9); b]
 
 pm = ProdMono2(total) 
 sizeof(pm)
+isconcrete_type(pm.a)
+
+@code_warntype ProdMono2(total) 
 
 
 

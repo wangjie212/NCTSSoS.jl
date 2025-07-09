@@ -211,8 +211,8 @@ function get_term_sparsity_graph(cons_support::Vector{M}, activated_supp::Vector
     sorted_activated_supp = sort(activated_supp)
     for i in 1:nterms, j in i+1:nterms
         for supp in cons_support
-            connected_mono_lr = neat_dot(bases[i], supp * bases[j])
-            connected_mono_rl = neat_dot(bases[j], supp * bases[i])
+            connected_mono_lr = _neat_dot3(bases[i], supp, bases[j])
+            connected_mono_rl = _neat_dot3(bases[j], supp, bases[i])
             expval_cm_lr = expval(simplify(connected_mono_lr, sa)) * one(Monomial)
             expval_cm_rl = expval(simplify(connected_mono_rl, sa)) * one(Monomial)
             if expval_cm_lr in sorted_activated_supp || expval_cm_rl in sorted_activated_supp
@@ -261,6 +261,6 @@ Computes the support of a term sparsity graph for a given polynomial.
 function term_sparsity_graph_supp(G::SimpleGraph, basis::Vector{M}, g::P, sa::SimplifyAlgorithm) where {M,P}
     # following (10.4) in Sparse Polynomial Optimization: Theory and Practise
     # NOTE: Do I need to symmetric canonicalize it?
-    gsupp(a, b) = map(g_supp -> simplify(neat_dot(a, g_supp * b), sa), monomials(g))
+    gsupp(a, b) = map(g_supp -> simplify(_neat_dot3(a, g_supp, b), sa), monomials(g))
     return union([gsupp(basis[v], basis[v]) for v in vertices(G)]..., [gsupp(basis[e.src], basis[e.dst]) for e in edges(G)]...)
 end

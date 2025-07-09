@@ -228,3 +228,8 @@ Computes the expectation value by combining state monomials with the non-commuta
 - `StateWord`: StateWord containing all state monomials plus the non-commutative word
 """
 expval(a::NCStateWord{ST}) where {ST} = StateWord{ST}([a.sw.state_monos; a.nc_word])
+
+# degrade to default behaviro for now
+function _neat_dot3(a::NCStateWord{ST}, b::NCStateWord{ST}, c::NCStateWord{ST}) where {ST}
+    return neat_dot(a, b * c)
+end

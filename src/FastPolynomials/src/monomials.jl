@@ -19,6 +19,7 @@ struct Monomial
     function Monomial(vars::Vector{Variable}, z::Vector{Int})
         @assert length(vars) == length(z) "Tere should be as many variables as exponents, got $(length(vars)) and $(length(z))"
         @assert consecutive_unique(vars) "Variables should be consecutive unique, got $(vars)"
+        @assert all(x -> x != 0, z) "Exponents should not be zero"
         return new(vars, z)
     end
 end
@@ -131,24 +132,6 @@ Computes the adjoint (star) of a monomial by reversing variable order and expone
 - `Monomial`: Adjoint monomial with reversed variables and exponents
 """
 star(m::Monomial) = Monomial(reverse(m.vars), reverse(m.z))
-
-"""
-    neat_dot(x::Monomial, y::Monomial)
-
-Computes the "neat dot" product of two monomials as star(x) * y.
-
-# Arguments
-- `x::Monomial`: First monomial
-- `y::Monomial`: Second monomial
-
-# Returns
-- `Monomial`: Product of star(x) and y
-"""
-function neat_dot(x::Monomial, y::Monomial)
-    return star(x) * y
-end
-
-function _neat_dot3(x::Monomial, y::Monomial, z::Monomial) end
 
 """
     _comm(mono::Monomial, comm_gps::Vector{Vector{Variable}})

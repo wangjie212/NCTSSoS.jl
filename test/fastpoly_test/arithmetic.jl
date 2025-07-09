@@ -21,6 +21,7 @@ using Test, NCTSSoS.FastPolynomials
         @test p2.coeffs == [1.0, 1.0, 1.0]
         @test p2.monos == [monomial([x], [1]), monomial([y], [1]), monomial([z], [1])]
     end
+
     @testset "Monomial multiplication" begin
         @ncpolyvar x y z
 
