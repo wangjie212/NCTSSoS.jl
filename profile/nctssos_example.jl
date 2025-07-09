@@ -77,65 +77,19 @@ using JET
 
 @ncpolyvar x[1:10]
 
-struct ProdMono
-    a::Vector{Monomial}
-end
+@benchmark Monomial(vars, expos) setup = (vars = x[[[6, 8, 7, 1, 2, 5, 8, 3, 4, 2]; [5, 1, 3, 7, 4, 8, 7, 6, 3, 9]]]; expos = [8, 5, 3, 6, 5, 10, 2, 8, 10, 7, 8, 4, 3, 2, 9, 8, 10, 6, 8, 9])
 
-@benchmark ProdMono(fill(a,10)) setup = (a = monomial(x[[6,8,7,1,2,5,8,3,4,2]], [8,5,3,6,5,10,2,8,10,7]))
-
-a = monomial(x[[6,8,7,1,2,5,8,3,4,2]], [8,5,3,6,5,10,2,8,10,7])
-
-pm = ProdMono(fill(a,10)) 
-sizeof(pm)
-
-using NCTSSoS.FastPolynomials: AbstractMonomial
-
-struct ProdMono2
-    a::Vector{AbstractMonomial}
-end
-
-@benchmark ProdMono2(total) setup = (a = monomial(x[[6, 8, 7, 1, 2, 5, 8, 3, 4, 2]], [8, 5, 3, 6, 5, 10, 2, 8, 10, 7]); b = star(a); total = [fill(a, 9); b])
-
-a = monomial(x[[6,8,7,1,2,5,8,3,4,2]], [8,5,3,6,5,10,2,8,10,7])
-b = star(a)
-total = [fill(a, 9); b]
-
-pm = ProdMono2(total) 
-sizeof(pm)
-isconcrete_type(pm.a)
-
-@code_warntype ProdMono2(total) 
-
-
-
-
-a = Monomial(x[[6,8,7,1,2,5,8,3,4,2]], [8,5,3,6,5,10,2,8,10,7]) 
-b = Monomial(x[[5,1,3,7,4,8,7,6,3,9]], [8,4,3,2,9,8,10,6,8,9])
-c = Monomial(x[[3,4,5,7]],[4,4,2,4])
-
-function lazy_prod(a::Monomial, b::Monomial)
-    return ProdMonomial(a, b)
-end
-
-using NCTSSoS.FastPolynomials: _concat_var_expos
-function lazy_mult(a::Monomial, b::Monomial,c::Monomial)
-    w1,z1 = _concat_var_expos(b.vars,b.z, c.vars, c.z)
-    return Monomial(_concat_var_expos(a.vars, a.z, w1, z1)...)
-end
-
-@benchmark  ($a * ($b * $c))
-@benchmark lazy_mult($a, $b, $c)
-
-@benchmark Monomial(vars, [8, 5, 3, 6, 5, 10, 2, 8, 10, 7, 8, 4, 3, 2, 9, 8, 10, 6, 8, 9]) setup = (vars = x[[[6, 8, 7, 1, 2, 5, 8, 3, 4, 2]; [5, 1, 3, 7, 4, 8, 7, 6, 3, 9]]])
-
-@benchmark collect(reverse(i)) setup=(i = collect(UInt16,1:sum(a.z)))
 
 @benchmark star(a) setup = (a = monomial(x[[6, 8, 7, 1, 2, 5, 8, 3, 4, 2]], [8, 5, 3, 6, 5, 10, 2, 8, 10, 7]))
 
 @benchmark a * b setup = (a = monomial(x[[6, 8, 7, 1, 2, 5, 8, 3, 4, 2]], [8, 5, 3, 6, 5, 10, 2, 8, 10, 7]); b = monomial(x[[5, 1, 3, 7, 4, 8, 7, 6, 3, 9]], [8, 4, 3, 2, 9, 8, 10, 6, 8, 9]))
 
-@benchmark ra * b setup = (ra = collect(star(monomial(x[[6, 8, 7, 1, 2, 5, 8, 3, 4, 2]], [8, 5, 3, 6, 5, 10, 2, 8, 10, 7]))); b = monomial(x[[5, 1, 3, 7, 4, 8, 7, 6, 3, 9]], [8, 4, 3, 2, 9, 8, 10, 6, 8, 9]))
-
 @benchmark neat_dot(a, b) setup = (a = monomial(x[[6, 8, 7, 1, 2, 5, 8, 3, 4, 2]], [8, 5, 3, 6, 5, 10, 2, 8, 10, 7]); b = monomial(x[[5, 1, 3, 7, 4, 8, 7, 6, 3, 9]], [8, 4, 3, 2, 9, 8, 10, 6, 8, 9]))
+
+using NCTSSoS.FastPolynomials: _neat_dot3
+@benchmark neat_dot(a, b*c) setup=(a = monomial(x[[6, 8, 7, 1, 2, 5, 8, 3, 4, 2]], [8, 5, 3, 6, 5, 10, 2, 8, 10, 7]); b = monomial(x[[5, 1, 3, 7, 4, 8, 7, 6, 3, 9]], [8, 4, 3, 2, 9, 8, 10, 6, 8, 9]); c = monomial(x[[3, 4, 5, 7]],[4, 4, 2, 4]))
+
+@benchmark _neat_dot3(a,b,c) setup=(a = monomial(x[[6, 8, 7, 1, 2, 5, 8, 3, 4, 2]], [8, 5, 3, 6, 5, 10, 2, 8, 10, 7]); b = monomial(x[[5, 1, 3, 7, 4, 8, 7, 6, 3, 9]], [8, 4, 3, 2, 9, 8, 10, 6, 8, 9]); c = monomial(x[[3, 4, 5, 7]],[4, 4, 2, 4]))
+
 
 # neat_dot (168ns) = product (75ns) + reverse etc  + monomial creation (43ns)

@@ -93,11 +93,12 @@ using NCTSSoS.FastPolynomials: neat_dot, star, _neat_dot3
 
         @test _neat_dot3(mono1, mono2, mono3) == neat_dot(mono1, mono2 * mono3)
 
-        mono1 = monomial([x, y,x], [1, 0,3])
+        mono1 = monomial([x, y, x], [1, 0, 3])
         mono2 = monomial([x], [2])
         mono3 = monomial([x, z], [2, 1])
 
         @test _neat_dot3(mono1, mono2, mono3) == neat_dot(mono1, mono2 * mono3)
+
 
         mono1 = monomial([x, y], [1, 0])
         mono2 = monomial([], [])
