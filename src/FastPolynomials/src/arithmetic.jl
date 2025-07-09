@@ -62,8 +62,6 @@ function _concat_var_expos(
             w[i + k - j] = b[k]
             z[i + k - j] = b_z[k]
         end
-        # w = [view(a, 1:i); view(b, (j + 1):lb)]
-        # z = [view(a_z, 1:(i - 1)); a_z[i] + b_z[j]; view(b_z, (j + 1):lb)]
     else
         total_len = i + lb - j + 1
         w = Vector{Variable}(undef, total_len)
@@ -76,19 +74,12 @@ function _concat_var_expos(
             w[i + k - j + 1] = b[k]
             z[i + k - j + 1] = b_z[k]
         end
-        # w = [view(a, 1:i); view(b, j:length(b))]
-        # z = [view(a_z, 1:i); view(b_z, j:length(b_z))]
     end
     return (w, z)
 end
 
 function Base.:(*)(x::Monomial, y::Monomial)
     w, z = _concat_var_expos(x.vars, x.z, y.vars, y.z)
-    return Monomial(w, z)
-end
-
-function Base.:(*)(x::AdjointMonomial, y::Monomial)
-    w, z = _concat_var_expos(reverse(x.parent.vars), reverse(x.parent.z), y.vars, y.z)
     return Monomial(w, z)
 end
 

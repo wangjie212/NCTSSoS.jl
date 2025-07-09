@@ -47,7 +47,7 @@ end
 Polynomial(a::Polynomial) = a
 
 function Base.convert(::Type{Polynomial{T}}, a::Variable) where {T}
-    return Polynomial([one(T)], [monomial([a], [1])])
+    return Polynomial([one(T)], [Monomial([a], [1])])
 end
 Base.convert(::Type{Polynomial{T}}, a::Monomial) where {T} = Polynomial([one(T)], [a])
 

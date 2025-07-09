@@ -32,7 +32,7 @@ init-bench:
 
 bench:
 	benchpkg \
-	--rev {DEFAULT},ys/prof-bench,dirty
+	--rev ys/prof-bench,dirty \
 	--script "benchmark/benchmarks.jl"
 
 .PHONY: init test
