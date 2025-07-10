@@ -1,6 +1,6 @@
 using Test, NCTSSoS.FastPolynomials
 using NCTSSoS.FastPolynomials: simplify, get_state_basis, NCStateWord
-using NCTSSoS.FastPolynomials:  symmetric_canonicalize
+using NCTSSoS.FastPolynomials:  symmetric_canonicalize, Arbitrary
 
 
 @testset "Simplification Interface" begin

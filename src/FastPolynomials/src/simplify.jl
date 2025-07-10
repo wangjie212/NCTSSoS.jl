@@ -11,7 +11,7 @@ function simplify(m::Monomial, sa::SimplifyAlgorithm)
     )
 end
 
-function simplify(sw::StateWord{ST}, sa::SimplifyAlgorithm) where ST
+function simplify(sw::StateWord{ST}, sa::SimplifyAlgorithm) where {ST}
     return StateWord{ST}(simplify.(sw.state_monos, Ref(sa)))
 end
 
@@ -41,7 +41,8 @@ function cyclic_canonicalize(mono::Monomial, sa::SimplifyAlgorithm)
     return minimum(
         mapreduce(vcat, 1:sum(mono.z)) do shift
             shifted_mono = monomial(circshift!(flatten_vars, 1), circshift!(flatten_z, 1))
-            [simplify(shifted_mono,sa), simplify(star(shifted_mono),sa)]
+            #TODO: make `simplify` also memory efficient by removing collect
+            [simplify(shifted_mono, sa), simplify(star(shifted_mono), sa)]
         end,
     )
 end
@@ -59,6 +60,7 @@ Canonicalizes a mono by taking the minimum between itself and its adjoint.
 """
 function symmetric_canonicalize(mono::Monomial, sa::SimplifyAlgorithm)
     isempty(mono.vars) && return mono
+    # TODO: make this memory efficient by removing `collect`
     return min(simplify(mono, sa), simplify(star(mono), sa))
 end
 
@@ -66,16 +68,14 @@ function canonicalize(sw::StateWord{MaxEntangled}, sa::SimplifyAlgorithm)
     return StateWord{MaxEntangled}(cyclic_canonicalize.(sw.state_monos, Ref(sa)))
 end
 
-canonicalize(m::Monomial,sa::SimplifyAlgorithm) = symmetric_canonicalize(m,sa)
+canonicalize(m::Monomial, sa::SimplifyAlgorithm) = symmetric_canonicalize(m, sa)
 
 function canonicalize(sw::StateWord{Arbitrary}, sa::SimplifyAlgorithm)
     return StateWord{Arbitrary}(symmetric_canonicalize.(sw.state_monos, Ref(sa)))
 end
 
 function canonicalize(ncsw::NCStateWord, sa::SimplifyAlgorithm)
-    return NCStateWord(
-        canonicalize(ncsw.sw, sa), symmetric_canonicalize(ncsw.nc_word, sa)
-    )
+    return NCStateWord(canonicalize(ncsw.sw, sa), symmetric_canonicalize(ncsw.nc_word, sa))
 end
 
 """
@@ -96,7 +96,7 @@ function canonicalize(poly::Polynomial, sa::SimplifyAlgorithm)
     return Polynomial(conj.(poly.coeffs), symmetric_canonicalize.(poly.monos, Ref(sa)))
 end
 
-function _unipotent(sw::StateWord{ST}) where ST
+function _unipotent(sw::StateWord{ST}) where {ST}
     return StateWord{ST}(_unipotent.(sw.state_monos))
 end
 
@@ -104,7 +104,7 @@ function _unipotent(ncsw::NCStateWord)
     return NCStateWord(_unipotent(ncsw.sw), _unipotent(ncsw.nc_word))
 end
 
-_projective(sw::StateWord{ST}) where ST = StateWord{ST}(_projective.(sw.state_monos))
+_projective(sw::StateWord{ST}) where {ST} = StateWord{ST}(_projective.(sw.state_monos))
 
 function _projective(ncsw::NCStateWord)
     return NCStateWord(_projective(ncsw.sw), _projective(ncsw.nc_word))
@@ -114,7 +114,7 @@ end
 # You DO CANONICALIZE HERER!!!
 function get_state_basis(
     ::Type{ST}, variables::Vector{Variable}, d::Int, sa::SimplifyAlgorithm
-) where ST
+) where {ST}
     canon_algo = ST == MaxEntangled ? cyclic_canonicalize : symmetric_canonicalize
     return unique!(
         map(
@@ -128,7 +128,8 @@ function get_state_basis(
                         isempty(interm) ? [one(variables[1])] : interm
                     end for c_word in Iterators.product(
                         ntuple(
-                            _ -> unique!(canon_algo.(get_basis(variables, cw_deg), Ref(sa))),
+                            _ ->
+                                unique!(canon_algo.(get_basis(variables, cw_deg), Ref(sa))),
                             cw_deg,
                         )...,
                         [one(variables[1])],
@@ -141,20 +142,20 @@ function get_state_basis(
 end
 
 function get_basis(
-    ::Type{NCStatePolynomial{T,ST}}, variables::Vector{Variable}, d::Int, sa::SimplifyAlgorithm
+    ::Type{NCStatePolynomial{T,ST}},
+    variables::Vector{Variable},
+    d::Int,
+    sa::SimplifyAlgorithm,
 ) where {T,ST}
     return get_state_basis(ST, variables, d, sa)
 end
 
-
-function canonicalize(sp::StatePolynomial,sa::SimplifyAlgorithm)
+function canonicalize(sp::StatePolynomial, sa::SimplifyAlgorithm)
     return StatePolynomial((sp.coeffs), canonicalize.(sp.state_words, Ref(sa)))
 end
 
 function canonicalize(ncsp::NCStatePolynomial, sa::SimplifyAlgorithm)
-    return NCStatePolynomial(
-        (ncsp.coeffs), canonicalize.(ncsp.nc_state_words, Ref(sa))
-    )
+    return NCStatePolynomial((ncsp.coeffs), canonicalize.(ncsp.nc_state_words, Ref(sa)))
 end
 
 function get_basis(

@@ -67,16 +67,29 @@ report
 
 ts = iterate_term_sparse_supp(init_act_supp, mono, basis, MMD(), sa)
 
-using NCTSSoS.FastPolynomials: neat_dot, star , monomial
+using NCTSSoS.FastPolynomials: neat_dot, star , monomial, Monomial, ProdMonomial
+using NCTSSoS
 
-a = monomial(x[[6,8,7,1,2,5,8,3,4,2]], [8,5,3,6,5,10,2,8,10,7]) 
-b = monomial(x[[5,1,3,7,4,8,7,6,3,9]], [8,4,3,2,9,8,10,6,8,9])
+using BenchmarkTools
+using MosekTools, NCTSSoS
+using Profile 
+using JET
 
-@benchmark collect(reverse(i)) setup=(i = collect(UInt16,1:sum(a.z)))
+@ncpolyvar x[1:10]
+
+@benchmark Monomial(vars, expos) setup = (vars = x[[[6, 8, 7, 1, 2, 5, 8, 3, 4, 2]; [5, 1, 3, 7, 4, 8, 7, 6, 3, 9]]]; expos = [8, 5, 3, 6, 5, 10, 2, 8, 10, 7, 8, 4, 3, 2, 9, 8, 10, 6, 8, 9])
+
 
 @benchmark star(a) setup = (a = monomial(x[[6, 8, 7, 1, 2, 5, 8, 3, 4, 2]], [8, 5, 3, 6, 5, 10, 2, 8, 10, 7]))
 
 @benchmark a * b setup = (a = monomial(x[[6, 8, 7, 1, 2, 5, 8, 3, 4, 2]], [8, 5, 3, 6, 5, 10, 2, 8, 10, 7]); b = monomial(x[[5, 1, 3, 7, 4, 8, 7, 6, 3, 9]], [8, 4, 3, 2, 9, 8, 10, 6, 8, 9]))
 
-@benchmark neat_dot(a,b) setup=(a = monomial(x[[6,8,7,1,2,5,8,3,4,2]], [8,5,3,6,5,10,2,8,10,7]); b = monomial(x[[5,1,3,7,4,8,7,6,3,9]], [8,4,3,2,9,8,10,6,8,9]))
+@benchmark neat_dot(a, b) setup = (a = monomial(x[[6, 8, 7, 1, 2, 5, 8, 3, 4, 2]], [8, 5, 3, 6, 5, 10, 2, 8, 10, 7]); b = monomial(x[[5, 1, 3, 7, 4, 8, 7, 6, 3, 9]], [8, 4, 3, 2, 9, 8, 10, 6, 8, 9]))
 
+using NCTSSoS.FastPolynomials: _neat_dot3
+@benchmark neat_dot(a, b*c) setup=(a = monomial(x[[6, 8, 7, 1, 2, 5, 8, 3, 4, 2]], [8, 5, 3, 6, 5, 10, 2, 8, 10, 7]); b = monomial(x[[5, 1, 3, 7, 4, 8, 7, 6, 3, 9]], [8, 4, 3, 2, 9, 8, 10, 6, 8, 9]); c = monomial(x[[3, 4, 5, 7]],[4, 4, 2, 4]))
+
+@benchmark _neat_dot3(a,b,c) setup=(a = monomial(x[[6, 8, 7, 1, 2, 5, 8, 3, 4, 2]], [8, 5, 3, 6, 5, 10, 2, 8, 10, 7]); b = monomial(x[[5, 1, 3, 7, 4, 8, 7, 6, 3, 9]], [8, 4, 3, 2, 9, 8, 10, 6, 8, 9]); c = monomial(x[[3, 4, 5, 7]],[4, 4, 2, 4]))
+
+
+# neat_dot (168ns) = product (75ns) + reverse etc  + monomial creation (43ns)

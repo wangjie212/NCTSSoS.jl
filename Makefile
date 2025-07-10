@@ -30,8 +30,14 @@ test-FastPoly:
 init-bench:
 	$(JL) -e 'using Pkg; Pkg.activate(temp=true); Pkg.add("AirspeedVelocity"); Pkg.build("AirspeedVelocity")'
 
-bench:
+bench: 
 	benchpkg \
+	--rev $(TARGET),dirty \
 	--script "benchmark/benchmarks.jl"
+
+benchtable:
+	benchpkgtable \
+	--rev $(TARGET),dirty \
+	--ratio true
 
 .PHONY: init test
