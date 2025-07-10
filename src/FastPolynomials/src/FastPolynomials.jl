@@ -19,6 +19,8 @@ include("arithmetic.jl")
 
 include("utils.jl")
 
+include("phased_monomial.jl")
+
 include("state_word.jl")
 
 export ncstatepoly

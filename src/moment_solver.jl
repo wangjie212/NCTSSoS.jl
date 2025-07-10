@@ -71,7 +71,7 @@ function moment_relax(pop::PolyOpt{P}, corr_sparsity::CorrelativeSparsity, cliqu
                             poly,
                             ts_sub_basis,
                             monomap,
-                            poly in pop.eq_constraints ? Zeros() : PSDCone(), sa)
+                            poly in pop.eq_constraints ? Zeros() : (T <: Real ? PSDCone() : HermitianPSDCone()), sa)
                     end
                 end
             end
@@ -81,7 +81,7 @@ function moment_relax(pop::PolyOpt{P}, corr_sparsity::CorrelativeSparsity, cliqu
                     corr_sparsity.cons[global_con],
                     [one(pop.objective)],
                     monomap,
-                    global_con <= length(pop.eq_constraints) ? Zeros() : PSDCone(),
+                    global_con <= length(pop.eq_constraints) ? Zeros() : (T <: Real ? PSDCone() : HermitianPSDCone()),
                     sa
                 )
             end]
@@ -101,9 +101,10 @@ function constrain_moment_matrix!(
     sa::SimplifyAlgorithm
 ) where {T,T1,P<:AbstractPolynomial{T},M1,M2}
     T_prom = promote_type(T, T1)
-    moment_mtx = [
+    explicit_hermitian = T <: Real ? identity : LinearAlgebra.Hermitian
+    moment_mtx = explicit_hermitian([
         substitute_variables(sum([T_prom(coef) * canonicalize(expval(_neat_dot3(row_idx, mono, col_idx)), sa) for (coef, mono) in zip(coefficients(poly), monomials(poly))]), monomap) for
         row_idx in local_basis, col_idx in local_basis
-    ]
+    ])
     return @constraint(model, moment_mtx in cone)
 end
