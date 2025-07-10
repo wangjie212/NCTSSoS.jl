@@ -1,3 +1,5 @@
-using Aqua, NCTSSoS
+using Aqua, NCTSSoS, Test
 
-Aqua.test_all(NCTSSoS)
+@testset "Aqua.jl" begin
+    Aqua.test_all(NCTSSoS)
+end

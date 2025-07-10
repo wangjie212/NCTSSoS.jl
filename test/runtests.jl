@@ -15,4 +15,5 @@ using NCTSSoS, Test
     include("Aqua.jl")
     include("Doctest.jl")
     include("ExplicitImports.jl")
+    # include("past_bugs.jl")
 end

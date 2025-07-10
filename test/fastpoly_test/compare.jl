@@ -27,7 +27,7 @@ using Test, NCTSSoS.FastPolynomials
         mono1 = Monomial([x, y], [1, 2])
         mono2 = Monomial([x, y], [1, 2])
         mono3 = Monomial([x, y], [1, 1])
-        mono4 = Monomial([x, z, y], [1, 0, 2])
+        mono4 = Monomial([x, y], [1, 2])
         mono5 = Monomial([x, z, y], [1, 1, 1])
 
         # TODO: add more tests

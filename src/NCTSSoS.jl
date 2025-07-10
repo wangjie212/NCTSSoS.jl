@@ -9,7 +9,7 @@ include("FastPolynomials/src/FastPolynomials.jl")
 using .FastPolynomials
 using .FastPolynomials: AbstractPolynomial, Variable, Monomial
 
-using .FastPolynomials: sorted_union, monomials, sorted_unique, maxdegree, get_basis, neat_dot, monomials, coefficients, terms, expval
+using .FastPolynomials: sorted_union, monomials, sorted_unique, maxdegree, get_basis, neat_dot, _neat_dot3, monomials, coefficients, terms, expval
 
 export @ncpolyvar
 export polyopt 

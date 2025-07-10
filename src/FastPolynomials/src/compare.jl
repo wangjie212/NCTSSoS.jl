@@ -3,7 +3,6 @@ Base.cmp(a::Variable, b::Variable) = (a.name == b.name) ? 0 : (a.name < b.name ?
 Base.isless(a::Variable, b::Variable) = cmp(a, b) < 0
 
 function Base.in(a::Variable, collection::Vector{Variable})
-    @assert issorted(collection)
     return !isempty(searchsorted(collection, a))
 end
 
@@ -22,7 +21,6 @@ function Base.cmp(a::Monomial, b::Monomial)
 end
 
 function Base.in(a::Monomial, collection::Vector{Monomial})
-    @assert issorted(collection)
     return !isempty(searchsorted(collection, a))
 end
 
