@@ -1,5 +1,9 @@
 JL = julia --project
 
+ifndef TARGET
+override TARGET = main
+endif
+
 default: init test
 
 init:
