@@ -8,7 +8,7 @@ struct MomentProblem{T,M,CR<:ConstraintRef} <: OptimizationProblem
 end
 
 function substitute_variables(poly::P, monomap::Dict{M,GenericVariableRef{T}}) where {T,T1,P<:AbstractPolynomial{T1},M}
-    sum(coef * monomap[mono] for (coef, mono) in zip(coefficients(poly), monomials(poly)))
+    iszero(poly) ? zero(T1) * monomap[one(M)] : sum(coef * monomap[mono] for (coef, mono) in zip(coefficients(poly), monomials(poly)))
 end
 
 function get_mom_matrix(mom_problem::MomentProblem)
