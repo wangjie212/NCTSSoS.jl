@@ -17,9 +17,9 @@ struct Monomial
     vars::Vector{Variable}
     z::Vector{Int}
     function Monomial(vars::Vector{Variable}, z::Vector{Int})
-        @assert length(vars) == length(z) "Tere should be as many variables as exponents, got $(length(vars)) and $(length(z))"
+        @assert length(vars) == length(z) "There should be as many variables as exponents, got $(length(vars)) and $(length(z))"
         @assert consecutive_unique(vars) "Variables should be consecutive unique, got $(vars)"
-        @assert all(x -> x != 0, z) "Exponents should not be zero"
+        @assert all(x -> !iszero(x), z) "Exponents should not be zero"
         return new(vars, z)
     end
 end

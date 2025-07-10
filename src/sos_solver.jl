@@ -86,11 +86,6 @@ function sos_dualize(moment_problem::MomentProblem{T,M}) where {T,M}
         for (ky, coef) in Cαjs
             add_to_expression!(fα_constraints[symmetrized_α2cons_dict[unsymmetrized_basis[ky[1]]]], -coef, dual_variables[i][ky[2], ky[3]])
         end
-        # for (Cαj, α) in zip(Cαjs, unsymmetrized_basis)
-        #     for (idcs, coef) in Cαj
-        #         add_to_expression!(fα_constraints[symmetrized_α2cons_dict[α]], -coef, dual_variables[i][idcs...])
-        #     end
-        # end
     end
     @constraint(dual_model, fα_constraints .== 0)
 

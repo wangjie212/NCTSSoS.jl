@@ -78,6 +78,8 @@ function _concat_var_expos(
 end
 
 function Base.:(*)(x::Monomial, y::Monomial)
+    isempty(x.z) && return y
+    isempty(y.z) && return x
     return Monomial(_concat_var_expos(x.vars, x.z, y.vars, y.z)...)
 end
 

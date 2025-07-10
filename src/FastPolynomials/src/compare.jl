@@ -7,9 +7,7 @@ function Base.in(a::Variable, collection::Vector{Variable})
 end
 
 function Base.cmp(a::Monomial, b::Monomial)
-    da = degree(a)
-    db = degree(b)
-    da != db && return da < db ? -1 : 1
+    degree(a) != degree(b) && return degree(a) < degree(b) ? -1 : 1
     a_idx, b_idx = 1, 1
     while a_idx <= length(a.vars) && b_idx <= length(b.vars)
         iszero(a.z[a_idx]) && (a_idx += 1; continue)
