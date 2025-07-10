@@ -11,6 +11,42 @@ function simplify(m::Monomial, sa::SimplifyAlgorithm)
     )
 end
 
+function _simp(v1::Variable,v2::Variable)
+    @match (string(v.name)[1],string(v.name)[2]) begin
+        ('x','x') => 
+        ('x','y') => 
+        ('y','x') => 
+        ('z','y') => 
+        ('x','y') => 
+        ('x','y') => 
+        ('x','y') => 
+
+    end
+
+    string(v.name)[1] == 'x' ? 
+end
+
+function _pauli_simplify(ms::Vector{Monomial})
+    accum_phase = (true,false) 
+    for m in _projective.(ms)
+        foldl(m; init=((true,false), one(Monomial))) do 
+
+        end
+        m.name 
+    end
+    return
+end
+
+# TODO: make this more general by creating a symbolic engine
+# currently only supports pauli x,y,z
+function simplify(pm::PhasedMonomial, sa::SimplifyAlgorithm)
+    cxs = _comm(pm.mono, sa.comm_gps)
+    accum_phase, simp_vars = _pauli_simplify(cxs)
+    return PhasedMonomial(
+        xor.(accum_phase, pm.phase), Monomial(simp_vars, ones(length(simp_vars)))
+    )
+end
+
 function simplify(sw::StateWord{ST}, sa::SimplifyAlgorithm) where {ST}
     return StateWord{ST}(simplify.(sw.state_monos, Ref(sa)))
 end
