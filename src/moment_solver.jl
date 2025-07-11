@@ -1,13 +1,13 @@
 # T: type of the coefficients
 # monomap: map from monomials in DynamicPolynomials to variables in JuMP
-struct MomentProblem{T,M,CR<:ConstraintRef} <: OptimizationProblem
+struct MomentProblem{T,M,CR<:ConstraintRef,JS<:AbstractJuMPScalar} <: OptimizationProblem
     model::GenericModel{T}
     constraints::Vector{CR}
-    monomap::Dict{M,GenericVariableRef{T}}  # TODO: maybe refactor.
+    monomap::Dict{M,JS}  # TODO: maybe refactor.
     sa::SimplifyAlgorithm
 end
 
-function substitute_variables(poly::P, monomap::Dict{M,GenericVariableRef{T}}) where {T,T1,P<:AbstractPolynomial{T1},M}
+function substitute_variables(poly::P, monomap::Dict{M,JS}) where {T,T1,P<:AbstractPolynomial{T1},M,JS<:AbstractJuMPScalar}
     iszero(poly) ? zero(T1) * monomap[one(M)] : sum(coef * monomap[mono] for (coef, mono) in zip(coefficients(poly), monomials(poly)))
 end
 
@@ -87,7 +87,7 @@ function moment_relax(pop::PolyOpt{P}, corr_sparsity::CorrelativeSparsity, cliqu
             end]
 
     make_real = T <: Real ? identity : real
-    @objective(model, Min, substitute_variables(mapreduce(p -> make_real(p[1]) * canonicalize(expval(p[2]), sa), +, terms(pop.objective); init=make_real(expval(zero(pop.objective)))), monomap))
+    @objective(model, Min, make_real(substitute_variables(mapreduce(p -> make_real(p[1]) * canonicalize(expval(p[2]), sa), +, terms(pop.objective); init=make_real(expval(zero(pop.objective)))), monomap)))
 
     return MomentProblem(model, constraint_matrices, monomap, sa)
 end
@@ -96,10 +96,10 @@ function constrain_moment_matrix!(
     model::GenericModel{T1},
     poly::P,
     local_basis::Vector{M1}, # M2 should be expval(M1)
-    monomap::Dict{M2,GenericVariableRef{T1}},
+    monomap::Dict{M2,JS},
     cone, # FIXME: which type should I use?
     sa::SimplifyAlgorithm
-) where {T,T1,P<:AbstractPolynomial{T},M1,M2}
+) where {T,T1,P<:AbstractPolynomial{T},M1,M2,JS<:AbstractJuMPScalar}
     T_prom = promote_type(T, T1)
     explicit_hermitian = T <: Real ? identity : LinearAlgebra.Hermitian
     moment_mtx = explicit_hermitian([

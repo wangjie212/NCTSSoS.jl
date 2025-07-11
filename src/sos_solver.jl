@@ -8,7 +8,6 @@ end
 function get_Cαj(::Type{T_coef}, basis_dict::Dict{GenericVariableRef{T},Int}, localizing_mtx::VectorConstraint{F,S,Shape}) where {T,T_coef,F,S,Shape}
     dim = get_dim(localizing_mtx)
     cis = CartesianIndices((dim, dim))
-    nbasis = length(basis_dict)
 
     # basis idx, row, col
     dictionary_of_keys = Dict{Tuple{Int,Int,Int},T_coef}()

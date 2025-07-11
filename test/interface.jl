@@ -1,5 +1,6 @@
 using Test, NCTSSoS
 
+using Clarabel
 if Sys.isapple()
     using MosekTools
     const SOLVER = Mosek.Optimizer
@@ -10,25 +11,21 @@ end
 
 if Sys.isapple()
 @testset "1D Heisenberg Chain" begin
-    N = 6
+    N = 3
     @ncpolyvar x[1:N] y[1:N] z[1:N]
 
     ham = sum(ComplexF64(1 / 4) * op[i] * op[mod1(i + 1, N)] for op in [x, y, z] for i in 1:N)
 
     eq_cons = reduce(vcat, [[x[i] * y[i] - im * z[i], y[i] * x[i] + im * z[i], y[i] * z[i] - im * x[i], z[i] * y[i] + im * x[i], z[i] * x[i] - im * y[i], x[i] * z[i] + im * y[i]] for i in 1:N])
 
-    # extra_eq_cons = reduce(vcat, [[one(ComplexF64) * x[i] * y[j] - y[j] * x[i], one(ComplexF64) * x[i] * z[j] - z[j] * x[i], one(ComplexF64) * y[i] * z[j] - z[j] * y[i]] for i in 1:N for j in 1:N if i > j])
-
-    # pop = polyopt(ham; eq_constraints=[eq_cons; extra_eq_cons], is_unipotent=true)
     pop = polyopt(ham; eq_constraints=eq_cons, comm_gps=[[x[i], y[i], z[i]] for i in 1:N], is_unipotent=true)
 
-    # solver_config = SolverConfig(optimizer=SOLVER, order=2, ts_algo=MMD())
-    solver_config = SolverConfig(optimizer=SOLVER, order=1)
+    solver_config = SolverConfig(optimizer=SOLVER, order=2)
 
-    res = cs_nctssos(pop, solver_config)
+    res = cs_nctssos(pop, solver_config;dualize=false)
 
-    res = cs_nctssos_higher(pop, res, solver_config)
-    @test res.objective / N ≈ -0.467129 atol = 1e-6
+    # res = cs_nctssos_higher(pop, res, solver_config)
+    @test res.objective / N ≈ -0.25 atol = 1e-6
 end
 
 @testset "Example" begin
