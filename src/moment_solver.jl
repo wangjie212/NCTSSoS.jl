@@ -51,7 +51,7 @@ function moment_relax(pop::PolyOpt{P}, corr_sparsity::CorrelativeSparsity, cliqu
     total_basis = sorted_union(map(zip(corr_sparsity.clq_cons, cliques_term_sparsities)) do (cons_idx, term_sparsities)
         reduce(vcat, [
             map(monomials(poly)) do m
-                canonicalize(expval(_neat_dot3(rol_idx, m, col_idx)), sa)
+                simplify(expval(_neat_dot3(rol_idx, m, col_idx)), sa)
             end
             for (poly, term_sparsity) in zip([one(pop.objective); corr_sparsity.cons[cons_idx]], term_sparsities) for basis in term_sparsity.block_bases for rol_idx in basis for col_idx in basis
         ])
@@ -103,7 +103,7 @@ function constrain_moment_matrix!(
     T_prom = promote_type(T, T1)
     explicit_hermitian = T <: Real ? identity : LinearAlgebra.Hermitian
     moment_mtx = explicit_hermitian([
-        substitute_variables(sum([T_prom(coef) * canonicalize(expval(_neat_dot3(row_idx, mono, col_idx)), sa) for (coef, mono) in zip(coefficients(poly), monomials(poly))]), monomap) for
+        substitute_variables(sum([T_prom(coef) * simplify(expval(_neat_dot3(row_idx, mono, col_idx)), sa) for (coef, mono) in zip(coefficients(poly), monomials(poly))]), monomap) for
         row_idx in local_basis, col_idx in local_basis
     ])
     return @constraint(model, moment_mtx in cone)

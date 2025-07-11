@@ -55,6 +55,7 @@ function sos_dualize(moment_problem::MomentProblem{T,M}) where {T,M}
     # Initialize Gj as variables
     dual_variables = map(constraint_object.(moment_problem.constraints)) do cons
         G_dim = get_dim(cons)
+        # TODO: make it compatible with complex number problem. i.e HermitianPSDCone()
         @variable(dual_model, [1:G_dim, 1:G_dim] in ((cons.set isa MOI.Zeros) ? SymmetricMatrixSpace() : PSDCone()))
     end
 
