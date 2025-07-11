@@ -81,7 +81,7 @@ function moment_relax(pop::PolyOpt{P}, corr_sparsity::CorrelativeSparsity, cliqu
                     corr_sparsity.cons[global_con],
                     [one(pop.objective)],
                     monomap,
-                    global_con <= length(pop.eq_constraints) ? Zeros() : (T <: Real ? PSDCone() : HermitianPSDCone()),
+                    corr_sparsity.cons[global_con] in pop.eq_constraints ? Zeros() : (T <: Real ? PSDCone() : HermitianPSDCone()),
                     sa
                 )
             end]

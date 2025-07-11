@@ -31,7 +31,7 @@ end
 
     pop = polyopt(Hamiltonian_objective; eq_constraints=[PXP_constraints; algebra_constraints...], comm_gps=comm_gps, is_unipotent=true)
 
-    order = 1
+    order = 2
     res = cs_nctssos(pop, SolverConfig(optimizer=Mosek.Optimizer, cs_algo=NoElimination(), ts_algo=NoElimination(), order=order))
 
     @test res.objective ≈ -sqrt(2) / 2.0
@@ -50,13 +50,13 @@ end
 
     pop = polyopt(Hamiltonian_objective; eq_constraints=vcat(PXP_constraints, algebra_constraints), comm_gps=comm_gps, is_unipotent=true)
 
-    order = 2
-    res = cs_nctssos(pop, SolverConfig(optimizer=Mosek.Optimizer, cs_algo=NoElimination(), ts_algo=NoElimination(), order=order))
+    order = 4
+    res = cs_nctssos(pop, SolverConfig(optimizer=Mosek.Optimizer, cs_algo=NoElimination(), ts_algo=NoElimination(), order=order);dualize=false)
 
 
     pop = polyopt(Hamiltonian_objective; eq_constraints=vcat(PXP_constraints, algebra_constraints, comm_constraints), is_unipotent=true)
 
-    order = 4
-    res = cs_nctssos(pop, SolverConfig(optimizer=Mosek.Optimizer, cs_algo=NoElimination(), ts_algo=NoElimination(), order=order))
+    order = 2
+    res = cs_nctssos(pop, SolverConfig(optimizer=Mosek.Optimizer, cs_algo=NoElimination(), ts_algo=NoElimination(), order=order);dualize=false)
     @test res.objective ≈ -1.
 end
