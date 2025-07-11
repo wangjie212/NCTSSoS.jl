@@ -17,13 +17,13 @@ if Sys.isapple()
 
     eq_cons = reduce(vcat, [[x[i] * y[i] - im * z[i], y[i] * x[i] + im * z[i], y[i] * z[i] - im * x[i], z[i] * y[i] + im * x[i], z[i] * x[i] - im * y[i], x[i] * z[i] + im * y[i]] for i in 1:N])
 
-    extra_eq_cons = reduce(vcat, [[one(ComplexF64) * x[i] * y[j] - y[j] * x[i], one(ComplexF64) * x[i] * z[j] - z[j] * x[i], one(ComplexF64) * y[i] * z[j] - z[j] * y[i]] for i in 1:N for j in 1:N if i > j])
+    # extra_eq_cons = reduce(vcat, [[one(ComplexF64) * x[i] * y[j] - y[j] * x[i], one(ComplexF64) * x[i] * z[j] - z[j] * x[i], one(ComplexF64) * y[i] * z[j] - z[j] * y[i]] for i in 1:N for j in 1:N if i > j])
 
-    pop = polyopt(ham; eq_constraints=[eq_cons; extra_eq_cons], is_unipotent=true)
-    # pop = polyopt(ham; eq_constraints=[eq_cons;extra_eq_cons], comm_gps=[[x[i], y[i], z[i]] for i in 1:N], is_unipotent=true)
+    # pop = polyopt(ham; eq_constraints=[eq_cons; extra_eq_cons], is_unipotent=true)
+    pop = polyopt(ham; eq_constraints=eq_cons, comm_gps=[[x[i], y[i], z[i]] for i in 1:N], is_unipotent=true)
 
     # solver_config = SolverConfig(optimizer=SOLVER, order=2, ts_algo=MMD())
-    solver_config = SolverConfig(optimizer=SOLVER, order=2)
+    solver_config = SolverConfig(optimizer=SOLVER, order=1)
 
     res = cs_nctssos(pop, solver_config)
 
