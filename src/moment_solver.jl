@@ -7,7 +7,7 @@ struct MomentProblem{T,M,CR<:ConstraintRef,JS<:AbstractJuMPScalar} <: Optimizati
     sa::SimplifyAlgorithm
 end
 
-function substitute_variables(poly::P, monomap::Dict{M,JS}) where {T,T1,P<:AbstractPolynomial{T1},M,JS<:AbstractJuMPScalar}
+function substitute_variables(poly::P, monomap::Dict{M,JS}) where {T1,P<:AbstractPolynomial{T1},M,JS<:AbstractJuMPScalar}
     iszero(poly) ? zero(T1) * monomap[one(M)] : sum(coef * monomap[mono] for (coef, mono) in zip(coefficients(poly), monomials(poly)))
 end
 

@@ -11,7 +11,7 @@ using .FastPolynomials: AbstractPolynomial, Variable, Monomial
 
 using .FastPolynomials: sorted_union, monomials, sorted_unique, maxdegree, get_basis, neat_dot, _neat_dot3, monomials, coefficients, terms, expval
 
-export @ncpolyvar
+export @ncpolyvar, ς 
 export polyopt
 export SolverConfig
 export NoElimination, MF, MMD, AsIsElimination, MaximalElimination
