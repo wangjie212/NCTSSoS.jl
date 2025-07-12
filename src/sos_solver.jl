@@ -8,7 +8,6 @@ end
 function get_Cαj(::Type{T_coef}, basis_dict::Dict{GenericVariableRef{T},Int}, localizing_mtx::VectorConstraint{F,S,Shape}) where {T,T_coef,F,S,Shape}
     dim = get_dim(localizing_mtx)
     cis = CartesianIndices((dim, dim))
-    nbasis = length(basis_dict)
 
     # basis idx, row, col
     dictionary_of_keys = Dict{Tuple{Int,Int,Int},T_coef}()
@@ -55,6 +54,7 @@ function sos_dualize(moment_problem::MomentProblem{T,M}) where {T,M}
     # Initialize Gj as variables
     dual_variables = map(constraint_object.(moment_problem.constraints)) do cons
         G_dim = get_dim(cons)
+        # TODO: make it compatible with complex number problem. i.e HermitianPSDCone()
         @variable(dual_model, [1:G_dim, 1:G_dim] in ((cons.set isa MOI.Zeros) ? SymmetricMatrixSpace() : PSDCone()))
     end
 

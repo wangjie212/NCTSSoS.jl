@@ -168,6 +168,7 @@ julia> _comm(mono1, comm_gps)
 """
 function _comm(mono::Monomial, comm_gps::Vector{Vector{Variable}})
     map(comm_gps) do vars
+        # TODO: probably a filter + collect will do
         result = one(Monomial)
         for (var, expon) in zip(mono.vars, mono.z)
             if var in vars
