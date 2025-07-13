@@ -5,6 +5,7 @@ struct MomentProblem{T,M,CR<:ConstraintRef,JS<:AbstractJuMPScalar} <: Optimizati
     constraints::Vector{CR}
     monomap::Dict{M,JS}  # TODO: maybe refactor.
     sa::SimplifyAlgorithm
+    complex_coeff::Bool
 end
 
 function substitute_variables(poly::P, monomap::Dict{M,JS}) where {T1,P<:AbstractPolynomial{T1},M,JS<:AbstractJuMPScalar}
@@ -89,7 +90,7 @@ function moment_relax(pop::PolyOpt{P}, corr_sparsity::CorrelativeSparsity, cliqu
     make_real = T <: Real ? identity : real
     @objective(model, Min, make_real(substitute_variables(mapreduce(p -> make_real(p[1]) * canonicalize(expval(p[2]), sa), +, terms(pop.objective); init=make_real(expval(zero(pop.objective)))), monomap)))
 
-    return MomentProblem(model, constraint_matrices, monomap, sa)
+    return MomentProblem(model, constraint_matrices, monomap, sa, T<:Real ? false : true)
 end
 
 function constrain_moment_matrix!(
@@ -101,7 +102,7 @@ function constrain_moment_matrix!(
     sa::SimplifyAlgorithm
 ) where {T,T1,P<:AbstractPolynomial{T},M1,M2,JS<:AbstractJuMPScalar}
     T_prom = promote_type(T, T1)
-    explicit_hermitian = T <: Real ? identity : LinearAlgebra.Hermitian
+    explicit_hermitian = (T <: Real || cone == Zeros()) ? identity : LinearAlgebra.Hermitian
     moment_mtx = explicit_hermitian([
         substitute_variables(sum([T_prom(coef) * simplify(expval(_neat_dot3(row_idx, mono, col_idx)), sa) for (coef, mono) in zip(coefficients(poly), monomials(poly))]), monomap) for
         row_idx in local_basis, col_idx in local_basis
