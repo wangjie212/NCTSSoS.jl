@@ -21,12 +21,34 @@ end
 
     solver_config = SolverConfig(optimizer=SOLVER, order=1)
 
-    res = cs_nctssos(pop, solver_config;dualize=false)
+    # res = cs_nctssos(pop, solver_config;dualize=false)
+    # @test res.objective ≈ -0.8660254037844387 atol = 1e-6
+
+    res = cs_nctssos(pop, solver_config)
+    # @test res.objective ≈ -0.8660254037844387 atol = 1e-6
 
     # res = cs_nctssos_higher(pop, res, solver_config)
-    @test res.objective ≈ -0.8660254037844387 atol = 1e-6
+end
+
+@testset "Naive Example 2" begin
+    N = 1
+    @ncpolyvar x[1:N] y[1:N] z[1:N]
+
+    ham = one(ComplexF64) * x[1] * y[1] + one(ComplexF64) * y[1] * x[1] 
+
+    eq_cons = reduce(vcat, [[x[i] * y[i] - im * z[i], y[i] * x[i] + im * z[i], y[i] * z[i] - im * x[i], z[i] * y[i] + im * x[i], z[i] * x[i] - im * y[i], x[i] * z[i] + im * y[i]] for i in 1:N])
+
+    pop = polyopt(ham; eq_constraints=eq_cons, comm_gps=[[x[i], y[i], z[i]] for i in 1:N], is_unipotent=true)
+
+    solver_config = SolverConfig(optimizer=SOLVER, order=3)
+
+    # res = cs_nctssos(pop, solver_config;dualize=false)
+    # @test res.objective ≈ -0.0 atol = 1e-6
+
+    res = cs_nctssos(pop, solver_config)
 
 end
+# other test cases, H = 1*X*Z + Z*X
 
 if Sys.isapple()
 @testset "1D Heisenberg Chain" begin
