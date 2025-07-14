@@ -59,7 +59,8 @@ function moment_relax(pop::PolyOpt{P}, corr_sparsity::CorrelativeSparsity, cliqu
     end...)
 
     # map the monomials to JuMP variables, the first variable must be 1
-    (T <: Real) ? @variable(model, y[1:length(total_basis)]) : @variable(model, y[1:length(total_basis)] in ComplexPlane())
+    # TODO: make set_string_name = false to further improve performance
+    (T <: Real) ? @variable(model, y[1:length(total_basis)], set_string_name = true) : @variable(model, y[1:length(total_basis)] in ComplexPlane(), set_string_name = true)
     @constraint(model, first(y) == 1)
     monomap = Dict(zip(total_basis, y))
 

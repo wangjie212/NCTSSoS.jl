@@ -28,23 +28,30 @@ function get_Cαj_complex(basis_dict_real::Dict{GenericVariableRef{T},Int}, basi
     cis = CartesianIndices((dim, dim))
 
     # basis idx, row, col
-    dictionary_of_keys = Dict{Tuple{Int,Int,Int},Complex{T}}()
+    dictionary_of_keys_real = Dict{Tuple{Int,Int,Int},Complex{T}}()
+    dictionary_of_keys_imag = Dict{Tuple{Int,Int,Int},Complex{T}}()
 
     # each entry in localizing mtx has to appear in sum of square
     for (ci, cur_expr) in zip(cis, localizing_mtx.func)
         for (α, coeff) in cur_expr.terms
-            if haskey(basis_dict_real, α) && isreal(coeff)
+            if haskey(basis_dict_real, α)
                 triple = (basis_dict_real[α], ci.I[1], ci.I[2])
-                if !haskey(dictionary_of_keys, triple)
-
+                if !haskey(dictionary_of_keys_real, triple)
+                    dictionary_of_keys_real[triple] = zero(Complex{T})
                 end
-                dictionary_of_keys[triple] += coeff
+                dictionary_of_keys_real[triple] += coeff
+            elseif haskey(basis_dict_imag, α)
+                triple = (basis_dict_imag[α], ci.I[1], ci.I[2])
+                if !haskey(dictionary_of_keys_imag, triple)
+                    dictionary_of_keys_imag[triple] = zero(Complex{T})
+                end
+                dictionary_of_keys_imag[triple] += coeff
             else
                 @show α coeff
             end
         end
     end
-    return dictionary_of_keys_real
+    return dictionary_of_keys_real, dictionary_of_keys_imag
 end
 
 """
@@ -87,11 +94,12 @@ function sos_dualize(moment_problem::MomentProblem{T,M}) where {T,M}
         @objective(dual_model, Max, b)
 
         primal_objective_terms = objective_function(moment_problem.model).terms
+        @show primal_objective_terms
 
         # NOTE: objective is Symmetric, hence when comparing polynomials, we need to canonicalize them first
         unsymmetrized_basis = sort(collect(keys(moment_problem.monomap)))
 
-        symmetric_basis = sorted_unique(canonicalize.(unsymmetrized_basis, Ref(moment_problem.sa)))
+        symmetric_basis = unsymmetrized_basis
 
         # JuMP variables corresponding to symmetric_basis
         symmetric_variables = getindex.(Ref(moment_problem.monomap), symmetric_basis)
@@ -100,9 +108,12 @@ function sos_dualize(moment_problem::MomentProblem{T,M}) where {T,M}
         # f's coefficient for α needs to be zero
         # since α.terms.keys[1] appears in both <XY> and <YX> , which are not hermitian, the factor of two is alreay taken care here
         fα_constraints_real = [GenericAffExpr{Complex{T},VariableRef}(get(primal_objective_terms, α.terms.keys[1], zero(Complex{T}))) for α in symmetric_variables]
+        fα_constraints_real .+= im .* fα_constraints_real
+
+        fα_constraints_imag = [GenericAffExpr{Complex{T},VariableRef}(get(primal_objective_terms, α.terms.keys[2], zero(Complex{T}))) for α in symmetric_variables]
 
         # which unsymmetrized basis monomial is mapped to which symmetric basis monomial
-        symmetrized_α2cons_dict = Dict(zip(unsymmetrized_basis, map(x -> searchsortedfirst(symmetric_basis, canonicalize(x, moment_problem.sa)), unsymmetrized_basis)))
+        symmetrized_α2cons_dict = Dict(zip(unsymmetrized_basis, map(x -> searchsortedfirst(symmetric_basis, x), unsymmetrized_basis)))
 
         # unsymmetrized basis monomial to real part of JuMP Variable
         unsymmetrized_basis_vals_dict_real = Dict(zip(getindex.(getfield.(getfield.(getindex.(Ref(moment_problem.monomap), unsymmetrized_basis), Ref(:terms)), Ref(:keys)), Ref(1)), 1:length(unsymmetrized_basis)))
@@ -114,14 +125,22 @@ function sos_dualize(moment_problem::MomentProblem{T,M}) where {T,M}
 
         for (i, sdp_constraint) in enumerate(moment_problem.constraints)
             @show sdp_constraint
-            Cαjs_real = get_Cαj_complex(unsymmetrized_basis_vals_dict_real, unsymmetrized_basis_vals_dict_imag, constraint_object(sdp_constraint))
-            @show Cαjs_real
+            Cαjs_real, Cαjs_imag = get_Cαj_complex(unsymmetrized_basis_vals_dict_real, unsymmetrized_basis_vals_dict_imag, constraint_object(sdp_constraint))
+            # @show Cαjs_real Cαjs_imag
             for (ky, coef) in Cαjs_real
-                @show ky coef real(dual_variables[i][ky[2], ky[3]])
-                add_to_expression!(fα_constraints_real[symmetrized_α2cons_dict[unsymmetrized_basis[ky[1]]]], -coef, real(dual_variables[i][ky[2], ky[3]]))
+                # @show ky coef dual_variables[i][ky[2], ky[3]]
+                add_to_expression!(fα_constraints_real[symmetrized_α2cons_dict[unsymmetrized_basis[ky[1]]]], -coef, dual_variables[i][ky[2], ky[3]])
+            end
+
+            for (ky, coef) in Cαjs_imag
+                # @show ky coef dual_variables[i][ky[2], ky[3]]
+                add_to_expression!(fα_constraints_imag[symmetrized_α2cons_dict[unsymmetrized_basis[ky[1]]]], -coef, dual_variables[i][ky[3], ky[2]])
             end
         end
+        @show fα_constraints_real
+        @show fα_constraints_imag
         @constraint(dual_model, fα_constraints_real .== 0)
+        # @constraint(dual_model, fα_constraints_imag .== 0)
 
         return SOSProblem(dual_model)
     else
