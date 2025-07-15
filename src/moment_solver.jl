@@ -5,7 +5,6 @@ struct MomentProblem{T,M,CR<:ConstraintRef,JS<:AbstractJuMPScalar} <: Optimizati
     constraints::Vector{CR}
     monomap::Dict{M,JS}  # TODO: maybe refactor.
     sa::SimplifyAlgorithm
-    complex_coeff::Bool
 end
 
 function substitute_variables(poly::P, monomap::Dict{M,JS}) where {T1,P<:AbstractPolynomial{T1},M,JS<:AbstractJuMPScalar}
@@ -91,7 +90,7 @@ function moment_relax(pop::PolyOpt{P}, corr_sparsity::CorrelativeSparsity, cliqu
     make_real = T <: Real ? identity : real
     @objective(model, Min, make_real(substitute_variables(mapreduce(p -> make_real(p[1]) * canonicalize(expval(p[2]), sa), +, terms(pop.objective); init=make_real(expval(zero(pop.objective)))), monomap)))
 
-    return MomentProblem(model, constraint_matrices, monomap, sa, T<:Real ? false : true)
+    return MomentProblem(model, constraint_matrices, monomap, sa)
 end
 
 function constrain_moment_matrix!(

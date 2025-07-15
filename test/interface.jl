@@ -21,17 +21,8 @@ end
 
     solver_config = SolverConfig(optimizer=SOLVER, order=1)
 
-    # res = cs_nctssos(pop, solver_config; dualize=false) 
-    # @test res.objective ≈ -0.8660254037844387 atol = 1e-6
-
-    res = cs_nctssos(pop, solver_config)
-    using JuMP
-    all_variables(res.model)
-    JuMP.value.(all_variables(res.model)) # force the model to be solved
-    res.model
-    # @test res.objective ≈ -0.8660254037844387 atol = 1e-6
-
-    # res = cs_nctssos_higher(pop, res, solver_config)
+    res = cs_nctssos(pop, solver_config; dualize=false) 
+    @test res.objective ≈ -0.8660254037844387 atol = 1e-6
 end
 
 @testset "Naive Example 2" begin
@@ -46,17 +37,13 @@ end
 
     solver_config = SolverConfig(optimizer=SOLVER, order=3)
 
-    # res = cs_nctssos(pop, solver_config;dualize=false)
-    # @test res.objective ≈ -0.0 atol = 1e-6
-
-    res = cs_nctssos(pop, solver_config)
-
+    res = cs_nctssos(pop, solver_config;dualize=false)
+    @test res.objective ≈ -0.0 atol = 1e-6
 end
-# other test cases, H = 1*X*Z + Z*X
 
 if Sys.isapple()
 @testset "1D Heisenberg Chain" begin
-    N = 4
+    N = 3
     @ncpolyvar x[1:N] y[1:N] z[1:N]
 
     ham = sum(ComplexF64(1 / 4) * op[i] * op[mod1(i + 1, N)] for op in [x, y, z] for i in 1:N)

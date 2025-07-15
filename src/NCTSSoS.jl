@@ -3,7 +3,6 @@ module NCTSSoS
 using SparseArrays, LinearAlgebra, JuMP
 using CliqueTrees, ChordalGraph, Graphs
 using CliqueTrees: EliminationAlgorithm, SupernodeType
-using Dualization
 import CliqueTrees.cliquetree
 
 include("FastPolynomials/src/FastPolynomials.jl")
