@@ -30,6 +30,7 @@ using NCTSSoS: substitute_variables
         solver_config = SolverConfig(optimizer=SOLVER, order=1)
 
         sa = SimplifyAlgorithm(comm_gps=cpop.comm_gps, is_projective=cpop.is_projective, is_unipotent=cpop.is_unipotent)
+
         order = iszero(solver_config.order) ? maximum([ceil(Int, maxdegree(poly) / 2) for poly in [cpop.objective; cpop.eq_constraints; cpop.ineq_constraints]]) : solver_config.order
 
         corr_sparsity = NCTSSoS.correlative_sparsity(cpop, order, solver_config.cs_algo)
@@ -47,6 +48,7 @@ using NCTSSoS: substitute_variables
         cmp = NCTSSoS.moment_relax(cpop,corr_sparsity, cliques_term_sparsities)
 
         @test length(cmp.constraints) == 19
+        @test length(cmp.total_basis) == 55
     end
 
     @testset "Naive Example" begin
@@ -82,8 +84,8 @@ using NCTSSoS: substitute_variables
 
         @test cmp.constraints[1][1] == :HPSD
         @test size(cmp.constraints[1][2]) == (4,4)
+        @test length(cmp.total_basis) == 10 
     end
-
 end
 
 @testset "Special Constraint Type " begin

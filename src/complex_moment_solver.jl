@@ -1,7 +1,8 @@
-struct ComplexMomentProblem{T,P<:AbstractPolynomial{T}}
-    # constraint matrix + type in Symbol
+struct ComplexMomentProblem{T,M,P<:AbstractPolynomial{T}}
     objective::P
+    # constraint matrix + type in Symbol
     constraints::Vector{Tuple{Symbol,Matrix{P}}}
+    total_basis::Vector{M}
     sa::SimplifyAlgorithm
 end
 
@@ -32,14 +33,16 @@ function moment_relax(cpop::ComplexPolyOpt{P}, corr_sparsity::CorrelativeSparsit
                 end
             end
             map(corr_sparsity.global_cons) do global_con
-                constrain_moment_matrix!(
+                constrain_moment_matrix(
                     corr_sparsity.cons[global_con],
-                    [one(cpop.objective)],
+                    [one(eltype(total_basis))],
                     corr_sparsity.cons[global_con] in cpop.eq_constraints ? :Zero : :HPSD,
                     sa
                 )
             end]
-    return ComplexMomentProblem(cpop.objective,constraints,sa)
+
+    simplified_objective = sum(c*simplify(m,sa) for (c,m) in terms(cpop.objective))
+    return ComplexMomentProblem(simplified_objective,constraints,total_basis,sa)
 end
 
 function constrain_moment_matrix(

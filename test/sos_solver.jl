@@ -11,6 +11,84 @@ using SparseArrays, JuMP, Graphs, CliqueTrees
 
 using NCTSSoS: get_Cαj
 
+@testset "Dualization Complex Poly Opt" begin
+    @testset "1D Trasverse Filed Ising Model" begin
+        N = 3
+        @ncpolyvar x[1:N] y[1:N] z[1:N]
+
+        J = 1.0
+        h = 2.0
+        ham = sum(-complex(J / 4) * z[i] * z[mod1(i + 1, N)] for i in 1:N) + sum(-h / 2 * x[i] for i in 1:N)
+
+        eq_cons = reduce(vcat, [[x[i] * y[i] - im * z[i], y[i] * x[i] + im * z[i], y[i] * z[i] - im * x[i], z[i] * y[i] + im * x[i], z[i] * x[i] - im * y[i], x[i] * z[i] + im * y[i]] for i in 1:N])
+
+        cpop = cpolyopt(ham; eq_constraints=eq_cons, comm_gps=[[x[i], y[i], z[i]] for i in 1:N], is_unipotent=true)
+
+        solver_config = SolverConfig(optimizer=SOLVER, order=2)
+
+        sa = SimplifyAlgorithm(comm_gps=cpop.comm_gps, is_projective=cpop.is_projective, is_unipotent=cpop.is_unipotent)
+
+        order = iszero(solver_config.order) ? maximum([ceil(Int, maxdegree(poly) / 2) for poly in [cpop.objective; cpop.eq_constraints; cpop.ineq_constraints]]) : solver_config.order
+
+        corr_sparsity = NCTSSoS.correlative_sparsity(cpop, order, solver_config.cs_algo)
+
+        cliques_objective = [reduce(+, [issubset(sort!(variables(mono)), clique) ? coef * mono : zero(coef) * one(mono) for (coef, mono) in NCTSSoS.FastPolynomials.terms(cpop.objective)]) for clique in corr_sparsity.cliques]
+
+        initial_activated_supps = map(zip(cliques_objective, corr_sparsity.clq_cons, corr_sparsity.clq_mom_mtx_bases)) do (partial_obj, cons_idx, mom_mtx_base)
+            NCTSSoS.init_activated_supp(partial_obj, corr_sparsity.cons[cons_idx], mom_mtx_base, sa)
+        end
+
+        cliques_term_sparsities = map(zip(initial_activated_supps, corr_sparsity.clq_cons, corr_sparsity.clq_mom_mtx_bases, corr_sparsity.clq_localizing_mtx_bases)) do (init_act_supp, cons_idx, mom_mtx_bases, localizing_mtx_bases)
+            NCTSSoS.term_sparsities(init_act_supp, corr_sparsity.cons[cons_idx], mom_mtx_bases, localizing_mtx_bases, solver_config.ts_algo, sa)
+        end
+
+        cmp = NCTSSoS.moment_relax(cpop,corr_sparsity, cliques_term_sparsities)
+
+        sos = NCTSSoS.sos_dualize(cmp)
+
+        set_optimizer(sos.model, SOLVER)
+        optimize!(sos.model)
+        @test objective_value(sos.model) / N ≈ -1.0175918 atol = 1e-6
+    end
+
+    @testset "Naive Example" begin
+        N = 1
+        @ncpolyvar x[1:N] y[1:N] z[1:N]
+
+        ham = sum(ComplexF64(1 / 2) * op[1] for op in [x, y, z])
+
+        eq_cons = reduce(vcat, [[x[i] * y[i] - im * z[i], y[i] * x[i] + im * z[i], y[i] * z[i] - im * x[i], z[i] * y[i] + im * x[i], z[i] * x[i] - im * y[i], x[i] * z[i] + im * y[i]] for i in 1:N])
+
+        cpop = cpolyopt(ham; eq_constraints=eq_cons, comm_gps=[[x[i], y[i], z[i]] for i in 1:N], is_unipotent=true)
+
+        solver_config = SolverConfig(optimizer=SOLVER, order=1)
+
+        sa = SimplifyAlgorithm(comm_gps=cpop.comm_gps, is_projective=cpop.is_projective, is_unipotent=cpop.is_unipotent)
+        order = iszero(solver_config.order) ? maximum([ceil(Int, maxdegree(poly) / 2) for poly in [cpop.objective; cpop.eq_constraints; cpop.ineq_constraints]]) : solver_config.order
+
+        corr_sparsity = NCTSSoS.correlative_sparsity(cpop, order, solver_config.cs_algo)
+
+        cliques_objective = [reduce(+, [issubset(sort!(variables(mono)), clique) ? coef * mono : zero(coef) * one(mono) for (coef, mono) in NCTSSoS.FastPolynomials.terms(cpop.objective)]) for clique in corr_sparsity.cliques]
+
+        initial_activated_supps = map(zip(cliques_objective, corr_sparsity.clq_cons, corr_sparsity.clq_mom_mtx_bases)) do (partial_obj, cons_idx, mom_mtx_base)
+            NCTSSoS.init_activated_supp(partial_obj, corr_sparsity.cons[cons_idx], mom_mtx_base, sa)
+        end
+
+        cliques_term_sparsities = map(zip(initial_activated_supps, corr_sparsity.clq_cons, corr_sparsity.clq_mom_mtx_bases, corr_sparsity.clq_localizing_mtx_bases)) do (init_act_supp, cons_idx, mom_mtx_bases, localizing_mtx_bases)
+            NCTSSoS.term_sparsities(init_act_supp, corr_sparsity.cons[cons_idx], mom_mtx_bases, localizing_mtx_bases, solver_config.ts_algo, sa)
+        end
+
+        cmp = NCTSSoS.moment_relax(cpop,corr_sparsity, cliques_term_sparsities)
+
+        sos = NCTSSoS.sos_dualize(cmp)
+
+        set_optimizer(sos.model, SOLVER)
+        optimize!(sos.model)
+
+        @test objective_value(sos.model) ≈ -0.8660254037844387 atol = 1e-6
+    end
+end
+
 # NOTE: sos_dualize has performance issue have verified locally it's correct
 @testset "CS TS Example" begin
     order = 3
