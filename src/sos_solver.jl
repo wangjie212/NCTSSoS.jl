@@ -1,4 +1,4 @@
-struct SOSProblem{T} 
+struct SOSProblem{T}
     model::GenericModel{T}
 end
 
@@ -87,4 +87,56 @@ function sos_dualize(moment_problem::MomentProblem{T,M}) where {T,M}
     @constraint(dual_model, fα_constraints .== 0)
 
     return SOSProblem(dual_model)
+end
+
+function sos_dualize(cmp::ComplexMomentProblem{T,P}) where {T,P}
+    dual_model = GenericModel{real(T)}()
+
+    # Initialize Gj as variables
+    dual_variables = map(cmp.constraints) do (type,cons)
+        G_dim = size(cons,1)
+        # use to be SymmetricMatrixSpace here
+        @variable(dual_model, [1:G_dim, 1:G_dim] in (type == :Zero ? HermitianMatrixSpace() : HermitianPSDCone()))
+    end
+    # b: to bound the minimum value of the primal problem
+    @variable(dual_model, b)
+    @objective(dual_model, Max, b)
+
+    # symmetric_basis = sorted_unique(canonicalize.(cmp.total_basis, Ref(cmp.sa)))
+    symmetric_basis = sort(cmp.total_basis)
+
+    fα_constraints = [zero(GenericAffExpr{T,VariableRef}) for _ in 1:length(symmetric_basis)]
+
+    for (coef,mono) in terms(cmp.objective)
+        fα_constraints[searchsortedfirst(symmetric_basis, mono)] += coef
+    end
+
+    # symmetrized_α2cons_dict = Dict(zip(unsymmetrized_basis, map(x -> searchsortedfirst(symmetric_basis, canonicalize(x, cmp.sa)), unsymmetrized_basis)))
+
+    # unsymmetrized_basis_vals_dict = Dict(zip(getindex.(Ref(moment_problem.monomap), unsymmetrized_basis), 1:length(unsymmetrized_basis)))
+
+    add_to_expression!(fα_constraints[1], -one(T), b)
+
+    for (i, (type,sdp_constraint)) in enumerate(cmp.constraints)
+        Cαjs = get_Cαj(cmp.total_basis, sdp_constraint)
+        for (ky, coef) in Cαjs
+            add_to_expression!(fα_constraints[ky[1]], -coef, dual_variables[i][ky[2], ky[3]])
+        end
+    end
+    @constraint(dual_model, fα_constraints .== 0)
+    return SOSProblem(dual_model)
+end
+
+function get_Cαj(unsymmetrized_basis::Vector{M}, localizing_mtx::Matrix{P}) where {T,M,P<:AbstractPolynomial{T}}
+    dim = size(localizing_mtx,1)
+    cis = CartesianIndices((dim, dim))
+
+    # basis idx, row, col
+    dictionary_of_keys = Dict{Tuple{Int,Int,Int},T}()
+    for ci in cis
+        for (coeff,α) in terms(localizing_mtx[ci])
+            dictionary_of_keys[(searchsortedfirst(unsymmetrized_basis,α), ci.I[1], ci.I[2])] = coeff
+        end
+    end
+    return dictionary_of_keys
 end
