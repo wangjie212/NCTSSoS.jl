@@ -20,11 +20,11 @@ end
 
         eq_cons = reduce(vcat, [[x[i] * y[i] - im * z[i], y[i] * x[i] + im * z[i], y[i] * z[i] - im * x[i], z[i] * y[i] + im * x[i], z[i] * x[i] - im * y[i], x[i] * z[i] + im * y[i]] for i in 1:N])
 
-        pop = polyopt(ham; eq_constraints=eq_cons, comm_gps=[[x[i], y[i], z[i]] for i in 1:N], is_unipotent=true)
+        pop = cpolyopt(ham; eq_constraints=eq_cons, comm_gps=[[x[i], y[i], z[i]] for i in 1:N], is_unipotent=true)
 
         solver_config = SolverConfig(optimizer=SOLVER, order=2)
 
-        res = cs_nctssos(pop, solver_config; dualize=false)
+        res = cs_nctssos(pop, solver_config)
         @test res.objective / N ≈ true_ans atol = 1e-6
     end
 end
@@ -37,11 +37,12 @@ end
 
     eq_cons = reduce(vcat, [[x[i] * y[i] - im * z[i], y[i] * x[i] + im * z[i], y[i] * z[i] - im * x[i], z[i] * y[i] + im * x[i], z[i] * x[i] - im * y[i], x[i] * z[i] + im * y[i]] for i in 1:N])
 
-    pop = polyopt(ham; eq_constraints=eq_cons, comm_gps=[[x[i], y[i], z[i]] for i in 1:N], is_unipotent=true)
+    pop = cpolyopt(ham; eq_constraints=eq_cons, comm_gps=[[x[i], y[i], z[i]] for i in 1:N], is_unipotent=true)
 
     solver_config = SolverConfig(optimizer=SOLVER, order=1)
 
-    res = cs_nctssos(pop, solver_config; dualize=false) 
+    @test_throws ErrorException cs_nctssos(pop, solver_config; dualize=false) 
+    res = cs_nctssos(pop, solver_config)
     @test res.objective ≈ -0.8660254037844387 atol = 1e-6
 end
 
@@ -53,11 +54,11 @@ end
 
     eq_cons = reduce(vcat, [[x[i] * y[i] - im * z[i], y[i] * x[i] + im * z[i], y[i] * z[i] - im * x[i], z[i] * y[i] + im * x[i], z[i] * x[i] - im * y[i], x[i] * z[i] + im * y[i]] for i in 1:N])
 
-    pop = polyopt(ham; eq_constraints=eq_cons, comm_gps=[[x[i], y[i], z[i]] for i in 1:N], is_unipotent=true)
+    pop = cpolyopt(ham; eq_constraints=eq_cons, comm_gps=[[x[i], y[i], z[i]] for i in 1:N], is_unipotent=true)
 
     solver_config = SolverConfig(optimizer=SOLVER, order=3)
 
-    res = cs_nctssos(pop, solver_config;dualize=false)
+    res = cs_nctssos(pop, solver_config)
     @test res.objective ≈ -0.0 atol = 1e-6
 end
 
@@ -70,11 +71,11 @@ if Sys.isapple()
 
     eq_cons = reduce(vcat, [[x[i] * y[i] - im * z[i], y[i] * x[i] + im * z[i], y[i] * z[i] - im * x[i], z[i] * y[i] + im * x[i], z[i] * x[i] - im * y[i], x[i] * z[i] + im * y[i]] for i in 1:N])
 
-    pop = polyopt(ham; eq_constraints=eq_cons, comm_gps=[[x[i], y[i], z[i]] for i in 1:N], is_unipotent=true)
+    pop = cpolyopt(ham; eq_constraints=eq_cons, comm_gps=[[x[i], y[i], z[i]] for i in 1:N], is_unipotent=true)
 
     solver_config = SolverConfig(optimizer=SOLVER, order=2)
 
-    res = cs_nctssos(pop, solver_config;dualize=false)
+    res = cs_nctssos(pop, solver_config)
 
     @test res.objective / N ≈ -0.25 atol = 1e-6
 end

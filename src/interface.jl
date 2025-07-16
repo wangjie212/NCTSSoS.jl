@@ -70,7 +70,7 @@ This function solves a polynomial optimization problem by:
 
 The moment order is automatically determined from the polynomial degrees if not specified in `solver_config`.
 """
-function cs_nctssos(pop::PolyOpt{P}, solver_config::SolverConfig; dualize::Bool=true) where {P}
+function cs_nctssos(pop::OP, solver_config::SolverConfig; dualize::Bool=true) where {P, OP<:OptimizationProblem{P}}
     sa = SimplifyAlgorithm(comm_gps=pop.comm_gps, is_projective=pop.is_projective, is_unipotent=pop.is_unipotent)
     order = iszero(solver_config.order) ? maximum([ceil(Int, maxdegree(poly) / 2) for poly in [pop.objective; pop.eq_constraints; pop.ineq_constraints]]) : solver_config.order
 
@@ -88,7 +88,8 @@ function cs_nctssos(pop::PolyOpt{P}, solver_config::SolverConfig; dualize::Bool=
 
     moment_problem = moment_relax(pop, corr_sparsity, cliques_term_sparsities)
 
-    problem_to_solve = !dualize ? moment_problem : sos_dualize(moment_problem) 
+    (pop isa ComplexPolyOpt{P} && !dualize) && error("Solving Moment Problem for Complex Poly Opt is not supported")
+    problem_to_solve = !dualize ? moment_problem : sos_dualize(moment_problem)
 
     set_optimizer(problem_to_solve.model, solver_config.optimizer)
     optimize!(problem_to_solve.model)
