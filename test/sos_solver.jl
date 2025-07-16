@@ -54,7 +54,7 @@ end
         [x[1]-x[2] x[3] x[4]+x[1]; x[1]-x[2] x[3] x[4]+x[1]; x[1]-x[2] x[3] x[4]+x[1]] in PSDCone()
     )
 
-    C_α_js = get_Cαj(Int, Dict(zip(x, 1:4)), constraint_object(cons))
+    C_α_js = get_Cαj(Dict(zip(x, 1:4)), constraint_object(cons))
 
     @test C_α_js == Dict((1, 2, 1) => 1,
         (1, 3, 1) => 1,

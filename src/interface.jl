@@ -88,7 +88,7 @@ function cs_nctssos(pop::PolyOpt{P}, solver_config::SolverConfig; dualize::Bool=
 
     moment_problem = moment_relax(pop, corr_sparsity, cliques_term_sparsities)
 
-    problem_to_solve = !dualize ? moment_problem : sos_dualize(moment_problem)
+    problem_to_solve = !dualize ? moment_problem : sos_dualize(moment_problem) 
 
     set_optimizer(problem_to_solve.model, solver_config.optimizer)
     optimize!(problem_to_solve.model)

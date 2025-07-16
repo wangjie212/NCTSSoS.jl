@@ -5,13 +5,12 @@ end
 # Decompose the matrix into the form sum_j C_αj * g_j
 # j: index of the constraint
 # α: the monomial (JuMP variable)
-function get_Cαj(::Type{T_coef}, basis_dict::Dict{GenericVariableRef{T},Int}, localizing_mtx::VectorConstraint{F,S,Shape}) where {T,T_coef,F,S,Shape}
+function get_Cαj(basis_dict::Dict{GenericVariableRef{T},Int}, localizing_mtx::VectorConstraint{F,S,Shape}) where {T,F,S,Shape}
     dim = get_dim(localizing_mtx)
     cis = CartesianIndices((dim, dim))
-    nbasis = length(basis_dict)
 
     # basis idx, row, col
-    dictionary_of_keys = Dict{Tuple{Int,Int,Int},T_coef}()
+    dictionary_of_keys = Dict{Tuple{Int,Int,Int},T}()
 
     for (ci, cur_expr) in zip(cis, localizing_mtx.func)
         for (α, coeff) in cur_expr.terms
@@ -50,14 +49,12 @@ matrix variables weighted by coefficient matrices equals the objective polynomia
 """
 function sos_dualize(moment_problem::MomentProblem{T,M}) where {T,M}
     dual_model = GenericModel{T}()
-    T_coef = get_coef_type(constraint_object(moment_problem.constraints[1]))
 
     # Initialize Gj as variables
     dual_variables = map(constraint_object.(moment_problem.constraints)) do cons
         G_dim = get_dim(cons)
         @variable(dual_model, [1:G_dim, 1:G_dim] in ((cons.set isa MOI.Zeros) ? SymmetricMatrixSpace() : PSDCone()))
     end
-
     # b: to bound the minimum value of the primal problem
     @variable(dual_model, b)
     @objective(dual_model, Max, b)
@@ -72,17 +69,17 @@ function sos_dualize(moment_problem::MomentProblem{T,M}) where {T,M}
     # JuMP variables corresponding to symmetric_basis
     symmetric_variables = getindex.(Ref(moment_problem.monomap), symmetric_basis)
 
-    # specify constraints
-    fα_constraints = [GenericAffExpr{T_coef,VariableRef}(get(primal_objective_terms, α, zero(T_coef))) for α in symmetric_variables]
+
+    fα_constraints = [GenericAffExpr{T,VariableRef}(get(primal_objective_terms, α, zero(T))) for α in symmetric_variables]
 
     symmetrized_α2cons_dict = Dict(zip(unsymmetrized_basis, map(x -> searchsortedfirst(symmetric_basis, canonicalize(x, moment_problem.sa)), unsymmetrized_basis)))
 
     unsymmetrized_basis_vals_dict = Dict(zip(getindex.(Ref(moment_problem.monomap), unsymmetrized_basis), 1:length(unsymmetrized_basis)))
 
-    add_to_expression!(fα_constraints[1], -one(T_coef), b)
+    add_to_expression!(fα_constraints[1], -one(T), b)
 
     for (i, sdp_constraint) in enumerate(moment_problem.constraints)
-        Cαjs = get_Cαj(T_coef, unsymmetrized_basis_vals_dict, constraint_object(sdp_constraint))
+        Cαjs = get_Cαj(unsymmetrized_basis_vals_dict, constraint_object(sdp_constraint))
         for (ky, coef) in Cαjs
             add_to_expression!(fα_constraints[symmetrized_α2cons_dict[unsymmetrized_basis[ky[1]]]], -coef, dual_variables[i][ky[2], ky[3]])
         end
