@@ -1,4 +1,4 @@
-abstract type OptimizationProblem end
+abstract type OptimizationProblem{P} end
 
 """
     PolyOpt{P} <: OptimizationProblem
@@ -22,7 +22,7 @@ A polynomial optimization problem structure.
 - The problem cannot be both unipotent and projective simultaneously
 - Commutative groups must be disjoint sets
 """
-struct PolyOpt{P} <: OptimizationProblem
+struct PolyOpt{P} <: OptimizationProblem{P}
     objective::P
     eq_constraints::Vector{P} # NOTE: assuming constraints are all simplified using comm_gp, is_unipotent, and is_projective
     ineq_constraints::Vector{P}
@@ -91,7 +91,7 @@ end
 
 # ComplexPolyOpt is not only for coefficients being complex,
 # but the product of variables are not hermitians
-struct ComplexPolyOpt{P} <: OptimizationProblem
+struct ComplexPolyOpt{P} <: OptimizationProblem{P}
     objective::P
     eq_constraints::Vector{P} # NOTE: assuming constraints are all simplified using comm_gp, is_unipotent, and is_projective
     ineq_constraints::Vector{P}

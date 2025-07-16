@@ -27,6 +27,8 @@ include("sparse.jl")
 
 include("moment_solver.jl")
 
+include("complex_moment_solver.jl")
+
 include("sos_solver.jl")
 
 include("interface.jl")

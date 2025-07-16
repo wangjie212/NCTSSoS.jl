@@ -1,4 +1,4 @@
-struct SOSProblem{T} <: OptimizationProblem
+struct SOSProblem{T} 
     model::GenericModel{T}
 end
 
