@@ -96,34 +96,56 @@ function sos_dualize(cmp::ComplexMomentProblem{T,P}) where {T,P}
     dual_variables = map(cmp.constraints) do (type,cons)
         G_dim = size(cons,1)
         # use to be SymmetricMatrixSpace here
-        @variable(dual_model, [1:G_dim, 1:G_dim] in (type == :Zero ? HermitianMatrixSpace() : HermitianPSDCone()))
+        @variable(dual_model, [1:2*G_dim, 1:2*G_dim] in (type == :Zero ? SymmetricMatrixSpace() : PSDCone()))
     end
+    dual_variable_dims = map(dual_variables) do dv
+        size(dv, 1) ÷ 2
+    end
+
+    # a little allocation may go a long way?
+    X1p2s = [
+        begin
+            dim = dual_variable_dims[i] 
+            dv[1:dim, 1:dim] .+ dv[dim+1:2*dim, dim+1:2*dim]
+        end for (i,dv) in enumerate(dual_variables)
+    ]
+
+    X3m3ts = [
+        begin
+            dim = dual_variable_dims[i]
+            dv[dim+1:2*dim, 1:dim] .- dv[1:dim, 1+dim:2*dim]
+        end for (i,dv) in enumerate(dual_variables)
+    ]
+
     # b: to bound the minimum value of the primal problem
     @variable(dual_model, b)
     @objective(dual_model, Max, b)
 
-    # symmetric_basis = sorted_unique(canonicalize.(cmp.total_basis, Ref(cmp.sa)))
     symmetric_basis = sort(cmp.total_basis)
 
-    fα_constraints = [zero(GenericAffExpr{T,VariableRef}) for _ in 1:length(symmetric_basis)]
+    fα_constraints_real = [zero(GenericAffExpr{T,VariableRef}) for _ in 1:length(symmetric_basis)]
+
+    fα_constraints_imag = [zero(GenericAffExpr{T,VariableRef}) for _ in 1:length(symmetric_basis)]
 
     for (coef,mono) in terms(cmp.objective)
-        fα_constraints[searchsortedfirst(symmetric_basis, mono)] += coef
+        fα_constraints_real[searchsortedfirst(symmetric_basis, mono)] += real(coef)
+        fα_constraints_imag[searchsortedfirst(symmetric_basis, mono)] += imag(coef)
     end
 
-    # symmetrized_α2cons_dict = Dict(zip(unsymmetrized_basis, map(x -> searchsortedfirst(symmetric_basis, canonicalize(x, cmp.sa)), unsymmetrized_basis)))
+    add_to_expression!(fα_constraints_real[1], -one(T), b)
 
-    # unsymmetrized_basis_vals_dict = Dict(zip(getindex.(Ref(moment_problem.monomap), unsymmetrized_basis), 1:length(unsymmetrized_basis)))
-
-    add_to_expression!(fα_constraints[1], -one(T), b)
-
-    for (i, (type,sdp_constraint)) in enumerate(cmp.constraints)
+    for (i, (_,sdp_constraint)) in enumerate(cmp.constraints)
         Cαjs = get_Cαj(cmp.total_basis, sdp_constraint)
         for (ky, coef) in Cαjs
-            add_to_expression!(fα_constraints[ky[1]], -coef, dual_variables[i][ky[2], ky[3]])
+            add_to_expression!(fα_constraints_real[ky[1]], -real(coef), X1p2s[i][ky[2], ky[3]])
+            add_to_expression!(fα_constraints_real[ky[1]], -imag(coef), X3m3ts[i][ky[2], ky[3]])
+
+            add_to_expression!(fα_constraints_imag[ky[1]], -real(coef), X3m3ts[i][ky[2], ky[3]])
+            add_to_expression!(fα_constraints_imag[ky[1]], +imag(coef), X1p2s[i][ky[2], ky[3]])
         end
     end
-    @constraint(dual_model, fα_constraints .== 0)
+    @constraint(dual_model, fα_constraints_real .== 0)
+    @constraint(dual_model, fα_constraints_imag .== 0)
     return SOSProblem(dual_model)
 end
 

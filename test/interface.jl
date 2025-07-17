@@ -64,7 +64,7 @@ end
 
 if Sys.isapple()
 @testset "1D Heisenberg Chain" begin
-    N = 3
+    N = 6
     @ncpolyvar x[1:N] y[1:N] z[1:N]
 
     ham = sum(ComplexF64(1 / 4) * op[i] * op[mod1(i + 1, N)] for op in [x, y, z] for i in 1:N)
@@ -77,7 +77,7 @@ if Sys.isapple()
 
     res = cs_nctssos(pop, solver_config)
 
-    @test res.objective / N ≈ -0.25 atol = 1e-6
+    @test res.objective / N ≈ -0.467129 atol = 1e-6
 end
 
 @testset "Example" begin
