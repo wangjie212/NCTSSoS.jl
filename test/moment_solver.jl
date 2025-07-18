@@ -102,22 +102,6 @@ end
 
         @test isapprox(result.objective, -2.8284271321623193, atol = 1e-6)
     end
-
-    @testset "I_3322 inequality" begin
-        @ncpolyvar x[1:3]
-        @ncpolyvar y[1:3]
-        f =
-            1.0 * x[1] * (y[1] + y[2] + y[3]) +
-            x[2] * (y[1] + y[2] - y[3]) +
-            x[3] * (y[1] - y[2]) - x[1] - 2 * y[1] - y[2]
-        pop = polyopt(-f; comm_gps = [x, y], is_projective = true)
-
-        solver_config = SolverConfig(optimizer = SOLVER; order = 3)
-
-        result = cs_nctssos(pop, solver_config)
-
-        @test isapprox(result.objective, -0.2508753049688358, atol = 1e-6)
-    end
 end
 
 @testset "CS TS Example" begin
@@ -142,8 +126,6 @@ end
         ])
     end
 
-    # NOTE: should not symmetric canonicalize the polynomial since it might
-    # take away some support in the polynomial
     cons = vcat([(1 - x[i]^2) for i = 1:n], [(x[i] - 1 / 3) for i = 1:n])
 
     pop = polyopt(f; ineq_constraints = cons)

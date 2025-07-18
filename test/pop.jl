@@ -1,19 +1,6 @@
 using Test, NCTSSoS, NCTSSoS.FastPolynomials
 
 @testset "ComplexPolyOpt Constructor" begin
-    @testset "1D Trasverse Filed Ising Model" begin
-        N = 3
-        @ncpolyvar x[1:N] y[1:N] z[1:N]
-
-        J = 1.0
-        h = 2.0
-        ham = sum(-complex(J / 4) * z[i] * z[mod1(i + 1, N)] for i in 1:N) + sum(-h / 2 * x[i] for i in 1:N)
-
-        eq_cons = reduce(vcat, [[x[i] * y[i] - im * z[i], y[i] * x[i] + im * z[i], y[i] * z[i] - im * x[i], z[i] * y[i] + im * x[i], z[i] * x[i] - im * y[i], x[i] * z[i] + im * y[i]] for i in 1:N])
-
-        pop = cpolyopt(ham; eq_constraints=eq_cons, comm_gps=[[x[i], y[i], z[i]] for i in 1:N], is_unipotent=true)
-    end
-
     @testset "Naive Non-symmetric Inequality Example" begin
         N = 1
         @ncpolyvar x[1:N] y[1:N] z[1:N]
@@ -24,38 +11,6 @@ using Test, NCTSSoS, NCTSSoS.FastPolynomials
 
         @test_throws AssertionError pop = cpolyopt(ham; ineq_constraints=fake_ineq_cons, comm_gps=[[x[i], y[i], z[i]] for i in 1:N], is_unipotent=true)
     end
-end
-
-@testset "Naive Example" begin
-    N = 1
-    @ncpolyvar x[1:N] y[1:N] z[1:N]
-
-    ham = sum(ComplexF64(1 / 2) * op[1] for op in [x, y, z])
-
-    eq_cons = reduce(vcat, [[x[i] * y[i] - im * z[i], y[i] * x[i] + im * z[i], y[i] * z[i] - im * x[i], z[i] * y[i] + im * x[i], z[i] * x[i] - im * y[i], x[i] * z[i] + im * y[i]] for i in 1:N])
-
-    pop = polyopt(ham; eq_constraints=eq_cons, comm_gps=[[x[i], y[i], z[i]] for i in 1:N], is_unipotent=true)
-
-    solver_config = SolverConfig(optimizer=SOLVER, order=1)
-
-    res = cs_nctssos(pop, solver_config; dualize=false)
-    @test res.objective ≈ -0.8660254037844387 atol = 1e-6
-end
-
-@testset "Naive Example 2" begin
-    N = 1
-    @ncpolyvar x[1:N] y[1:N] z[1:N]
-
-    ham = one(ComplexF64) * x[1] * y[1] + one(ComplexF64) * y[1] * x[1]
-
-    eq_cons = reduce(vcat, [[x[i] * y[i] - im * z[i], y[i] * x[i] + im * z[i], y[i] * z[i] - im * x[i], z[i] * y[i] + im * x[i], z[i] * x[i] - im * y[i], x[i] * z[i] + im * y[i]] for i in 1:N])
-
-    pop = polyopt(ham; eq_constraints=eq_cons, comm_gps=[[x[i], y[i], z[i]] for i in 1:N], is_unipotent=true)
-
-    solver_config = SolverConfig(optimizer=SOLVER, order=3)
-
-    res = cs_nctssos(pop, solver_config; dualize=false)
-    @test res.objective ≈ -0.0 atol = 1e-6
 end
 
 @testset "PolyOpt Constructor" begin

@@ -165,6 +165,6 @@ end
 function is_symmetric(p::Polynomial, sa::SimplifyAlgorithm)
     return iszero(
         sum(c * simplify(m, sa) for (c, m) in terms(p)) -
-        sum(conj(c) * simplify(FastPolynomials.star(m), sa) for (c, m) in terms(p)),
+        sum(conj(c) * simplify(star(m), sa) for (c, m) in terms(p)),
     )
 end

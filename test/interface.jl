@@ -97,6 +97,7 @@ end
     end
 end
 end
+
 @testset "Majumdar Gosh Model" begin
     num_sites = 6
     J1_interactions =

@@ -101,18 +101,18 @@ function sos_dualize(cmp::ComplexMomentProblem{T,P}) where {T,P}
     end
 
     # a little allocation may go a long way?
-    X1p2s = [
-        begin
-            dim = dual_variable_dims[i] 
-            dv[1:dim, 1:dim] .+ dv[dim+1:2*dim, dim+1:2*dim]
-        end for (i,dv) in enumerate(dual_variables)
-    ]
-
-    X3m3ts = [
-        begin
-            dim = dual_variable_dims[i]
-            dv[dim+1:2*dim, 1:dim] .- dv[1:dim, 1+dim:2*dim]
-        end for (i,dv) in enumerate(dual_variables)
+    # X1 + X2 and X3 - X3^T
+    Xs = [[
+            begin
+                dim = dual_variable_dims[i]
+                dv[1:dim, 1:dim] .+ dv[dim+1:2*dim, dim+1:2*dim]
+            end for (i, dv) in enumerate(dual_variables)
+        ], [
+            begin
+                dim = dual_variable_dims[i]
+                dv[dim+1:2*dim, 1:dim] .- dv[1:dim, 1+dim:2*dim]
+            end for (i, dv) in enumerate(dual_variables)
+        ]
     ]
 
     @variable(dual_model, b)
@@ -120,29 +120,28 @@ function sos_dualize(cmp::ComplexMomentProblem{T,P}) where {T,P}
 
     symmetric_basis = sort(cmp.total_basis)
 
-    fα_constraints_real = [zero(GenericAffExpr{T,VariableRef}) for _ in 1:length(symmetric_basis)]
 
-    fα_constraints_imag = [zero(GenericAffExpr{T,VariableRef}) for _ in 1:length(symmetric_basis)]
+    # real and imag parts of fα constraints
+    fα_constraints = [[zero(GenericAffExpr{T,VariableRef}) for _ in 1:length(symmetric_basis)],[zero(GenericAffExpr{T,VariableRef}) for _ in 1:length(symmetric_basis)]]
 
     for (coef,mono) in terms(cmp.objective)
-        fα_constraints_real[searchsortedfirst(symmetric_basis, mono)] += real(coef)
-        fα_constraints_imag[searchsortedfirst(symmetric_basis, mono)] += imag(coef)
+        for (fα_constraints_part, part_func) in zip(fα_constraints, [real, imag])
+            fα_constraints_part[searchsortedfirst(symmetric_basis, mono)] += part_func(coef)
+        end
     end
 
-    add_to_expression!(fα_constraints_real[1], -one(T), b)
+    add_to_expression!(fα_constraints[1][1], -one(T), b)
 
     for (i, (_,sdp_constraint)) in enumerate(cmp.constraints)
         Cαjs = get_Cαj(cmp.total_basis, sdp_constraint)
         for (ky, coef) in Cαjs
-            add_to_expression!(fα_constraints_real[ky[1]], -real(coef), X1p2s[i][ky[2], ky[3]])
-            add_to_expression!(fα_constraints_real[ky[1]], -imag(coef), X3m3ts[i][ky[2], ky[3]])
-
-            add_to_expression!(fα_constraints_imag[ky[1]], -real(coef), X3m3ts[i][ky[2], ky[3]])
-            add_to_expression!(fα_constraints_imag[ky[1]], +imag(coef), X1p2s[i][ky[2], ky[3]])
+            for (X_part, coef_part, sign, part_func) in zip([1, 2, 2, 1], [1, 1, 2, 2], [-1, -1, -1, 1], [real, imag, real, imag])
+                add_to_expression!(fα_constraints[coef_part][ky[1]], sign*part_func(coef), Xs[X_part][i][ky[2], ky[3]])
+            end
         end
     end
-    @constraint(dual_model, fα_constraints_real .== 0)
-    @constraint(dual_model, fα_constraints_imag .== 0)
+    @constraint(dual_model, fα_constraints[1] .== 0)
+    @constraint(dual_model, fα_constraints[2] .== 0)
     return SOSProblem(dual_model)
 end
 

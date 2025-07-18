@@ -121,7 +121,7 @@ This function performs a higher-order iteration of the CS-NCTSSOS method by:
 
 This is typically used when the previous relaxation was not tight enough and a higher-order relaxation is needed.
 """
-function cs_nctssos_higher(pop::PolyOpt{T}, prev_res::PolyOptResult, solver_config::SolverConfig; dualize::Bool=true) where {T}
+function cs_nctssos_higher(pop::OP, prev_res::PolyOptResult, solver_config::SolverConfig; dualize::Bool=true) where {T,OP<:OptimizationProblem{T}}
     sa = SimplifyAlgorithm(comm_gps=pop.comm_gps, is_unipotent=pop.is_unipotent, is_projective=pop.is_projective)
 
     initial_activated_supps = [sorted_union([poly_term_sparsity.term_sparse_graph_supp for poly_term_sparsity in term_sparsities]...)

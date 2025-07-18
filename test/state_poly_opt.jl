@@ -45,7 +45,6 @@ using NCTSSoS.FastPolynomials: expval, terms, Arbitrary, get_state_basis, NCStat
         result = cs_nctssos(spop, solver_config)
 
         @test result.objective ≈ -2.8284271321623202 atol = 1e-5
-
     end
 end
 
