@@ -92,10 +92,8 @@ end
 function sos_dualize(cmp::ComplexMomentProblem{T,P}) where {T,P}
     dual_model = GenericModel{real(T)}()
 
-    # Initialize Gj as variables
     dual_variables = map(cmp.constraints) do (type,cons)
         G_dim = size(cons,1)
-        # use to be SymmetricMatrixSpace here
         @variable(dual_model, [1:2*G_dim, 1:2*G_dim] in (type == :Zero ? SymmetricMatrixSpace() : PSDCone()))
     end
     dual_variable_dims = map(dual_variables) do dv
@@ -117,7 +115,6 @@ function sos_dualize(cmp::ComplexMomentProblem{T,P}) where {T,P}
         end for (i,dv) in enumerate(dual_variables)
     ]
 
-    # b: to bound the minimum value of the primal problem
     @variable(dual_model, b)
     @objective(dual_model, Max, b)
 

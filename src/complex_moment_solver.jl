@@ -18,9 +18,6 @@ function moment_relax(cpop::ComplexPolyOpt{P}, corr_sparsity::CorrelativeSparsit
         ])
     end...)
 
-    # maybe need to add this to constraints
-    # @constraint(model, first(y) == 1)
-
     constraints =
         [mapreduce(vcat, zip(cliques_term_sparsities, corr_sparsity.clq_cons)) do (term_sparsities, cons_idx)
                 mapreduce(vcat, zip(term_sparsities, [one(cpop.objective), corr_sparsity.cons[cons_idx]...])) do (term_sparsity, poly)

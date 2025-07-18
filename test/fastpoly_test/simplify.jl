@@ -1,7 +1,6 @@
 using Test, NCTSSoS.FastPolynomials
 using NCTSSoS.FastPolynomials: simplify, get_state_basis, NCStateWord
-using NCTSSoS.FastPolynomials:  symmetric_canonicalize, Arbitrary
-
+using NCTSSoS.FastPolynomials:  symmetric_canonicalize, Arbitrary, is_symmetric
 
 @testset "Simplification Interface" begin
     @ncpolyvar x[1:3] y[1:3]
@@ -163,4 +162,15 @@ end
             sa3,
         ) == ς(x[1] * x[2] * y[1]) * ς(x[1] * x[2] * y[2]) * (x[1]*x[2]*y[1])
     end
+end
+
+@testset "Test if polynomial is symmetric" begin
+    @ncpolyvar x[1:2] y[1:2] z[1:2]
+    sa = SimplifyAlgorithm(comm_gps=[[x[i],y[i],z[i]] for i in 1:2])
+
+    sym_poly = sum(one(ComplexF64)*op[1]*op[2] for op in [x,y,z]) 
+
+    @test is_symmetric(sym_poly, sa)
+    unsym_poly = one(ComplexF64)*x[1]*y[1]- im* z[1]
+    @test !is_symmetric(unsym_poly, sa)
 end
