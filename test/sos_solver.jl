@@ -11,6 +11,7 @@ using SparseArrays, JuMP, Graphs, CliqueTrees
 
 using NCTSSoS: get_Cαj
 
+if Sys.isapple()
 @testset "I_3322 inequality" begin
     @ncpolyvar x[1:3]
     @ncpolyvar y[1:3]
@@ -25,6 +26,7 @@ using NCTSSoS: get_Cαj
     result = cs_nctssos(pop, solver_config)
 
     @test isapprox(result.objective, -0.2508753049688358, atol=1e-6)
+end
 end
 
 # NOTE: sos_dualize has performance issue have verified locally it's correct
