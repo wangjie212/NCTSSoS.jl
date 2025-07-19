@@ -28,7 +28,7 @@ ham = sum(ComplexF64(1 / 4) * op[i] * op[mod1(i + 1, N)] for op in [x, y, z] for
 
 eq_cons = reduce(vcat, [[x[i] * y[i] - im * z[i], y[i] * x[i] + im * z[i], y[i] * z[i] - im * x[i], z[i] * y[i] + im * x[i], z[i] * x[i] - im * y[i], x[i] * z[i] + im * y[i]] for i in 1:N])
 
-pop = polyopt(
+pop = cpolyopt(
             ham;                                        # the Hamiltonian
             eq_constraints=eq_cons,                     # anti-commutation relation between Pauli Operators
             comm_gps=[[x[i], y[i], z[i]] for i in 1:N], # commutation relation between Pauli Operators
@@ -52,7 +52,7 @@ res.objective / N
 ```
 
 ```julia
--0.46712927163730084
+-0.46712927166638424
 ```
 
 The returned result matches the actual ground state energy $-0.467129$ to $6$
@@ -76,7 +76,7 @@ ham = sum(ComplexF64(J1 / 4) * op[i] * op[mod1(i + 1, N)] + ComplexF64(J2 / 4) *
 
 eq_cons = reduce(vcat, [[x[i] * y[i] - im * z[i], y[i] * x[i] + im * z[i], y[i] * z[i] - im * x[i], z[i] * y[i] + im * x[i], z[i] * x[i] - im * y[i], x[i] * z[i] + im * y[i]] for i in 1:N])
 
-pop = polyopt(ham; eq_constraints=eq_cons, comm_gps=[[x[i], y[i], z[i]] for i in 1:N], is_unipotent=true)
+pop = cpolyopt(ham; eq_constraints=eq_cons, comm_gps=[[x[i], y[i], z[i]] for i in 1:N], is_unipotent=true)
 
 solver_config = SolverConfig(optimizer=Mosek.Optimizer, order=2, ts_algo = MMD())
 
@@ -86,7 +86,7 @@ res = cs_nctssos_higher(pop,res,solver_config)
 res.objective/N
 ```
 ```julia
--0.4270083225088391
+-0.4270083225159293
 ```
 
 We are able to obtain the ground state energy of $-0.4270083225302217$, accurate
@@ -94,7 +94,7 @@ to $6$ digits!
 
 ## 2D Square Lattice
 
-Extending Heisenberg model to $2$-D case is also straightforward.
+Extending Heisenberg model to $2$-D case is also straightforward. However `NCTSSoS.jl` is not efficient enough to handle system at this size.
 
 ```julia
 using NCTSSoS, MosekTools
@@ -111,140 +111,13 @@ ham = sum(ComplexF64(J1 / 4) * op[LI[CartesianIndex(i, j)]] * op[LI[CartesianInd
 
 eq_cons = reduce(vcat, [[x[i] * y[i] - im * z[i], y[i] * x[i] + im * z[i], y[i] * z[i] - im * x[i], z[i] * y[i] + im * x[i], z[i] * x[i] - im * y[i], x[i] * z[i] + im * y[i]] for i in 1:N])
 
-pop = polyopt(ham; eq_constraints=eq_cons, comm_gps=[[x[i], y[i], z[i]] for i in 1:N], is_unipotent=true)
+pop = cpolyopt(ham; eq_constraints=eq_cons, comm_gps=[[x[i], y[i], z[i]] for i in 1:N], is_unipotent=true)
 
 solver_config = SolverConfig(optimizer=Mosek.Optimizer, order=3, cs_algo=MF(), ts_algo=MMD())
 
 res = cs_nctssos(pop, solver_config)
 
 res = cs_nctssos_higher(pop,res,solver_config)
-res = cs_nctssos_higher(pop,res,solver_config)
 
 res.objective / N
 ```
-
-## 1D Heisenberg Model with Next Nearest Neighbor Interaction
-
-Now that we can find the lower bound of energy, let's try to bound the operator
-value with respect to the ground state.
-
-To do so, we add two inequality constraints and change the objective value to
-the target operator `x[1]x[2]`
-
-```julia
-using NCTSSoS,MosekTools
-
-SOLVER = Mosek.Optimizer
-
-energy_upper_bounds = [-0.44667162694019086,
-    -0.42700832253022214,
-    -0.40833333333333327,
-    -0.390893734117895,
-    -0.375,
-    -0.4000000000000003,
-    -0.42500000000000004,
-    -0.45,
-    -0.4750000000000003,
-    -0.5000000000000001,
-    -0.5249999999999998,
-    -0.55,
-    -0.5749999999999996,
-    -0.6000000000000002,
-    -0.6249999999999999,
-    -0.6500000000000002,
-    -0.6750000000000003,
-    -0.7000000000000003,
-    -0.7249999999999998,
-    -0.7500000000000003]
-
-
-s0s1_vals = [-0.15558685225793648,
-    -0.1551397955033638,
-    -0.1542145593869776,
-    -0.1525967357708984,
-    -0.24998818885551125,
-    -0.08333333333445211,
-    -0.08333333333333304,
-    -0.08333333333333384,
-    -0.08333333333333358,
-    -0.0833333333333331,
-    -0.08333333333333363,
-    -0.08333333333333394,
-    -0.08333333333333363,
-    -0.08333333333333329,
-    -0.08333333333333329,
-    -0.08333333333333329,
-    -0.08333333333333227,
-    -0.08333333333333347,
-    -0.08333333333333348,
-    -0.0833333333333339]
-
-function main(N::Int, J2s, energy_upper_bounds, s0s1_vals)
-    J1 = 1.0
-
-    op_upper_bounds = Float64[]
-    op_lower_bounds = Float64[]
-    energy_lower_bounds = Float64[]
-
-    for (idx, J2) in enumerate(J2s)
-        @ncpolyvar x[1:N] y[1:N] z[1:N]
-
-        ham = sum(ComplexF64(J1 / 4) * op[i] * op[mod1(i + 1, N)] + ComplexF64(J2 / 4) * op[i] * op[mod1(i + 2, N)] for op in [x, y, z] for i in 1:N)
-
-        eq_cons = reduce(vcat, [[x[i] * y[i] - im * z[i], y[i] * x[i] + im * z[i], y[i] * z[i] - im * x[i], z[i] * y[i] + im * x[i], z[i] * x[i] - im * y[i], x[i] * z[i] + im * y[i]] for i in 1:N])
-
-        pop = PolyOpt(ham; eq_constraints=eq_cons, comm_gps=[[x[i], y[i], z[i]] for i in 1:N], is_unipotent=true)
-
-        solver_config = SolverConfig(optimizer=SOLVER, order=2, ts_algo=MMD())
-
-        res = cs_nctssos(pop, solver_config)
-
-        res = cs_nctssos_higher(pop, res, solver_config)
-
-        energy_lower_bound = res.objective
-
-        push!(energy_lower_bounds, energy_lower_bound)
-
-        @ncpolyvar x[1:N] y[1:N] z[1:N]
-
-        obj = one(ComplexF64) * x[1] * x[2]
-
-        ham = sum(ComplexF64(J1 / 4) * op[i] * op[mod1(i + 1, N)] + ComplexF64(J2 / 4) * op[i] * op[mod1(i + 2, N)] for op in [x, y, z] for i in 1:N)
-
-        eq_cons = reduce(vcat, [[x[i] * y[i] - im * z[i], y[i] * x[i] + im * z[i], y[i] * z[i] - im * x[i], z[i] * y[i] + im * x[i], z[i] * x[i] - im * y[i], x[i] * z[i] + im * y[i]] for i in 1:N])
-
-        ineq_cons = -1 .* [energy_upper_bounds[idx]*N - ham, ham - energy_lower_bound]
-
-        pop = PolyOpt(obj; eq_constraints=eq_cons, ineq_constraints=ineq_cons, comm_gps=[[x[i], y[i], z[i]] for i in 1:N], is_unipotent=true)
-
-        solver_config = SolverConfig(optimizer=SOLVER, order=2, ts_algo=MMD())
-
-        res = cs_nctssos(pop, solver_config)
-
-        res = cs_nctssos_higher(pop, res, solver_config)
-
-        operator_lower_bound = res.objective
-
-        push!(op_lower_bounds, operator_lower_bound)
-
-        pop = PolyOpt(-obj; eq_constraints=eq_cons, ineq_constraints=ineq_cons, comm_gps=[[x[i], y[i], z[i]] for i in 1:N], is_unipotent=true)
-
-        solver_config = SolverConfig(optimizer=SOLVER, order=2, ts_algo=MMD())
-
-        res = cs_nctssos(pop, solver_config)
-
-        res = cs_nctssos_higher(pop, res, solver_config)
-
-        operator_upper_bound = -res.objective
-        push!(op_upper_bounds, operator_upper_bound)
-    end
-
-    open("N$(N)J1J2_pop.txt", "w") do file
-        writedlm(file, hcat(op_upper_bounds, op_lower_bounds, energy_upper_bounds, energy_lower_bounds, s0s1_vals), ' ')
-    end
-end
-
-main(6, 0.1:0.1:2.0, energy_upper_bounds, s0s1_vals)
-```
-
-We produce the following result, which does not align with [wang2024Certifying](@cite).

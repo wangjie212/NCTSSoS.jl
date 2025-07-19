@@ -10,11 +10,9 @@ using NCTSSoS:
     correlative_sparsity,
     init_activated_supp
 
-
 using NCTSSoS.FastPolynomials: Arbitrary, get_state_basis, NCStateWord
 
 @testset "Correlative Sparsity without constraints" begin
-
     @testset "Example 2" begin
         @ncpolyvar x[1:3]
         @ncpolyvar y[1:3]
@@ -69,7 +67,6 @@ using NCTSSoS.FastPolynomials: Arbitrary, get_state_basis, NCStateWord
         end
     end
 end
-
 
 @testset "Correlative Sparsity with constrains" begin
     n = 2

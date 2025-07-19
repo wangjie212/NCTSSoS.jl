@@ -106,16 +106,15 @@ terms(p::Polynomial) = zip(p.coeffs, p.monos)
 expval(p::Polynomial) = p
 
 """
-    support(poly::Polynomial{T}, canonicalize::Function) where {T}
+    support(poly::Polynomial{T}) where {T}
 
 Computes the support of a polynomial after canonicalization.
 
 # Arguments
 - `poly::Polynomial{T}`: The polynomial
-- `do_canonicalize::Bool`: Function to canonicalize support
 
 # Returns
-- `Vector{Monomial}`: Unique canonicalized monomials from the polynomial
+- `Vector{Monomial}`: Unique monomials from the support of a polynomial
 """
 function support(poly::Polynomial{T}) where {T}
     return unique!(poly.monos)

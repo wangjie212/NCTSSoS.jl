@@ -11,6 +11,24 @@ using SparseArrays, JuMP, Graphs, CliqueTrees
 
 using NCTSSoS: get_Cαj
 
+if Sys.isapple()
+@testset "I_3322 inequality" begin
+    @ncpolyvar x[1:3]
+    @ncpolyvar y[1:3]
+    f =
+        1.0 * x[1] * (y[1] + y[2] + y[3]) +
+        x[2] * (y[1] + y[2] - y[3]) +
+        x[3] * (y[1] - y[2]) - x[1] - 2 * y[1] - y[2]
+    pop = polyopt(-f; comm_gps=[x, y], is_projective=true)
+
+    solver_config = SolverConfig(optimizer=SOLVER; order=3)
+
+    result = cs_nctssos(pop, solver_config)
+
+    @test isapprox(result.objective, -0.2508753049688358, atol=1e-6)
+end
+end
+
 # NOTE: sos_dualize has performance issue have verified locally it's correct
 @testset "CS TS Example" begin
     order = 3
@@ -71,6 +89,22 @@ end
         (4, 3, 3) => 1,
         (1, 1, 1) => 1,
         (1, 1, 3) => 1)
+end
+
+@testset "Cαj complex" begin
+    @ncpolyvar x[1:2]
+    basis = NCTSSoS.FastPolynomials.get_basis(x,2)
+    localizing_mtx = [x[1] - x[2] x[2]^2 - 1; x[2]^2 - 1 x[2]^3]
+    C_α_js = get_Cαj(basis, localizing_mtx)
+    @test C_α_js == Dict(
+        (1, 2, 1) => -1.0,
+        (3, 1, 1) => -1.0,
+        (8, 2, 2) => 1.0,
+        (7, 2, 1) => 1.0,
+        (2, 1, 1) => 1.0,
+        (1, 1, 2) => -1.0,
+        (7, 1, 2) => 1.0
+    )
 end
 
 @testset "Dualization Trivial Example 2" begin
