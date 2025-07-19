@@ -9,7 +9,7 @@ else
     const SOLVER = Clarabel.Optimizer
 end
 
-@testset "1D Trasverse Filed Ising Model" begin
+@testset "1D Transverse Field Ising Model" begin
     N = 3
     @ncpolyvar x[1:N] y[1:N] z[1:N]
 
