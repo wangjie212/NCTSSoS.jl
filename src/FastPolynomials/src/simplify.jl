@@ -5,10 +5,29 @@
 end
 
 function simplify(m::Monomial, sa::SimplifyAlgorithm)
-    cxs = _comm(m, sa.comm_gps)
-    return prod(
-        sa.is_unipotent ? _unipotent.(cxs) : (sa.is_projective ? _projective.(cxs) : cxs)
-    )
+    permidcs = _comm(m, sa.comm_gps)
+    vars = Variable[]
+    expos = Int[]
+    if sa.is_unipotent
+        for (var, expo) in zip(view(m.vars, permidcs), view(m.z, permidcs))
+            iseven(expo) && continue
+            if length(vars) == 0 || var != vars[end]   # new variable
+                push!(vars, var)
+                push!(expos, mod1(expo, 2))
+            else
+                pop!(vars)
+                pop!(expos)
+            end
+        end
+    else
+        for (var, expo) in zip(view(m.vars, permidcs), view(m.z, permidcs))
+            if length(vars) == 0 || var != vars[end]   # new variable
+                push!(vars, var)
+                push!(expos, one(expo))
+            end
+        end
+    end
+    return Monomial(vars, expos)
 end
 
 function simplify(sw::StateWord{ST}, sa::SimplifyAlgorithm) where {ST}

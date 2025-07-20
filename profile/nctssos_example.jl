@@ -3,6 +3,8 @@ using MosekTools, NCTSSoS
 using Profile 
 using JET
 
+using NCTSSoS.FastPolynomials: monomial, monomials, neat_dot, star, SimplifyAlgorithm, simplify
+
 order = 3
 n = 20 
 @ncpolyvar x[1:n]
@@ -57,39 +59,36 @@ Profile.clear()
 @profile for _ in 1:10 iterate_term_sparse_supp(init_act_supp, mono, basis, MMD(), sa) end
 Profile.print(mincount=300)
 
-@code_warntype iterate_term_sparse_supp(init_act_supp, mono, basis, MMD(), sa)
-report = @report_opt iterate_term_sparse_supp(init_act_supp, mono, basis, MMD(), sa)
-report = @report_call iterate_term_sparse_supp(init_act_supp, mono, basis, MMD(), sa)
+@benchmark simplify(a, sa_uni) setup = (
+    a = monomial(x[[6, 3, 6, 1, 2, 5, 4]], [1, 1, 1, 2, 1, 3, 2]);
+    sa_uni = SimplifyAlgorithm(comm_gps=[x[1:3], x[4:6]], is_unipotent=true, is_projective=false)
+)
 
-show(report)
-
-report
-
-ts = iterate_term_sparse_supp(init_act_supp, mono, basis, MMD(), sa)
-
-using NCTSSoS.FastPolynomials: neat_dot, star , monomial, Monomial, ProdMonomial
-using NCTSSoS
-
-using BenchmarkTools
-using MosekTools, NCTSSoS
-using Profile 
-using JET
-
-@ncpolyvar x[1:10]
-
-@benchmark Monomial(vars, expos) setup = (vars = x[[[6, 8, 7, 1, 2, 5, 8, 3, 4, 2]; [5, 1, 3, 7, 4, 8, 7, 6, 3, 9]]]; expos = [8, 5, 3, 6, 5, 10, 2, 8, 10, 7, 8, 4, 3, 2, 9, 8, 10, 6, 8, 9])
+a = monomial(x[[6, 3, 6, 1, 2, 5, 4]], [1, 1, 1, 2, 1, 3, 2]);
+sa_uni = SimplifyAlgorithm(comm_gps=[x[1:3], x[4:6]], is_unipotent=true, is_projective=false)
+Profile.clear()
+@profile for _ in 1:5000000 simplify(a, sa_uni) end 
+Profile.print(mincount=50)
 
 
-@benchmark star(a) setup = (a = monomial(x[[6, 8, 7, 1, 2, 5, 8, 3, 4, 2]], [8, 5, 3, 6, 5, 10, 2, 8, 10, 7]))
+a = monomial(x[[6, 3, 6, 1, 2, 5, 4]], [1, 1, 1, 2, 1, 3, 2]);
+comm_gps = [x[1:3], x[4:6]]
 
-@benchmark a * b setup = (a = monomial(x[[6, 8, 7, 1, 2, 5, 8, 3, 4, 2]], [8, 5, 3, 6, 5, 10, 2, 8, 10, 7]); b = monomial(x[[5, 1, 3, 7, 4, 8, 7, 6, 3, 9]], [8, 4, 3, 2, 9, 8, 10, 6, 8, 9]))
+_comm(a,comm_gps)
 
-@benchmark neat_dot(a, b) setup = (a = monomial(x[[6, 8, 7, 1, 2, 5, 8, 3, 4, 2]], [8, 5, 3, 6, 5, 10, 2, 8, 10, 7]); b = monomial(x[[5, 1, 3, 7, 4, 8, 7, 6, 3, 9]], [8, 4, 3, 2, 9, 8, 10, 6, 8, 9]))
+@benchmark _comm(a, comm_gps) setup = (
+    a = monomial(x[[6, 3, 6, 1, 2, 5, 4]], [1, 1, 1, 2, 1, 3, 2]);
+    comm_gps = [x[1:3], x[4:6]]
+)
 
-using NCTSSoS.FastPolynomials: _neat_dot3
-@benchmark neat_dot(a, b*c) setup=(a = monomial(x[[6, 8, 7, 1, 2, 5, 8, 3, 4, 2]], [8, 5, 3, 6, 5, 10, 2, 8, 10, 7]); b = monomial(x[[5, 1, 3, 7, 4, 8, 7, 6, 3, 9]], [8, 4, 3, 2, 9, 8, 10, 6, 8, 9]); c = monomial(x[[3, 4, 5, 7]],[4, 4, 2, 4]))
+using NCTSSoS.FastPolynomials: _comm
+Profile.clear()
+@profile for _ in 1:5000000 _comm(a, comm_gps) end
+Profile.print(mincount=100)
 
-@benchmark _neat_dot3(a,b,c) setup=(a = monomial(x[[6, 8, 7, 1, 2, 5, 8, 3, 4, 2]], [8, 5, 3, 6, 5, 10, 2, 8, 10, 7]); b = monomial(x[[5, 1, 3, 7, 4, 8, 7, 6, 3, 9]], [8, 4, 3, 2, 9, 8, 10, 6, 8, 9]); c = monomial(x[[3, 4, 5, 7]],[4, 4, 2, 4]))
 
 
-# neat_dot (168ns) = product (75ns) + reverse etc  + monomial creation (43ns)
+@benchmark simplify(a, sa_proj) setup = (
+    a = monomial(x[[6, 8, 7, 1, 2, 5, 8, 3, 4, 2]], [8, 5, 3, 6, 5, 10, 2, 8, 10, 7]);
+    sa_proj = SimplifyAlgorithm(comm_gps=[x[1:3], x[4:6]], is_unipotent=false, is_projective=true)
+)

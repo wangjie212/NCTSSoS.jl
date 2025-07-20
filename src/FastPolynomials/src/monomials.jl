@@ -133,6 +133,7 @@ Computes the adjoint (star) of a monomial by reversing variable order and expone
 """
 star(m::Monomial) = Monomial(reverse(m.vars), reverse(m.z))
 
+
 """
     _comm(mono::Monomial, comm_gps::Vector{Vector{Variable}})
 
@@ -167,17 +168,11 @@ julia> _comm(mono1, comm_gps)
 ```
 """
 function _comm(mono::Monomial, comm_gps::Vector{Vector{Variable}})
-    map(comm_gps) do vars
-        # TODO: probably a filter + collect will do
-        result = one(Monomial)
-        for (var, expon) in zip(mono.vars, mono.z)
-            if var in vars
-                _mul_var!(result, var, expon, false)
-            end
-        end
-        result
-    end
+    return sortperm(map(mono.vars) do var
+        findfirst(gp->var in gp,comm_gps)
+    end)
 end
+
 
 # multiply a variable to a monomial
 @inline function _mul_var!(result::Monomial, var::Variable, expo::Int, is_unipotent::Bool)
