@@ -159,9 +159,9 @@ using NCTSSoS.FastPolynomials:
         @ncpolyvar b[1:3]
 
         mono = a[1]^2 * b[2]^2 * a[2] * b[1]^3
-        @test prod(_comm(mono, [a, b])) == a[1]^2 * a[2] * b[2]^2 * b[1]^3
+        @test _comm(mono, [a, b]) == [1,3,2,4] 
         mono = a[1]^3 * a[3]
-        @test prod(_comm(mono, [a, b])) == a[1]^3 * a[3]
+        @test _comm(mono, [a, b]) == [1,2] 
     end
 
     @testset "_projective" begin

@@ -13,17 +13,26 @@ function simplify(m::Monomial, sa::SimplifyAlgorithm)
             iseven(expo) && continue
             if length(vars) == 0 || var != vars[end]   # new variable
                 push!(vars, var)
-                push!(expos, mod1(expo, 2))
+                push!(expos, mod(expo, 2))
             else
                 pop!(vars)
                 pop!(expos)
+            end
+        end
+    elseif sa.is_projective
+        for (var, expo) in zip(view(m.vars, permidcs), view(m.z, permidcs))
+            if length(vars) == 0 || var != vars[end]   # new variable
+                push!(vars, var)
+                push!(expos, one(expo))
             end
         end
     else
         for (var, expo) in zip(view(m.vars, permidcs), view(m.z, permidcs))
             if length(vars) == 0 || var != vars[end]   # new variable
                 push!(vars, var)
-                push!(expos, one(expo))
+                push!(expos, expo)
+            else
+                expos[end] += expo
             end
         end
     end

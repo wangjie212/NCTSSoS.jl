@@ -74,8 +74,6 @@ Profile.print(mincount=50)
 a = monomial(x[[6, 3, 6, 1, 2, 5, 4]], [1, 1, 1, 2, 1, 3, 2]);
 comm_gps = [x[1:3], x[4:6]]
 
-_comm(a,comm_gps)
-
 @benchmark _comm(a, comm_gps) setup = (
     a = monomial(x[[6, 3, 6, 1, 2, 5, 4]], [1, 1, 1, 2, 1, 3, 2]);
     comm_gps = [x[1:3], x[4:6]]
@@ -89,6 +87,6 @@ Profile.print(mincount=100)
 
 
 @benchmark simplify(a, sa_proj) setup = (
-    a = monomial(x[[6, 8, 7, 1, 2, 5, 8, 3, 4, 2]], [8, 5, 3, 6, 5, 10, 2, 8, 10, 7]);
+    a = monomial(x[[6,3,6,1,2,5,4]], [1,1,1,2,1,3,2]);
     sa_proj = SimplifyAlgorithm(comm_gps=[x[1:3], x[4:6]], is_unipotent=false, is_projective=true)
 )
