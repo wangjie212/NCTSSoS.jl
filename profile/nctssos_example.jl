@@ -3,10 +3,10 @@ using MosekTools, NCTSSoS
 using Profile 
 using JET
 
-using NCTSSoS.FastPolynomials: monomial, monomials, neat_dot, star, SimplifyAlgorithm, simplify!, old_simplify
+using NCTSSoS.FastPolynomials: monomial, monomials, neat_dot, star, SimplifyAlgorithm, simplify!
 
 order = 3
-n = 30 
+n = 20 
 @ncpolyvar x[1:n]
 f = 0.0
 for i = 1:n
@@ -75,11 +75,6 @@ a = monomial(x[[6, 3, 6, 1, 2, 5, 4]], [1, 1, 1, 2, 1, 3, 2]);
 comm_gps = [x[1:3], x[4:6]]
 
 @benchmark simplify!(a, sa_proj) setup = (
-    a = monomial(x[[6,3,6,1,2,5,4]], [1,1,1,2,1,3,2]);
-    sa_proj = SimplifyAlgorithm(comm_gps=[x[1:3], x[4:6]], is_unipotent=false, is_projective=true)
-)
-
-@benchmark old_simplify(a, sa_proj) setup = (
     a = monomial(x[[6,3,6,1,2,5,4]], [1,1,1,2,1,3,2]);
     sa_proj = SimplifyAlgorithm(comm_gps=[x[1:3], x[4:6]], is_unipotent=false, is_projective=true)
 )

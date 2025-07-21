@@ -16,42 +16,6 @@ function nosimp(sa::SimplifyAlgorithm)
     return isone(length(sa.comm_gps)) && !sa.is_unipotent && !sa.is_projective
 end
 
-function old_simplify(m::Monomial, sa::SimplifyAlgorithm)
-    nosimp(sa) && return m
-    permidcs = _comm(m, sa.comm_gps)
-    vars = Variable[]
-    expos = Int[]
-    if sa.is_unipotent
-        for (var, expo) in zip(view(m.vars, permidcs), view(m.z, permidcs))
-            iseven(expo) && continue
-            if length(vars) == 0 || var != vars[end]   # new variable
-                push!(vars, var)
-                push!(expos, mod(expo, 2))
-            else
-                pop!(vars)
-                pop!(expos)
-            end
-        end
-    elseif sa.is_projective
-        for (var, expo) in zip(view(m.vars, permidcs), view(m.z, permidcs))
-            if length(vars) == 0 || var != vars[end]   # new variable
-                push!(vars, var)
-                push!(expos, one(expo))
-            end
-        end
-    else
-        for (var, expo) in zip(view(m.vars, permidcs), view(m.z, permidcs))
-            if length(vars) == 0 || var != vars[end]   # new variable
-                push!(vars, var)
-                push!(expos, expo)
-            else
-                expos[end] += expo
-            end
-        end
-    end
-    return Monomial(vars, expos)
-end
-
 function simplify!(m::Monomial, sa::SimplifyAlgorithm)
     nosimp(sa) && return m
     iszero(length(m.vars)) && return m
@@ -140,7 +104,7 @@ function cyclic_canonicalize(mono::Monomial, sa::SimplifyAlgorithm)
     return minimum(
         mapreduce(vcat, 1:sum(mono.z)) do shift
             shifted_mono = monomial(circshift!(flatten_vars, 1), circshift!(flatten_z, 1))
-            [simplify(shifted_mono, sa), simplify(star(shifted_mono), sa)]
+            [simplify!(shifted_mono, sa), simplify!(star(shifted_mono), sa)]
         end,
     )
 end

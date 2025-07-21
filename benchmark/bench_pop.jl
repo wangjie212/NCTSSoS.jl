@@ -51,6 +51,56 @@ SUITE["Example 2"] = @benchmarkable result = cs_nctssos(pop, solver_config) setu
     end
 )
 
+SUITE["Example 3"] = @benchmarkable result = cs_nctssos(pop, solver_config) setup = (
+    begin
+        num_sites = 6
+        J1_interactions =
+            unique!([tuple(sort([i, mod1(i + 1, num_sites)])...) for i = 1:num_sites])
+        J2_interactions =
+            unique!([tuple(sort([i, mod1(i + 2, num_sites)])...) for i = 1:num_sites])
+
+        J1 = 2.0
+        J2 = 1.0
+
+        true_ans = -num_sites / 4 * 6
+
+        ij2idx_dict = Dict(
+            zip(
+                [(i, j) for i in 1:num_sites, j in 1:num_sites if j > i],
+                1:(num_sites*(num_sites-1)÷2),
+            ),
+        )
+        @ncpolyvar hij[1:(num_sites*(num_sites-1)÷2)]
+
+        objective = (
+            sum([J1 * hij[ij2idx_dict[(i, j)]] for (i, j) in J1_interactions]) + sum([J2 * hij[ij2idx_dict[(i, j)]] for (i, j) in J2_interactions])
+        )
+
+        gs = unique!([
+            (
+                hij[ij2idx_dict[tuple(sort([i, j])...)]] *
+                hij[ij2idx_dict[tuple(sort([j, k])...)]] +
+                hij[ij2idx_dict[tuple(sort([j, k])...)]] *
+                hij[ij2idx_dict[tuple(sort([i, j])...)]] -
+                0.5 * (
+                    hij[ij2idx_dict[tuple(sort([i, j])...)]] +
+                    hij[ij2idx_dict[tuple(sort([j, k])...)]] -
+                    hij[ij2idx_dict[tuple(sort([i, k])...)]]
+                )
+            ) for i in 1:num_sites, j in 1:num_sites, k in 1:num_sites if
+            (i != j && j != k && i != k)
+        ])
+
+        pop = polyopt(
+            -objective;
+            eq_constraints=gs,
+            is_projective=true,
+        )
+
+        solver_config = SolverConfig(optimizer=Mosek.Optimizer; order=1)
+    end
+)
+
 end
 
 BenchPolyOpt.SUITE

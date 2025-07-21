@@ -24,6 +24,6 @@ include("state_word.jl")
 export ncstatepoly
 include("statepolynomial.jl")
 
-export SimplifyAlgorithm, simplify, canonicalize
+export SimplifyAlgorithm, simplify, simplify!, canonicalize
 include("simplify.jl")
 end

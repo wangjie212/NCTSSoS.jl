@@ -154,26 +154,22 @@ groups vs product of symmetric canonicalize of each group is different
 
 # Example
 ```jldoctest; setup=:(using NCTSSoS.FastPolynomials; using NCTSSoS.FastPolynomials: _comm)
-julia> @ncpolyvar x y; comm_gps = [[x], [y]]
-2-element Vector{Vector{Variable}}:
- [x]
- [y]
+julia> @ncpolyvar x y; comm_gps = Dict(x=>1,y=>2);
 
 julia> mono1 = x*y*x*y
 x¹y¹x¹y¹
 
-julia> _comm(mono1, comm_gps)
-4-element Vector{Int64}:
- 1
- 3
- 2
- 4
+julia> _comm!(mono1, comm_gps)
+
+julia> mono1
+x¹x¹x¹y¹
+
 ```
 """
 function _comm!(mono::Monomial, comm_gps::Dict{Variable,Int})
     # bubble sort + make comm_gps tuple of tuples
     isempty(mono.vars) && return Int[]
-    for i in 1:length(mono.vars)
+    @inbounds for i in 1:length(mono.vars)
         for j in (i + 1):length(mono.vars)
             if comm_gps[mono.vars[i]] > comm_gps[mono.vars[j]]
                 temp_var, temp_expo = mono.vars[j], mono.z[j]
@@ -184,16 +180,6 @@ function _comm!(mono::Monomial, comm_gps::Dict{Variable,Int})
             end
         end
     end
-end
-
-function _comm(mono::Monomial, comm_gps::Vector{Vector{Variable}})
-    # bubble sort + make comm_gps tuple of tuples
-    isempty(mono.vars) && return Int[]
-    return sortperm(
-        map(mono.vars) do var
-            findfirst(gp -> var in gp, comm_gps)
-        end,
-    )
 end
 
 # multiply a variable to a monomial
