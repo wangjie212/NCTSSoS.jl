@@ -169,6 +169,7 @@ julia> _comm(mono1, comm_gps)
 ```
 """
 function _comm(mono::Monomial, comm_gps::Vector{Vector{Variable}})
+    isempty(mono.vars) && return Int[]
     return sortperm(
         map(mono.vars) do var
             findfirst(gp -> var in gp, comm_gps)

@@ -33,7 +33,7 @@ solver_config = SolverConfig(optimizer=Mosek.Optimizer, order=order,
     cs_algo=MF(), ts_algo=MMD())
 
 
-# @benchmark result = cs_nctssos($pop, $solver_config) 
+br = @benchmark result = cs_nctssos($pop, $solver_config) 
 
 result = cs_nctssos(pop, solver_config)
 Profile.clear()
@@ -47,13 +47,15 @@ using NCTSSoS: iterate_term_sparse_supp, monomials, get_basis, SimplifyAlgorithm
 
 @ncpolyvar y[1:10]
 
-sa = SimplifyAlgorithm(comm_gps=[y], is_unipotent=false, is_projective=false)
+sa = SimplifyAlgorithm(comm_gps=[sort(y)], is_unipotent=false, is_projective=false)
 
 basis = get_basis(y, 3)
 init_act_supp = basis[[1,300,20,34,48,59,60]] 
 mono = 1.0*y[1]*y[2] + 2.0 * y[2]^3
 
 @benchmark iterate_term_sparse_supp($init_act_supp, $mono, $basis, MMD(), $sa)
+iterate_term_sparse_supp(init_act_supp, mono, basis, MMD(), sa)
+
 
 Profile.clear()
 @profile for _ in 1:10 iterate_term_sparse_supp(init_act_supp, mono, basis, MMD(), sa) end
@@ -83,8 +85,6 @@ using NCTSSoS.FastPolynomials: _comm
 Profile.clear()
 @profile for _ in 1:5000000 _comm(a, comm_gps) end
 Profile.print(mincount=100)
-
-
 
 @benchmark simplify(a, sa_proj) setup = (
     a = monomial(x[[6,3,6,1,2,5,4]], [1,1,1,2,1,3,2]);

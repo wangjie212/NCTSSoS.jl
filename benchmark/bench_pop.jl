@@ -4,7 +4,7 @@ using NCTSSoS, MosekTools
 
 const SUITE = BenchmarkGroup()
 
-function make_poly(n)
+function make_poly(x, n)
     f = 0.0
     for i = 1:n
         jset = max(1, i - 5):min(n, i + 1)
@@ -22,22 +22,35 @@ function make_poly(n)
             x[j] * x[k] + 2x[j]^2 * x[k] + x[j]^2 * x[k]^2 for j in jset for k in jset
         ])
     end
-	return f
+    return f
 end
 
-n = 20 
-@ncpolyvar x[1:n]
-f = make_poly(n)
-order = 3
-cons = vcat([(1 - x[i]^2) for i = 1:n], [(x[i] - 1 / 3) for i = 1:n])
-
-SUITE["Example1"] = @benchmarkable result = cs_nctssos(pop, solver_config) setup = (
+SUITE["Example 1"] = @benchmarkable result = cs_nctssos(pop, solver_config) setup = (
     begin
+        n = 20
+        @ncpolyvar x[1:n]
+        f = make_poly(x, n)
+        order = 3
+        cons = vcat([(1 - x[i]^2) for i = 1:n], [(x[i] - 1 / 3) for i = 1:n])
         pop = polyopt(f; ineq_constraints=cons)
         solver_config = SolverConfig(optimizer=Mosek.Optimizer, order=order,
             cs_algo=MF(), ts_algo=MMD())
     end
 )
+
+
+SUITE["Example 2"] = @benchmarkable result = cs_nctssos(pop, solver_config) setup = (
+    begin
+        @ncpolyvar x[1:3]
+        @ncpolyvar y[1:3]
+        f = 1.0 * x[1] * (y[1] + y[2] + y[3]) + x[2] * (y[1] + y[2] - y[3]) +
+            x[3] * (y[1] - y[2]) - x[1] - 2 * y[1] - y[2]  # objective function
+        pop = polyopt(-f; comm_gps=[x, y], is_projective=true)
+        solver_config = SolverConfig(optimizer=Mosek.Optimizer, order=3,
+            cs_algo=MF(), ts_algo=MMD())
+    end
+)
+
 end
 
 BenchPolyOpt.SUITE

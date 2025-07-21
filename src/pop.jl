@@ -62,8 +62,9 @@ function polyopt(objective::P; eq_constraints=Any[], ineq_constraints=Any[], com
     if !isempty(comm_gps)
         @assert all([isempty(intersect(gp_a, gp_b)) for gp_a in comm_gps, gp_b in comm_gps if gp_a != gp_b]) "The commutative groups must be disjoint."
         @assert issubset(union(comm_gps...), vars) "The commutative variables must be a subset of the variables."
+        @assert all(issorted(gp) for gp in comm_gps) "The commutative groups must be sorted."
     else
-        push!(comm_gps, vars)
+        push!(comm_gps, sort(vars))
     end
     @assert !(is_unipotent && is_projective) "The problem cannot be both unipotent and projective."
     return PolyOpt{P}(objective, eq_cons, ineq_cons, vars, comm_gps, is_unipotent, is_projective)

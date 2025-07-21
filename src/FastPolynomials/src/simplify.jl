@@ -4,7 +4,12 @@
     is_projective::Bool = false
 end
 
+function nosimp(sa::SimplifyAlgorithm)
+    return isone(length(sa.comm_gps)) && !sa.is_unipotent && !sa.is_projective
+end
+
 function simplify(m::Monomial, sa::SimplifyAlgorithm)
+    nosimp(sa) && return m
     permidcs = _comm(m, sa.comm_gps)
     vars = Variable[]
     expos = Int[]
