@@ -24,6 +24,8 @@ struct Monomial
     end
 end
 
+Base.copy(m::Monomial) = Monomial(copy(m.vars), copy(m.z))
+
 function consecutive_unique(vars::Vector{Variable})
     return all(i -> vars[i] != vars[i + 1], 1:(length(vars) - 1))
 end
@@ -168,7 +170,24 @@ julia> _comm(mono1, comm_gps)
  4
 ```
 """
+function _comm!(mono::Monomial, comm_gps::Dict{Variable,Int})
+    # bubble sort + make comm_gps tuple of tuples
+    isempty(mono.vars) && return Int[]
+    for i in 1:length(mono.vars)
+        for j in (i + 1):length(mono.vars)
+            if comm_gps[mono.vars[i]] > comm_gps[mono.vars[j]]
+                temp_var, temp_expo = mono.vars[j], mono.z[j]
+                mono.vars[i] = mono.vars[j]
+                mono.z[i] = mono.z[j]
+                mono.vars[j] = temp_var
+                mono.z[j] = temp_expo
+            end
+        end
+    end
+end
+
 function _comm(mono::Monomial, comm_gps::Vector{Vector{Variable}})
+    # bubble sort + make comm_gps tuple of tuples
     isempty(mono.vars) && return Int[]
     return sortperm(
         map(mono.vars) do var

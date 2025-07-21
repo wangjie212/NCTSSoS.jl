@@ -1,14 +1,22 @@
 @kwdef struct SimplifyAlgorithm
-    comm_gps::Vector{Vector{Variable}} = Vector{Variable}[]
+    comm_gps::Dict{Variable,Int}
     is_unipotent::Bool = false
     is_projective::Bool = false
+end
+
+function SimplifyAlgorithm(;
+    comm_gps::Vector{Vector{Variable}}, is_unipotent::Bool, is_projective
+)
+    pairs = vcat([[var => i for var in comm_gps[i]] for i in 1:length(comm_gps)]...)
+    comm_gps = Dict(pairs)
+    return SimplifyAlgorithm(comm_gps, is_unipotent, is_projective)
 end
 
 function nosimp(sa::SimplifyAlgorithm)
     return isone(length(sa.comm_gps)) && !sa.is_unipotent && !sa.is_projective
 end
 
-function simplify(m::Monomial, sa::SimplifyAlgorithm)
+function old_simplify(m::Monomial, sa::SimplifyAlgorithm)
     nosimp(sa) && return m
     permidcs = _comm(m, sa.comm_gps)
     vars = Variable[]
@@ -42,6 +50,64 @@ function simplify(m::Monomial, sa::SimplifyAlgorithm)
         end
     end
     return Monomial(vars, expos)
+end
+
+function simplify!(m::Monomial, sa::SimplifyAlgorithm)
+    nosimp(sa) && return m
+    iszero(length(m.vars)) && return m
+
+    _comm!(m, sa.comm_gps)
+    @inbounds if sa.is_unipotent
+        tail_idx = 1
+        m.z[tail_idx] = mod(m.z[tail_idx], 2)
+        for i in 2:length(m.vars)
+            if m.vars[i] == m.vars[tail_idx]
+                m.z[tail_idx] = mod(m.z[tail_idx] + m.z[i], 2)
+            else
+                tail_idx += 1
+                m.vars[tail_idx] = m.vars[i]
+                m.z[tail_idx] = mod(m.z[tail_idx], 2)
+            end
+        end
+        if tail_idx != length(m.vars)
+            deleteat!(m.vars, (tail_idx + 1):length(m.vars))
+            deleteat!(m.z, (tail_idx + 1):length(m.z))
+        end
+    elseif sa.is_projective
+        tail_idx = 1
+        # this should NEVER be zero
+        m.z[tail_idx] = 1
+        for i in 2:length(m.vars)
+            m.vars[i] == m.vars[tail_idx] && continue
+            tail_idx += 1
+            m.vars[tail_idx] = m.vars[i]
+            m.z[tail_idx] = 1
+        end
+        if tail_idx != length(m.vars)
+            deleteat!(m.vars, (tail_idx + 1):length(m.vars))
+            deleteat!(m.z, (tail_idx + 1):length(m.z))
+        end
+    else
+        tail_idx = 1
+        for i in 2:length(m.vars)
+            if m.vars[i] == m.vars[tail_idx]
+                m.z[tail_idx] += m.z[i]
+            else
+                tail_idx += 1
+                m.vars[tail_idx] = m.vars[i]
+                m.z[tail_idx] = m.z[i]
+            end
+        end
+        if tail_idx != length(m.vars)
+            deleteat!(m.vars, (tail_idx + 1):length(m.vars))
+            deleteat!(m.z, (tail_idx + 1):length(m.z))
+        end
+    end
+    return m
+end
+
+function simplify(m::Monomial, sa::SimplifyAlgorithm)
+    return simplify!(copy(m), sa)
 end
 
 function simplify(sw::StateWord{ST}, sa::SimplifyAlgorithm) where {ST}
