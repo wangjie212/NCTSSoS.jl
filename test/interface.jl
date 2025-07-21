@@ -9,6 +9,28 @@ else
     const SOLVER = Clarabel.Optimizer
 end
 
+if Sys.isapple()
+    @testset "1D Transverse Field Ising Model" begin
+        N = 3
+        @ncpolyvar x[1:N] y[1:N] z[1:N]
+
+        J = 1.0
+        h = 2.0
+        for (periodic, true_ans) in zip((true, false), (-1.0175918, -1.0104160))
+            ham = sum(-complex(J / 4) * z[i] * z[mod1(i + 1, N)] for i in 1:(periodic ? N : N - 1)) + sum(-h / 2 * x[i] for i in 1:N)
+
+            eq_cons = reduce(vcat, [[x[i] * y[i] - im * z[i], y[i] * x[i] + im * z[i], y[i] * z[i] - im * x[i], z[i] * y[i] + im * x[i], z[i] * x[i] - im * y[i], x[i] * z[i] + im * y[i]] for i in 1:N])
+
+            pop = cpolyopt(ham; eq_constraints=eq_cons, comm_gps=[[x[i], y[i], z[i]] for i in 1:N], is_unipotent=true)
+
+            solver_config = SolverConfig(optimizer=SOLVER, order=2)
+
+            res = cs_nctssos(pop, solver_config)
+            @test res.objective / N ≈ true_ans atol = 1e-6
+        end
+    end
+end
+
 @testset "Naive Example" begin
     N = 1
     @ncpolyvar x[1:N] y[1:N] z[1:N]
@@ -17,11 +39,12 @@ end
 
     eq_cons = reduce(vcat, [[x[i] * y[i] - im * z[i], y[i] * x[i] + im * z[i], y[i] * z[i] - im * x[i], z[i] * y[i] + im * x[i], z[i] * x[i] - im * y[i], x[i] * z[i] + im * y[i]] for i in 1:N])
 
-    pop = polyopt(ham; eq_constraints=eq_cons, comm_gps=[[x[i], y[i], z[i]] for i in 1:N], is_unipotent=true)
+    pop = cpolyopt(ham; eq_constraints=eq_cons, comm_gps=[[x[i], y[i], z[i]] for i in 1:N], is_unipotent=true)
 
     solver_config = SolverConfig(optimizer=SOLVER, order=1)
 
-    res = cs_nctssos(pop, solver_config; dualize=false) 
+    @test_throws ErrorException cs_nctssos(pop, solver_config; dualize=false) 
+    res = cs_nctssos(pop, solver_config)
     @test res.objective ≈ -0.8660254037844387 atol = 1e-6
 end
 
@@ -33,30 +56,30 @@ end
 
     eq_cons = reduce(vcat, [[x[i] * y[i] - im * z[i], y[i] * x[i] + im * z[i], y[i] * z[i] - im * x[i], z[i] * y[i] + im * x[i], z[i] * x[i] - im * y[i], x[i] * z[i] + im * y[i]] for i in 1:N])
 
-    pop = polyopt(ham; eq_constraints=eq_cons, comm_gps=[[x[i], y[i], z[i]] for i in 1:N], is_unipotent=true)
+    pop = cpolyopt(ham; eq_constraints=eq_cons, comm_gps=[[x[i], y[i], z[i]] for i in 1:N], is_unipotent=true)
 
     solver_config = SolverConfig(optimizer=SOLVER, order=3)
 
-    res = cs_nctssos(pop, solver_config;dualize=false)
+    res = cs_nctssos(pop, solver_config)
     @test res.objective ≈ -0.0 atol = 1e-6
 end
 
 if Sys.isapple()
 @testset "1D Heisenberg Chain" begin
-    N = 3
+    N = 6
     @ncpolyvar x[1:N] y[1:N] z[1:N]
 
     ham = sum(ComplexF64(1 / 4) * op[i] * op[mod1(i + 1, N)] for op in [x, y, z] for i in 1:N)
 
     eq_cons = reduce(vcat, [[x[i] * y[i] - im * z[i], y[i] * x[i] + im * z[i], y[i] * z[i] - im * x[i], z[i] * y[i] + im * x[i], z[i] * x[i] - im * y[i], x[i] * z[i] + im * y[i]] for i in 1:N])
 
-    pop = polyopt(ham; eq_constraints=eq_cons, comm_gps=[[x[i], y[i], z[i]] for i in 1:N], is_unipotent=true)
+    pop = cpolyopt(ham; eq_constraints=eq_cons, comm_gps=[[x[i], y[i], z[i]] for i in 1:N], is_unipotent=true)
 
     solver_config = SolverConfig(optimizer=SOLVER, order=2)
 
-    res = cs_nctssos(pop, solver_config;dualize=false)
+    res = cs_nctssos(pop, solver_config)
 
-    @test res.objective / N ≈ -0.25 atol = 1e-6
+    @test res.objective / N ≈ -0.467129 atol = 1e-6
 end
 
 @testset "Example" begin
@@ -76,6 +99,7 @@ end
     end
 end
 end
+
 @testset "Majumdar Gosh Model" begin
     num_sites = 6
     J1_interactions =

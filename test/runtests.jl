@@ -12,8 +12,8 @@ using NCTSSoS, Test
     include("sos_solver.jl")
     include("interface.jl")
     include("state_poly_opt.jl")
+    include("trace_poly_opt.jl")
     include("Aqua.jl")
     include("Doctest.jl")
     include("ExplicitImports.jl")
-    # include("past_bugs.jl")
 end

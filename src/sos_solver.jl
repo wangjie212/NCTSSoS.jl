@@ -1,4 +1,4 @@
-struct SOSProblem{T} <: OptimizationProblem
+struct SOSProblem{T}
     model::GenericModel{T}
 end
 
@@ -87,4 +87,74 @@ function sos_dualize(moment_problem::MomentProblem{T,M}) where {T,M}
     @constraint(dual_model, fα_constraints .== 0)
 
     return SOSProblem(dual_model)
+end
+
+function sos_dualize(cmp::ComplexMomentProblem{T,P}) where {T,P}
+    dual_model = GenericModel{real(T)}()
+
+    dual_variables = map(cmp.constraints) do (type,cons)
+        G_dim = size(cons,1)
+        @variable(dual_model, [1:2*G_dim, 1:2*G_dim] in (type == :Zero ? SymmetricMatrixSpace() : PSDCone()))
+    end
+    dual_variable_dims = map(dual_variables) do dv
+        size(dv, 1) ÷ 2
+    end
+
+    # a little allocation may go a long way?
+    # X1 + X2 and X3 - X3^T
+    Xs = [[
+            begin
+                dim = dual_variable_dims[i]
+                dv[1:dim, 1:dim] .+ dv[dim+1:2*dim, dim+1:2*dim]
+            end for (i, dv) in enumerate(dual_variables)
+        ], [
+            begin
+                dim = dual_variable_dims[i]
+                dv[dim+1:2*dim, 1:dim] .- dv[1:dim, 1+dim:2*dim]
+            end for (i, dv) in enumerate(dual_variables)
+        ]
+    ]
+
+    @variable(dual_model, b)
+    @objective(dual_model, Max, b)
+
+    symmetric_basis = sort(cmp.total_basis)
+
+
+    # real and imag parts of fα constraints
+    fα_constraints = [[zero(GenericAffExpr{T,VariableRef}) for _ in 1:length(symmetric_basis)],[zero(GenericAffExpr{T,VariableRef}) for _ in 1:length(symmetric_basis)]]
+
+    for (coef,mono) in terms(cmp.objective)
+        for (fα_constraints_part, part_func) in zip(fα_constraints, [real, imag])
+            fα_constraints_part[searchsortedfirst(symmetric_basis, mono)] += part_func(coef)
+        end
+    end
+
+    add_to_expression!(fα_constraints[1][1], -one(T), b)
+
+    for (i, (_,sdp_constraint)) in enumerate(cmp.constraints)
+        Cαjs = get_Cαj(cmp.total_basis, sdp_constraint)
+        for (ky, coef) in Cαjs
+            for (X_part, coef_part, sign, part_func) in zip([1, 2, 2, 1], [1, 1, 2, 2], [-1, -1, -1, 1], [real, imag, real, imag])
+                add_to_expression!(fα_constraints[coef_part][ky[1]], sign*part_func(coef), Xs[X_part][i][ky[2], ky[3]])
+            end
+        end
+    end
+    @constraint(dual_model, fα_constraints[1] .== 0)
+    @constraint(dual_model, fα_constraints[2] .== 0)
+    return SOSProblem(dual_model)
+end
+
+function get_Cαj(unsymmetrized_basis::Vector{M}, localizing_mtx::Matrix{P}) where {T,M,P<:AbstractPolynomial{T}}
+    dim = size(localizing_mtx,1)
+    cis = CartesianIndices((dim, dim))
+
+    # basis idx, row, col
+    dictionary_of_keys = Dict{Tuple{Int,Int,Int},T}()
+    for ci in cis
+        for (coeff,α) in terms(localizing_mtx[ci])
+            dictionary_of_keys[(searchsortedfirst(unsymmetrized_basis,α), ci.I[1], ci.I[2])] = coeff
+        end
+    end
+    return dictionary_of_keys
 end

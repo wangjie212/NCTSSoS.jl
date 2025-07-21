@@ -11,5 +11,4 @@ using Test
     include("utils.jl")
     include("variables.jl")
     include("simplify.jl")
-    include("phased_monomial.jl")
 end

@@ -1,6 +1,6 @@
 # T: type of the coefficients
 # monomap: map from monomials in DynamicPolynomials to variables in JuMP
-struct MomentProblem{T,M,CR<:ConstraintRef,JS<:AbstractJuMPScalar} <: OptimizationProblem
+struct MomentProblem{T,M,CR<:ConstraintRef,JS<:AbstractJuMPScalar} 
     model::GenericModel{T}
     constraints::Vector{CR}
     monomap::Dict{M,JS}  # TODO: maybe refactor.
@@ -9,11 +9,6 @@ end
 
 function substitute_variables(poly::P, monomap::Dict{M,JS}) where {T1,P<:AbstractPolynomial{T1},M,JS<:AbstractJuMPScalar}
     iszero(poly) ? zero(T1) * monomap[one(M)] : sum(coef * monomap[mono] for (coef, mono) in zip(coefficients(poly), monomials(poly)))
-end
-
-function get_mom_matrix(mom_problem::MomentProblem)
-    _, mom_loc = findmax(get_dim, constraint_object.(mom_problem.constraints))
-    return value.(mom_problem.constraints[mom_loc])
 end
 
 # cliques_cons: groups constraints according to cliques,
