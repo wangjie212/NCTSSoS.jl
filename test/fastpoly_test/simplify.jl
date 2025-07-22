@@ -1,6 +1,9 @@
 using Test, NCTSSoS.FastPolynomials
-using NCTSSoS.FastPolynomials: simplify, get_state_basis, NCStateWord
+using NCTSSoS.FastPolynomials: simplify!, get_state_basis, NCStateWord, StateWord, tr, MaxEntangled
 using NCTSSoS.FastPolynomials:  symmetric_canonicalize, Arbitrary, is_symmetric
+
+const TWord = StateWord{MaxEntangled}
+const NCTWord = NCStateWord{MaxEntangled}
 
 @testset "Simplification Interface" begin
     @ncpolyvar x[1:3] y[1:3]
@@ -9,8 +12,8 @@ using NCTSSoS.FastPolynomials:  symmetric_canonicalize, Arbitrary, is_symmetric
     sa2 = SimplifyAlgorithm(; comm_gps=[x, y], is_unipotent=false, is_projective=true)
 
     @testset "Simplify Monomial" begin
-        @test simplify(x[1] * y[1] * x[1] * y[2], sa1) == y[1] * y[2]
-        @test simplify(x[1] * y[1] * x[1] * y[2], sa2) == x[1] * y[1] * y[2]
+        @test simplify!(x[1] * y[1] * x[1] * y[2], sa1) == y[1] * y[2]
+        @test simplify!(x[1] * y[1] * x[1] * y[2], sa2) == x[1] * y[1] * y[2]
     end
 
 	@testset "Simplify StateWord" begin
@@ -18,6 +21,46 @@ using NCTSSoS.FastPolynomials:  symmetric_canonicalize, Arbitrary, is_symmetric
         @test simplify(sw, sa1) == ς(y[1] * y[2]) * ς(y[1])
         @test simplify(sw, sa2) == ς(x[1])* ς(y[1] * y[2]) * ς(x[1] *y[1])
 	end
+
+    @testset "_unipotent" begin
+        @ncpolyvar x[1:2] y[1:2]
+        sa = SimplifyAlgorithm(; comm_gps=[[x;y]],is_unipotent=true)
+
+        @test simplify(tr(x[1]^2 * y[1]^2),sa) == TWord(Monomial[])
+        @test simplify(tr(x[1]^2 * y[1] * y[2]),sa) == tr(y[1] * y[2])
+        @test simplify(tr(x[1]^2) * tr(y[1] * y[2]),sa) == tr(y[1] * y[2])
+        @test simplify(tr(x[1] * x[2]^2 * x[1]) * tr(y[1] * y[2]^2),sa) == tr(y[1])
+    end
+
+    @testset "_projective" begin
+        @ncpolyvar x[1:2] y[1:2]
+
+        sa = SimplifyAlgorithm(; comm_gps=[[x;y]],is_projective=true)
+        @test simplify(tr(x[1]^2 * y[1]^2),sa) == tr(x[1] * y[1])
+        @test simplify(tr(x[1] * x[2]^2 * x[1]) * tr(y[1] * y[2]^2),sa) ==
+            tr(x[1] * x[2] * x[1]) * tr(y[1] * y[2])
+    end
+
+    @testset "_unipotent" begin
+        @ncpolyvar x[1:2] y[1:2]
+
+        sa = SimplifyAlgorithm(; comm_gps=[[x;y]],is_unipotent=true)
+
+        @test simplify(ς(x[1]^2 * y[1]^2),sa) == SWord(Monomial[])
+        @test simplify(ς(x[1]^2 * y[1] * y[2]),sa) == ς(y[1] * y[2])
+        @test simplify(ς(x[1]^2) * ς(y[1] * y[2]),sa) == ς(y[1] * y[2])
+        @test simplify(ς(x[1] * x[2]^2 * x[1]) * ς(y[1] * y[2]^2),sa) == ς(y[1])
+    end
+
+    @testset "_projective" begin
+        @ncpolyvar x[1:2] y[1:2]
+
+        sa = SimplifyAlgorithm(; comm_gps=[[x;y]],is_projective=true)
+
+        @test simplify(ς(x[1]^2 * y[1]^2),sa) == ς(x[1] * y[1])
+        @test simplify(ς(x[1] * x[2]^2 * x[1]) * ς(y[1] * y[2]^2),sa) ==
+              ς(x[1] * x[2] * x[1]) * ς(y[1] * y[2])
+    end
 
 	@testset "Simplify NCStateWord" begin
         ncsw =
@@ -117,6 +160,9 @@ end
 
     @testset "Monomial" begin
         @test symmetric_canonicalize(x[2] * y[2]^2 * x[1] * y[1], sa1) ==
+            x[1] * x[2] * y[1] * y[2]^2
+
+        @test symmetric_canonicalize(x[1] * x[2] * y[1] * y[2]^2, sa1) ==
             x[1] * x[2] * y[1] * y[2]^2
 
         @test symmetric_canonicalize(x[2] * y[2]^2 * x[1] * y[1], sa2) ==

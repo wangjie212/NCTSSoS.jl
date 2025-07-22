@@ -1,11 +1,13 @@
-@kwdef struct SimplifyAlgorithm
+struct SimplifyAlgorithm
     comm_gps::Dict{Variable,Int}
-    is_unipotent::Bool = false
-    is_projective::Bool = false
+    is_unipotent::Bool
+    is_projective::Bool
 end
 
 function SimplifyAlgorithm(;
-    comm_gps::Vector{Vector{Variable}}, is_unipotent::Bool, is_projective
+    comm_gps::Vector{Vector{Variable}}=Vector{Variable}[],
+    is_unipotent::Bool=false,
+    is_projective::Bool=false,
 )
     pairs = vcat([[var => i for var in comm_gps[i]] for i in 1:length(comm_gps)]...)
     comm_gps = Dict(pairs)
@@ -17,54 +19,80 @@ function nosimp(sa::SimplifyAlgorithm)
 end
 
 function simplify!(m::Monomial, sa::SimplifyAlgorithm)
-    nosimp(sa) && return m
-    iszero(length(m.vars)) && return m
+    (nosimp(sa) || isone(m)) && return m
 
     _comm!(m, sa.comm_gps)
     @inbounds if sa.is_unipotent
-        tail_idx = 1
-        m.z[tail_idx] = mod(m.z[tail_idx], 2)
-        for i in 2:length(m.vars)
-            if m.vars[i] == m.vars[tail_idx]
-                m.z[tail_idx] = mod(m.z[tail_idx] + m.z[i], 2)
+        head_idx = 1
+        tail_idx = findfirst(isodd, m.z)
+
+        if isnothing(tail_idx)
+            empty!(m.vars)
+            empty!(m.z)
+            return m
+        end
+        m.vars[head_idx] = m.vars[tail_idx]
+        m.z[head_idx] = mod(m.z[tail_idx], 2)
+
+        tail_idx += 1
+
+        # just like Zuma the game
+        for i in tail_idx:length(m.vars)
+            i < tail_idx && continue
+            iseven(m.z[i]) && continue
+            if m.vars[i] == m.vars[head_idx]
+                head_idx -= 1
+                head_idx >= 1 && continue
+
+                head_idx = findfirst(isodd, view(m.z, (i + 1):length(m.z)))
+                if isnothing(head_idx)
+                    empty!(m.vars)
+                    empty!(m.z)
+                    return m
+                end
+                m.vars[1] = m.vars[i + head_idx]
+                m.z[1] = m.z[i + head_idx]
+
+                tail_idx = i + head_idx + 1
+                head_idx = 1
             else
-                tail_idx += 1
-                m.vars[tail_idx] = m.vars[i]
-                m.z[tail_idx] = mod(m.z[tail_idx], 2)
+                head_idx += 1
+                m.vars[head_idx] = m.vars[i]
+                m.z[head_idx] = 1
             end
         end
-        if tail_idx != length(m.vars)
-            deleteat!(m.vars, (tail_idx + 1):length(m.vars))
-            deleteat!(m.z, (tail_idx + 1):length(m.z))
+        if head_idx != length(m.vars)
+            deleteat!(m.vars, (head_idx + 1):length(m.vars))
+            deleteat!(m.z, (head_idx + 1):length(m.z))
         end
     elseif sa.is_projective
-        tail_idx = 1
+        head_idx = 1
         # this should NEVER be zero
-        m.z[tail_idx] = 1
+        m.z[head_idx] = 1
         for i in 2:length(m.vars)
-            m.vars[i] == m.vars[tail_idx] && continue
-            tail_idx += 1
-            m.vars[tail_idx] = m.vars[i]
-            m.z[tail_idx] = 1
+            m.vars[i] == m.vars[head_idx] && continue
+            head_idx += 1
+            m.vars[head_idx] = m.vars[i]
+            m.z[head_idx] = 1
         end
-        if tail_idx != length(m.vars)
-            deleteat!(m.vars, (tail_idx + 1):length(m.vars))
-            deleteat!(m.z, (tail_idx + 1):length(m.z))
+        if head_idx != length(m.vars)
+            deleteat!(m.vars, (head_idx + 1):length(m.vars))
+            deleteat!(m.z, (head_idx + 1):length(m.z))
         end
     else
-        tail_idx = 1
+        head_idx = 1
         for i in 2:length(m.vars)
-            if m.vars[i] == m.vars[tail_idx]
-                m.z[tail_idx] += m.z[i]
+            if m.vars[i] == m.vars[head_idx]
+                m.z[head_idx] += m.z[i]
             else
-                tail_idx += 1
-                m.vars[tail_idx] = m.vars[i]
-                m.z[tail_idx] = m.z[i]
+                head_idx += 1
+                m.vars[head_idx] = m.vars[i]
+                m.z[head_idx] = m.z[i]
             end
         end
-        if tail_idx != length(m.vars)
-            deleteat!(m.vars, (tail_idx + 1):length(m.vars))
-            deleteat!(m.z, (tail_idx + 1):length(m.z))
+        if head_idx != length(m.vars)
+            deleteat!(m.vars, (head_idx + 1):length(m.vars))
+            deleteat!(m.z, (head_idx + 1):length(m.z))
         end
     end
     return m
@@ -75,7 +103,7 @@ function simplify(m::Monomial, sa::SimplifyAlgorithm)
 end
 
 function simplify(sw::StateWord{ST}, sa::SimplifyAlgorithm) where {ST}
-    return StateWord{ST}(canonicalize.(sw.state_monos, Ref(sa)))
+    return StateWord{ST}(filter!(!isone, canonicalize.(sw.state_monos, Ref(sa))))
 end
 
 function simplify(ncsw::NCStateWord, sa::SimplifyAlgorithm)
@@ -122,7 +150,7 @@ Canonicalizes a mono by taking the minimum between itself and its adjoint.
 """
 function symmetric_canonicalize(mono::Monomial, sa::SimplifyAlgorithm)
     isempty(mono.vars) && return mono
-    return min(simplify(mono, sa), simplify(star(mono), sa))
+    return min(simplify(mono, sa), simplify!(star(mono), sa))
 end
 
 function canonicalize(sw::StateWord{MaxEntangled}, sa::SimplifyAlgorithm)
@@ -157,20 +185,6 @@ function canonicalize(poly::Polynomial, sa::SimplifyAlgorithm)
     return Polynomial(conj.(poly.coeffs), symmetric_canonicalize.(poly.monos, Ref(sa)))
 end
 
-function _unipotent(sw::StateWord{ST}) where {ST}
-    return StateWord{ST}(_unipotent.(sw.state_monos))
-end
-
-function _unipotent(ncsw::NCStateWord)
-    return NCStateWord(_unipotent(ncsw.sw), _unipotent(ncsw.nc_word))
-end
-
-_projective(sw::StateWord{ST}) where {ST} = StateWord{ST}(_projective.(sw.state_monos))
-
-function _projective(ncsw::NCStateWord)
-    return NCStateWord(_projective(ncsw.sw), _projective(ncsw.nc_word))
-end
-
 # ς(w) = ς(w') stated in https://arxiv.org/abs/2301.12513, Section 2.1
 # You DO CANONICALIZE HERER!!!
 function get_state_basis(
@@ -181,7 +195,7 @@ function get_state_basis(
         map(
             a -> NCStateWord(StateWord{ST}(a[1]), a[2]),
             mapreduce(vcat, 0:d) do nc_deg
-                nc_basis = simplify.(monomials(variables, Val(nc_deg)), Ref(sa))
+                nc_basis = simplify!.(monomials(variables, Val(nc_deg)), Ref(sa))
                 cw_deg = d - nc_deg
                 cw_basis = unique!([
                     begin

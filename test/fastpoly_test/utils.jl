@@ -1,6 +1,6 @@
 using Test, NCTSSoS.FastPolynomials
 using NCTSSoS.FastPolynomials:
-    star, symmetric_canonicalize, cyclic_canonicalize, _comm, _projective, _unipotent
+    star, symmetric_canonicalize, cyclic_canonicalize, _comm!
 
 @testset "Utilities" begin
     @ncpolyvar x y z
@@ -13,12 +13,12 @@ using NCTSSoS.FastPolynomials:
         )
         mono1 = monomial([z, y, x], [1, 1, 2])
 
-        mono1_sym = symmetric_canonicalize(mono1,sa)
+        mono1_sym = symmetric_canonicalize(mono1, sa)
         @test mono1_sym.vars == [x, y, z]
         @test mono1_sym.z == [2, 1, 1]
 
         mono2 = monomial([x, y, z], [2, 1, 1])
-        mono2_sym = symmetric_canonicalize(mono2,sa)
+        mono2_sym = symmetric_canonicalize(mono2, sa)
         @test mono2_sym.vars == [x, y, z]
         @test mono2_sym.z == [2, 1, 1]
 
@@ -30,7 +30,7 @@ using NCTSSoS.FastPolynomials:
                 monomial([], []),
             ],
         )
-        poly1_sym = canonicalize(poly1,sa)
+        poly1_sym = canonicalize(poly1, sa)
 
         @test poly1_sym.coeffs ≈ [0.3, 0.3]
         @test poly1_sym.monos == [monomial([], []), monomial([x, y, z], [2, 1, 1])]
@@ -94,10 +94,10 @@ using NCTSSoS.FastPolynomials:
             is_projective=false,
             is_unipotent=false,
         )
-        @test cyclic_canonicalize(x^2 * y^2,sa) == x * y^2 * x
-        @test cyclic_canonicalize(z * y^2,sa) == y * z * y
-        @test cyclic_canonicalize(z * z,sa) == z^2
-        @test isone(cyclic_canonicalize(one(x),sa))
+        @test cyclic_canonicalize(x^2 * y^2, sa) == x * y^2 * x
+        @test cyclic_canonicalize(z * y^2, sa) == y * z * y
+        @test cyclic_canonicalize(z * z, sa) == z^2
+        @test isone(cyclic_canonicalize(one(x), sa))
 
         n = 3
         @ncpolyvar a[1:n]
@@ -135,19 +135,19 @@ using NCTSSoS.FastPolynomials:
 
         f2 = mapreduce(+,
             zip([7, 142, -2, 18, -54, 1, -2, 3, -2, 6, 10],
-            [
-                monomial([a[1], a[2], a[1]], [1, 2, 1]),
-                monomial([a[3], a[2], a[3]], [1, 2, 1]),
-                monomial([a[1], a[2], a[1]], [1, 1, 1]),
-                monomial([a[2], a[3]], [2, 1]),
-                monomial([a[3], a[2], a[3]], [1, 1, 1]),
-                monomial([a[1]], [2]),
-                monomial([a[1], a[2]], [1, 1]),
-                monomial([a[2]], [2]),
-                monomial([a[2], a[3]], [1, 1]),
-                monomial([a[3]], [2]),
-                monomial([a[1], a[2], a[3]], [1, 1, 1]),
-            ])
+                [
+                    monomial([a[1], a[2], a[1]], [1, 2, 1]),
+                    monomial([a[3], a[2], a[3]], [1, 2, 1]),
+                    monomial([a[1], a[2], a[1]], [1, 1, 1]),
+                    monomial([a[2], a[3]], [2, 1]),
+                    monomial([a[3], a[2], a[3]], [1, 1, 1]),
+                    monomial([a[1]], [2]),
+                    monomial([a[1], a[2]], [1, 1]),
+                    monomial([a[2]], [2]),
+                    monomial([a[2], a[3]], [1, 1]),
+                    monomial([a[3]], [2]),
+                    monomial([a[1], a[2], a[3]], [1, 1, 1]),
+                ])
         ) do (coef, mono)
             coef * tr(mono)
         end
@@ -159,18 +159,18 @@ using NCTSSoS.FastPolynomials:
         @ncpolyvar b[1:3]
 
         mono = a[1]^2 * b[2]^2 * a[2] * b[1]^3
-        @test _comm(mono, [a, b]) == [1,3,2,4] 
+        comm_gp_dict = Dict(zip([a;b], [fill(1, 3);fill(2,3)]))
+        _comm!(mono, comm_gp_dict) 
+        @test mono == a[1]^2 * a[2] * b[2]^2 * b[1]^3
         mono = a[1]^3 * a[3]
-        @test _comm(mono, [a, b]) == [1,2] 
+        _comm!(mono, comm_gp_dict) 
+        @test mono == a[1]^3  *a[3]
+
+        @ncpolyvar x[1:2] y[1:2]
+        comm_gp_dict = Dict(zip([x;y], [fill(1, 2);fill(2,2)]))
+        mono = y[1]*x[1]*y[2]^2*x[2]
+        _comm!(mono, comm_gp_dict)
+        @test mono == x[1] * x[2] * y[1] * y[2]^2
     end
 
-    @testset "_projective" begin
-        mono = y * x^3 * y * z^3
-        @test _projective(mono) == y * x * y * z
-    end
-
-    @testset "_unipotent" begin
-        mono = z * x * y * z^2 * y * x * z
-        @test _unipotent(mono) == one(mono)
-    end
 end

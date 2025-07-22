@@ -135,8 +135,14 @@ Computes the adjoint (star) of a monomial by reversing variable order and expone
 """
 star(m::Monomial) = Monomial(reverse(m.vars), reverse(m.z))
 
+function star!(m::Monomial)
+    reverse!(m.vars)
+    reverse!(m.z)
+    return m
+end
+
 """
-    _comm(mono::Monomial, comm_gps::Vector{Vector{Variable}})
+    _comm!(mono::Monomial, comm_gps::Vector{Vector{Variable}})
 
 Projects a monomial onto commutative groups of variables while maintaining the
 order of variables within each group.
@@ -153,7 +159,7 @@ groups vs product of symmetric canonicalize of each group is different
 - `Vector{Monomial}`: Projections of the monomial onto each commutative group
 
 # Example
-```jldoctest; setup=:(using NCTSSoS.FastPolynomials; using NCTSSoS.FastPolynomials: _comm)
+```jldoctest; setup=:(using NCTSSoS.FastPolynomials; using NCTSSoS.FastPolynomials: _comm!)
 julia> @ncpolyvar x y; comm_gps = Dict(x=>1,y=>2);
 
 julia> mono1 = x*y*x*y
@@ -162,29 +168,23 @@ x¹y¹x¹y¹
 julia> _comm!(mono1, comm_gps)
 
 julia> mono1
-x¹x¹x¹y¹
+x¹x¹y¹y¹
 
 ```
 """
 function _comm!(mono::Monomial, comm_gps::Dict{Variable,Int})
-    # bubble sort + make comm_gps tuple of tuples
     isempty(mono.vars) && return Int[]
-    @inbounds for i in 1:length(mono.vars)
-        for j in (i + 1):length(mono.vars)
-            if comm_gps[mono.vars[i]] > comm_gps[mono.vars[j]]
-                temp_var, temp_expo = mono.vars[j], mono.z[j]
-                mono.vars[i] = mono.vars[j]
-                mono.z[i] = mono.z[j]
-                mono.vars[j] = temp_var
-                mono.z[j] = temp_expo
-            end
+    @inbounds for _ in 1:length(mono.vars)
+        for j in 1:(length(mono.vars) - 1)
+            comm_gps[mono.vars[j]] <= comm_gps[mono.vars[j + 1]] && continue
+            mono.vars[j], mono.vars[j + 1] = mono.vars[j + 1], mono.vars[j]
+            mono.z[j], mono.z[j + 1] = mono.z[j + 1], mono.z[j]
         end
     end
 end
 
 # multiply a variable to a monomial
 @inline function _mul_var!(result::Monomial, var::Variable, expo::Int, is_unipotent::Bool)
-    # Q: do we need to consider commutative case?
     if is_unipotent
         iseven(expo) && return result
         if length(result.vars) == 0 || var != result.vars[end]   # new variable
@@ -204,43 +204,6 @@ end
         end
     end
     return result
-end
-
-"""
-    _unipotent(mono::Monomial)
-
-Applies unipotent transformation to a monomial by reducing exponents modulo 2 iteratively.
-
-# Arguments
-- `mono::Monomial`: The monomial to transform
-
-# Returns
-- `Monomial`: Unipotent form of the monomial with all exponents reduced to 0 or 1
-"""
-function _unipotent(mono::Monomial)
-    isempty(mono.vars) && return mono
-    result = one(Monomial)
-    for (var, expo) in zip(mono.vars, mono.z)
-        _mul_var!(result, var, expo, true)
-    end
-    return result
-end
-
-"""
-    _projective(mono::Monomial)
-
-Applies projective transformation to a monomial by setting all non-zero exponents to 1.
-
-# Arguments
-- `mono::Monomial`: The monomial to transform
-
-# Returns
-- `Monomial`: Projective form with all non-zero exponents set to 1
-"""
-function _projective(mono::Monomial)
-    prod(zip(mono.vars, mono.z); init=one(Monomial)) do (var, expo)
-        var^(iszero(expo) ? expo : one(expo))
-    end
 end
 
 expval(m::Monomial) = m
