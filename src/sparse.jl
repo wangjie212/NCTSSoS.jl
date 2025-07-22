@@ -209,7 +209,7 @@ function get_term_sparsity_graph(cons_support::Vector{M}, activated_supp::Vector
     nterms = length(bases)
     G = SimpleGraph(nterms)
     sorted_activated_supp = sort(activated_supp)
-    for i in 1:nterms, j in i+1:nterms
+    @inbounds for i in 1:nterms, j in i+1:nterms
         for supp in cons_support
             connected_mono_lr = _neat_dot3(bases[i], supp, bases[j])
             connected_mono_rl = _neat_dot3(bases[j], supp, bases[i])

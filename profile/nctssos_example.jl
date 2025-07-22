@@ -6,7 +6,7 @@ using JET
 using NCTSSoS.FastPolynomials: monomial, monomials, neat_dot, star, SimplifyAlgorithm, simplify!
 
 order = 3
-n = 20 
+n = 30 
 @ncpolyvar x[1:n]
 f = 0.0
 for i = 1:n
@@ -32,13 +32,12 @@ pop = polyopt(f; ineq_constraints=cons)
 solver_config = SolverConfig(optimizer=Mosek.Optimizer, order=order,
     cs_algo=MF(), ts_algo=MMD())
 
-
 br = @benchmark result = cs_nctssos($pop, $solver_config) 
 
 result = cs_nctssos(pop, solver_config)
 Profile.clear()
 @profile result = cs_nctssos(pop, solver_config)
-Profile.print(mincount=300)
+Profile.print(mincount=100)
 
 
 # constrain moment matrix
