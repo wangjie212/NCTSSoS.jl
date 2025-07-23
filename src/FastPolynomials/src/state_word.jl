@@ -24,6 +24,8 @@ struct StateWord{ST<:StateType}
     end
 end
 
+Base.copy(sw::StateWord{ST}) where {ST} = return StateWord{ST}(copy(sw.state_monos))
+
 """
     ς(m::Union{Monomial,Variable})
 
@@ -147,6 +149,11 @@ end
 function NCStateWord(::Type{ST}, sw::Vector, nc_word) where {ST}
     return NCStateWord(StateWord{ST}(monomial.(sw)), monomial(nc_word))
 end
+
+function Base.copy(ncsw::NCStateWord{ST}) where {ST}
+    return NCStateWord{ST}(copy(ncsw.sw), copy(ncsw.nc_word))
+end
+
 NCStateWord(sw::StateWord{ST}) where {ST} = NCStateWord(ST, sw, one(Monomial))
 
 degree(ncsw::NCStateWord) = degree(ncsw.nc_word) + degree(ncsw.sw)

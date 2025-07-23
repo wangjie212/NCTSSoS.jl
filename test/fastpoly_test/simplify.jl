@@ -1,9 +1,21 @@
 using Test, NCTSSoS.FastPolynomials
 using NCTSSoS.FastPolynomials: simplify!, get_state_basis, NCStateWord, StateWord, tr, MaxEntangled
-using NCTSSoS.FastPolynomials:  symmetric_canonicalize, Arbitrary, is_symmetric
+using NCTSSoS.FastPolynomials:  symmetric_canonicalize!, Arbitrary, is_symmetric, canonicalize!
 
+const SWord = StateWord{Arbitrary}
 const TWord = StateWord{MaxEntangled}
 const NCTWord = NCStateWord{MaxEntangled}
+
+@testset "Simplified Star Minimum" begin
+    using NCTSSoS.FastPolynomials: simplified_star_min! 
+    @ncpolyvar x[1:3] y[1:3]
+
+    sa1 = SimplifyAlgorithm(; comm_gps=[x, y], is_unipotent=true, is_projective=false)
+    sa2 = SimplifyAlgorithm(; comm_gps=[x, y], is_unipotent=false, is_projective=true)
+
+    mono = monomial([x[1], y[1], x[1], y[2], x[2], y[3]], [1, 2, 1, 2, 3, 1])
+    @test simplified_star_min!(mono, sa1) == monomial([x[2], y[3]], [1, 1])
+end
 
 @testset "Simplification Interface" begin
     @ncpolyvar x[1:3] y[1:3]
@@ -14,30 +26,32 @@ const NCTWord = NCStateWord{MaxEntangled}
     @testset "Simplify Monomial" begin
         @test simplify!(x[1] * y[1] * x[1] * y[2], sa1) == y[1] * y[2]
         @test simplify!(x[1] * y[1] * x[1] * y[2], sa2) == x[1] * y[1] * y[2]
+        @test simplify!(monomial([x[1], y[1], x[1], y[2], x[2], y[3]], [1, 2, 1, 2, 3, 1]), sa1) == x[2] * y[3]
     end
 
 	@testset "Simplify StateWord" begin
         sw = ς(x[1]^2) * ς(y[1] * y[2]) * ς(x[1] * y[1] * x[1])
-        @test simplify(sw, sa1) == ς(y[1] * y[2]) * ς(y[1])
-        @test simplify(sw, sa2) == ς(x[1])* ς(y[1] * y[2]) * ς(x[1] *y[1])
+        @test simplify!(sw, sa1) == ς(y[1] * y[2]) * ς(y[1])
+        sw = ς(x[1]^2) * ς(y[1] * y[2]) * ς(x[1] * y[1] * x[1])
+        @test simplify!(sw, sa2) == ς(x[1])* ς(y[1] * y[2]) * ς(x[1] *y[1])
 	end
 
     @testset "_unipotent" begin
         @ncpolyvar x[1:2] y[1:2]
         sa = SimplifyAlgorithm(; comm_gps=[[x;y]],is_unipotent=true)
 
-        @test simplify(tr(x[1]^2 * y[1]^2),sa) == TWord(Monomial[])
-        @test simplify(tr(x[1]^2 * y[1] * y[2]),sa) == tr(y[1] * y[2])
-        @test simplify(tr(x[1]^2) * tr(y[1] * y[2]),sa) == tr(y[1] * y[2])
-        @test simplify(tr(x[1] * x[2]^2 * x[1]) * tr(y[1] * y[2]^2),sa) == tr(y[1])
+        @test simplify!(tr(x[1]^2 * y[1]^2),sa) == TWord(Monomial[])
+        @test simplify!(tr(x[1]^2 * y[1] * y[2]),sa) == tr(y[1] * y[2])
+        @test simplify!(tr(x[1]^2) * tr(y[1] * y[2]),sa) == tr(y[1] * y[2])
+        @test simplify!(tr(x[1] * x[2]^2 * x[1]) * tr(y[1] * y[2]^2),sa) == tr(y[1])
     end
 
     @testset "_projective" begin
         @ncpolyvar x[1:2] y[1:2]
 
         sa = SimplifyAlgorithm(; comm_gps=[[x;y]],is_projective=true)
-        @test simplify(tr(x[1]^2 * y[1]^2),sa) == tr(x[1] * y[1])
-        @test simplify(tr(x[1] * x[2]^2 * x[1]) * tr(y[1] * y[2]^2),sa) ==
+        @test simplify!(tr(x[1]^2 * y[1]^2),sa) == tr(x[1] * y[1])
+        @test simplify!(tr(x[1] * x[2]^2 * x[1]) * tr(y[1] * y[2]^2),sa) ==
             tr(x[1] * x[2] * x[1]) * tr(y[1] * y[2])
     end
 
@@ -46,10 +60,10 @@ const NCTWord = NCStateWord{MaxEntangled}
 
         sa = SimplifyAlgorithm(; comm_gps=[[x;y]],is_unipotent=true)
 
-        @test simplify(ς(x[1]^2 * y[1]^2),sa) == SWord(Monomial[])
-        @test simplify(ς(x[1]^2 * y[1] * y[2]),sa) == ς(y[1] * y[2])
-        @test simplify(ς(x[1]^2) * ς(y[1] * y[2]),sa) == ς(y[1] * y[2])
-        @test simplify(ς(x[1] * x[2]^2 * x[1]) * ς(y[1] * y[2]^2),sa) == ς(y[1])
+        @test simplify!(ς(x[1]^2 * y[1]^2),sa) == SWord(Monomial[])
+        @test simplify!(ς(x[1]^2 * y[1] * y[2]),sa) == ς(y[1] * y[2])
+        @test simplify!(ς(x[1]^2) * ς(y[1] * y[2]),sa) == ς(y[1] * y[2])
+        @test simplify!(ς(x[1] * x[2]^2 * x[1]) * ς(y[1] * y[2]^2),sa) == ς(y[1])
     end
 
     @testset "_projective" begin
@@ -66,10 +80,13 @@ const NCTWord = NCStateWord{MaxEntangled}
         ncsw =
             ς(x[1]^2) * ς(y[1] * y[2]) * ς(x[1] * y[1] * x[1]) * (x[1]^2 * y[1] * x[2] * y[1])
 
-		@test simplify(ncsw, sa1) == 
+		@test simplify!(ncsw, sa1) == 
             ς(y[1] * y[2]) * ς(y[1]) * monomial(x[2])
 
-		@test simplify(ncsw, sa2) == 
+        ncsw =
+            ς(x[1]^2) * ς(y[1] * y[2]) * ς(x[1] * y[1] * x[1]) * (x[1]^2 * y[1] * x[2] * y[1])
+
+		@test simplify!(ncsw, sa2) == 
             ς(x[1]) * ς(y[1] * y[2]) * ς(x[1] * y[1]) * (x[1] * x[2] * y[1])
 	end
 
@@ -159,49 +176,49 @@ end
     sa3 = SimplifyAlgorithm(; comm_gps=[x, y], is_unipotent=false, is_projective=true)
 
     @testset "Monomial" begin
-        @test symmetric_canonicalize(x[2] * y[2]^2 * x[1] * y[1], sa1) ==
+        @test symmetric_canonicalize!(x[2] * y[2]^2 * x[1] * y[1], sa1) ==
             x[1] * x[2] * y[1] * y[2]^2
 
-        @test symmetric_canonicalize(x[1] * x[2] * y[1] * y[2]^2, sa1) ==
+        @test symmetric_canonicalize!(x[1] * x[2] * y[1] * y[2]^2, sa1) ==
             x[1] * x[2] * y[1] * y[2]^2
 
-        @test symmetric_canonicalize(x[2] * y[2]^2 * x[1] * y[1], sa2) ==
+        @test symmetric_canonicalize!(x[2] * y[2]^2 * x[1] * y[1], sa2) ==
             x[1] * x[2] * y[1]
 
-        @test symmetric_canonicalize(x[2] * y[2]^2 * x[1] * y[1], sa3) ==
+        @test symmetric_canonicalize!(x[2] * y[2]^2 * x[1] * y[1], sa3) ==
             x[1] * x[2] * y[1] * y[2]
     end
 
     @testset "StateWord" begin
-        @test canonicalize(
+        @test canonicalize!(
             ς(x[2] * y[1] * x[1]) * ς(y[2] * x[2] * x[1] * y[2]), sa1
         ) == ς(x[1] * x[2] * y[1]) * ς(x[1] * x[2] * y[2]^2)
 
-        @test canonicalize(
+        @test canonicalize!(
             ς(x[2] * y[1] * x[1]) * ς(y[2] * x[2] * x[1] * y[2]), sa2
         ) == ς(x[1] * x[2] * y[1]) * ς(x[1] * x[2])
 
-        @test canonicalize(
+        @test canonicalize!(
             ς(x[2] * y[1] * x[1]) * ς(y[2] * x[2] * x[1] * y[2]), sa3
         ) == ς(x[1] * x[2] * y[1]) * ς(x[1] * x[2]*y[2])
     end
 
     @testset "NCStateWord" begin
-        @test canonicalize(
+        @test canonicalize!(
             ς(x[2] * y[1] * x[1]) *
             ς(y[2] * x[2] * x[1] * y[2]) *
             (x[2] * y[1] * x[1] * y[1]),
             sa1,
         ) == ς(x[1] * x[2] * y[1]) * ς(x[1] * x[2] * y[2]^2) * (x[1]*x[2]*y[1]^2)
 
-        @test canonicalize(
+        @test canonicalize!(
             ς(x[2] * y[1] * x[1]) *
             ς(y[2] * x[2] * x[1] * y[2]) *
             (x[2] * y[1] * x[1] * y[1]),
             sa2,
         ) == ς(x[1] * x[2] * y[1]) * ς(x[1] * x[2]) * (x[1]*x[2])
 
-        @test canonicalize(
+        @test canonicalize!(
             ς(x[2] * y[1] * x[1]) *
             ς(y[2] * x[2] * x[1] * y[2]) *
             (x[2] * y[1] * x[1] * y[1]),

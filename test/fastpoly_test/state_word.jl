@@ -118,7 +118,6 @@ const NCTWord = NCStateWord{MaxEntangled}
         @test sort(total_basis) ==
               sort(map(x -> NCStateWord(MaxEntangled, x[1], x[2]), zip(c_words, nc_words)))
     end
-
 end
 
 
@@ -227,5 +226,4 @@ end
         @test sort(total_basis) ==
               sort(map(x -> NCStateWord(Arbitrary, x[1], x[2]), zip(c_words, nc_words)))
     end
-
 end

@@ -1,5 +1,6 @@
 struct SimplifyAlgorithm
     comm_gps::Dict{Variable,Int}
+    n_gps::Int
     is_unipotent::Bool
     is_projective::Bool
 end
@@ -11,6 +12,7 @@ function SimplifyAlgorithm(;
 )
     return SimplifyAlgorithm(
         Dict(var => i for (i, vars) in enumerate(comm_gps) for var in vars),
+        length(comm_gps),
         is_unipotent,
         is_projective,
     )
@@ -83,7 +85,7 @@ function _simplify_unipotent!(m::Monomial)
             head_idx = findfirst(isodd, view(m.z, (i + 1):length(m.z)))
             isnothing(head_idx) && (empty!(m.vars); empty!(m.z); return m)
             m.vars[1] = m.vars[i + head_idx]
-            m.z[1] = m.z[i + head_idx]
+            m.z[1] = 1
 
             tail_idx = i + head_idx + 1
             head_idx = 1
@@ -104,16 +106,51 @@ function simplify(m::Monomial, sa::SimplifyAlgorithm)
     return simplify!(copy(m), sa)
 end
 
-function simplify(sw::StateWord{ST}, sa::SimplifyAlgorithm) where {ST}
-    return StateWord{ST}(filter!(!isone, canonicalize.(sw.state_monos, Ref(sa))))
+function simplify!(sw::StateWord{ST}, sa::SimplifyAlgorithm) where {ST}
+    canonicalize!.(sw.state_monos, Ref(sa))
+    sort!(filter!(!isone, sw.state_monos))
+    isempty(sw.state_monos) && push!(sw.state_monos,one(Monomial))
+    return sw
 end
 
-function simplify(ncsw::NCStateWord, sa::SimplifyAlgorithm)
-    return NCStateWord(simplify(ncsw.sw, sa), simplify(ncsw.nc_word, sa))
+simplify(sw::StateWord{ST}, sa::SimplifyAlgorithm) where {ST} = simplify!(copy(sw), sa)
+
+function simplify!(ncsw::NCStateWord, sa::SimplifyAlgorithm)
+    (simplify!(ncsw.sw, sa); simplify!(ncsw.nc_word, sa); return ncsw)
+end
+
+simplify(ncsw::NCStateWord, sa::SimplifyAlgorithm) = simplify!(copy(ncsw), sa)
+
+# allocation free version of taking the minimum between the star and the original monomial
+# then simplify
+# assuming simplify and star should commute
+function simplified_star_min!(m::Monomial, sa::SimplifyAlgorithm)
+    # the real star of x1x2y1y2 is not y2y1x2x1 but x2x1y2y1
+    simplify!(m, sa)
+    a_idx, b_idx = 1, length(m.vars)
+    while a_idx <= length(m.vars) && b_idx >= 1
+        iszero(m.z[a_idx]) && (a_idx += 1; continue)
+        iszero(m.z[b_idx]) && (b_idx -= 1; continue)
+
+        var_cmp = cmp(m.vars[a_idx], m.vars[b_idx])
+        if var_cmp > 0
+            (star!(m); _comm!(m, sa.comm_gps); return m)
+        elseif var_cmp < 0
+            return m
+        end
+        if m.z[a_idx] > m.z[b_idx]
+            (star!(m); _comm!(m, sa.comm_gps); return m)
+        elseif m.z[a_idx] < m.z[b_idx]
+            return m
+        end
+        a_idx += 1
+        b_idx -= 1
+    end
+    return m
 end
 
 """
-    cyclic_canonicalize(mono::Monomial)
+    cyclic_canonicalize(mono::Monomial, sa::SimplifyAlgorithm)
 
 Canonicalizes a monomial using both cyclic and symmetric operations.
 Finds the minimum among all cyclic shifts and their adjoints.
@@ -126,15 +163,16 @@ Chclic canonical is both cyclic and symmetric
 - `Monomial`: Canonicalized monomial (minimum across all cyclic shifts and their stars)
 """
 function cyclic_canonicalize(mono::Monomial, sa::SimplifyAlgorithm)
-    isempty(mono.vars) && return mono
+    isone(mono) && return mono
     flatten_vars = mapreduce(
         idx -> fill(mono.vars[idx], mono.z[idx]), vcat, eachindex(mono.z)
     )
     flatten_z = ones(Int, sum(mono.z))
     return minimum(
-        mapreduce(vcat, 1:sum(mono.z)) do shift
-            shifted_mono = monomial(circshift!(flatten_vars, 1), circshift!(flatten_z, 1))
-            [simplify!(shifted_mono, sa), simplify!(star(shifted_mono), sa)]
+        map(1:sum(mono.z)) do _
+            simplified_star_min!(
+                monomial(circshift!(flatten_vars, 1), circshift!(flatten_z, 1)), sa
+            )
         end,
     )
 end
@@ -150,23 +188,25 @@ Canonicalizes a mono by taking the minimum between itself and its adjoint.
 # Returns
 - `Monomial`: Canonicalized monomial (minimum of original and its star)
 """
-function symmetric_canonicalize(mono::Monomial, sa::SimplifyAlgorithm)
+function symmetric_canonicalize!(mono::Monomial, sa::SimplifyAlgorithm)
     isempty(mono.vars) && return mono
-    return min(simplify(mono, sa), simplify!(star(mono), sa))
+    return simplified_star_min!(mono, sa)
 end
 
-function canonicalize(sw::StateWord{MaxEntangled}, sa::SimplifyAlgorithm)
+function canonicalize!(sw::StateWord{MaxEntangled}, sa::SimplifyAlgorithm)
     return StateWord{MaxEntangled}(cyclic_canonicalize.(sw.state_monos, Ref(sa)))
 end
 
-canonicalize(m::Monomial, sa::SimplifyAlgorithm) = symmetric_canonicalize(m, sa)
+canonicalize!(m::Monomial, sa::SimplifyAlgorithm) = symmetric_canonicalize!(m, sa)
 
-function canonicalize(sw::StateWord{Arbitrary}, sa::SimplifyAlgorithm)
-    return StateWord{Arbitrary}(symmetric_canonicalize.(sw.state_monos, Ref(sa)))
+function canonicalize!(sw::StateWord{Arbitrary}, sa::SimplifyAlgorithm)
+    return StateWord{Arbitrary}(symmetric_canonicalize!.(sw.state_monos, Ref(sa)))
 end
 
-function canonicalize(ncsw::NCStateWord, sa::SimplifyAlgorithm)
-    return NCStateWord(canonicalize(ncsw.sw, sa), symmetric_canonicalize(ncsw.nc_word, sa))
+function canonicalize!(ncsw::NCStateWord, sa::SimplifyAlgorithm)
+    return NCStateWord(
+        canonicalize!(ncsw.sw, sa), symmetric_canonicalize!(ncsw.nc_word, sa)
+    )
 end
 
 """
@@ -184,7 +224,7 @@ varaibles because trace polynomial is taken care at StatePoly
 - `Polynomial`: Canonicalized polynomial with conjugated coefficients and canonicalized monomials
 """
 function canonicalize(poly::Polynomial, sa::SimplifyAlgorithm)
-    return Polynomial(conj.(poly.coeffs), symmetric_canonicalize.(poly.monos, Ref(sa)))
+    return Polynomial(conj.(poly.coeffs), symmetric_canonicalize!.(poly.monos, Ref(sa)))
 end
 
 # ς(w) = ς(w') stated in https://arxiv.org/abs/2301.12513, Section 2.1
@@ -192,7 +232,7 @@ end
 function get_state_basis(
     ::Type{ST}, variables::Vector{Variable}, d::Int, sa::SimplifyAlgorithm
 ) where {ST}
-    canon_algo = ST == MaxEntangled ? cyclic_canonicalize : symmetric_canonicalize
+    canon_algo = ST == MaxEntangled ? cyclic_canonicalize : symmetric_canonicalize!
     return unique!(
         map(
             a -> NCStateWord(StateWord{ST}(a[1]), a[2]),
@@ -228,11 +268,11 @@ function get_basis(
 end
 
 function canonicalize(sp::StatePolynomial, sa::SimplifyAlgorithm)
-    return StatePolynomial((sp.coeffs), canonicalize.(sp.state_words, Ref(sa)))
+    return StatePolynomial((sp.coeffs), canonicalize!.(sp.state_words, Ref(sa)))
 end
 
 function canonicalize(ncsp::NCStatePolynomial, sa::SimplifyAlgorithm)
-    return NCStatePolynomial((ncsp.coeffs), canonicalize.(ncsp.nc_state_words, Ref(sa)))
+    return NCStatePolynomial((ncsp.coeffs), canonicalize!.(ncsp.nc_state_words, Ref(sa)))
 end
 
 function get_basis(

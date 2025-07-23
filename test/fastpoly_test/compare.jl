@@ -30,8 +30,6 @@ using Test, NCTSSoS.FastPolynomials
         mono4 = Monomial([x, y], [1, 2])
         mono5 = Monomial([x, z, y], [1, 1, 1])
 
-        # TODO: add more tests
-
         @test cmp(mono1, mono2) == 0
         @test cmp(mono1, mono3) == 1
         @test cmp(mono1, mono4) == 0
