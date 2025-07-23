@@ -30,11 +30,7 @@ Base.:(==)(a::Monomial, b::Monomial) = iszero(cmp(a, b))
 
 function Base.:(==)(p::Polynomial{T}, q::Polynomial{T}) where {T}
     length(p.monos) != length(q.monos) && return false
-    for (mono1, mono2) in zip(p.monos, q.monos)
-        mono1 != mono2 && return false
-    end
-    for (coef1, coef2) in zip(p.coeffs, q.coeffs)
-        coef1 != coef2 && return false
-    end
+    !(p.monos .== q.monos) && return false
+    !(p.coeffs .== q.coeffs) && return false
     return true
 end

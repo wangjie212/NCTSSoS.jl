@@ -21,7 +21,7 @@ function nosimp(sa::SimplifyAlgorithm)
 end
 
 function simplify!(m::Monomial, sa::SimplifyAlgorithm)
-    (length(m.vars) <= 1 || nosimp(sa)) && return m
+    (isone(m) || nosimp(sa)) && return m
     _comm!(m, sa.comm_gps)
 
     sa.is_unipotent && (_simplify_unipotent!(m); return m)

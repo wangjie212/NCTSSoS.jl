@@ -164,6 +164,7 @@ x¹x¹y¹y¹
 ```
 """
 function _comm!(mono::Monomial, comm_gps::Dict{Variable,Int})
+    length(mono.vars) == 1 && return nothing
     swapped = false
     @inbounds for i in 1:(length(mono.vars) - 1)
         for j in 1:(length(mono.vars) - i)
