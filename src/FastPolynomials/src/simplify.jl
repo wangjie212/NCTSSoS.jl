@@ -22,76 +22,82 @@ end
 
 function simplify!(m::Monomial, sa::SimplifyAlgorithm)
     (length(m.vars) <= 1 || nosimp(sa)) && return m
-
     _comm!(m, sa.comm_gps)
-    @inbounds if sa.is_unipotent
-        head_idx = 1
-        tail_idx = findfirst(isodd, m.z)
 
-        isnothing(tail_idx) && (empty!(m.vars); empty!(m.z); return m)
+    sa.is_unipotent && (_simplify_unipotent!(m); return m)
+    sa.is_projective && (_simplify_projective!(m); return m)
+    _simplify_standard!(m)
+    return m
+end
 
-        m.vars[head_idx] = m.vars[tail_idx]
-        m.z[head_idx] = mod(m.z[tail_idx], 2)
-
-        tail_idx += 1
-
-        # just like Zuma the game
-        for i in tail_idx:length(m.vars)
-            i < tail_idx && continue
-            iseven(m.z[i]) && continue
-            if m.vars[i] == m.vars[head_idx]
-                head_idx -= 1
-                head_idx >= 1 && continue
-
-                head_idx = findfirst(isodd, view(m.z, (i + 1):length(m.z)))
-                isnothing(head_idx) && (empty!(m.vars); empty!(m.z); return m)
-
-                m.vars[1] = m.vars[i + head_idx]
-                m.z[1] = m.z[i + head_idx]
-
-                tail_idx = i + head_idx + 1
-                head_idx = 1
-            else
-                head_idx += 1
-                m.vars[head_idx] = m.vars[i]
-                m.z[head_idx] = 1
-            end
+function _simplify_standard!(m::Monomial)
+    head_idx = 1
+    @inbounds for i in 2:length(m.vars)
+        if m.vars[i] == m.vars[head_idx]
+            m.z[head_idx] += m.z[i]
+        else
+            head_idx += 1
+            m.vars[head_idx] = m.vars[i]
+            m.z[head_idx] = m.z[i]
         end
-        if head_idx != length(m.vars)
-            deleteat!(m.vars, (head_idx + 1):length(m.vars))
-            deleteat!(m.z, (head_idx + 1):length(m.z))
-        end
-    elseif sa.is_projective
-        head_idx = 1
-        # this should NEVER be zero
+    end
+    if head_idx != length(m.vars)
+        deleteat!(m.vars, (head_idx + 1):length(m.vars))
+        deleteat!(m.z, (head_idx + 1):length(m.z))
+    end
+    return nothing
+end
+
+function _simplify_projective!(m::Monomial)
+    head_idx = 1
+    m.z[head_idx] = 1
+    @inbounds for i in 2:length(m.vars)
+        m.vars[i] == m.vars[head_idx] && continue
+        head_idx += 1
+        m.vars[head_idx] = m.vars[i]
         m.z[head_idx] = 1
-        for i in 2:length(m.vars)
-            m.vars[i] == m.vars[head_idx] && continue
+    end
+    if head_idx != length(m.vars)
+        deleteat!(m.vars, (head_idx + 1):length(m.vars))
+        deleteat!(m.z, (head_idx + 1):length(m.z))
+    end
+    return nothing
+end
+
+function _simplify_unipotent!(m::Monomial)
+    head_idx = 1
+    tail_idx = findfirst(isodd, m.z)
+    isnothing(tail_idx) && (empty!(m.vars); empty!(m.z); return nothing)
+
+    m.vars[head_idx] = m.vars[tail_idx]
+    m.z[head_idx] = mod(m.z[tail_idx], 2)
+
+    tail_idx += 1
+    @inbounds for i in tail_idx:length(m.vars)
+        i < tail_idx && continue
+        iseven(m.z[i]) && continue
+        if m.vars[i] == m.vars[head_idx]
+            head_idx -= 1
+            head_idx >= 1 && continue
+
+            head_idx = findfirst(isodd, view(m.z, (i + 1):length(m.z)))
+            isnothing(head_idx) && (empty!(m.vars); empty!(m.z); return m)
+            m.vars[1] = m.vars[i + head_idx]
+            m.z[1] = m.z[i + head_idx]
+
+            tail_idx = i + head_idx + 1
+            head_idx = 1
+        else
             head_idx += 1
             m.vars[head_idx] = m.vars[i]
             m.z[head_idx] = 1
         end
-        if head_idx != length(m.vars)
-            deleteat!(m.vars, (head_idx + 1):length(m.vars))
-            deleteat!(m.z, (head_idx + 1):length(m.z))
-        end
-    else
-        head_idx = 1
-        for i in 2:length(m.vars)
-            if m.vars[i] == m.vars[head_idx]
-                m.z[head_idx] += m.z[i]
-            else
-                head_idx += 1
-                m.vars[head_idx] = m.vars[i]
-                m.z[head_idx] = m.z[i]
-            end
-        end
-        if head_idx != length(m.vars)
-            deleteat!(m.vars, (head_idx + 1):length(m.vars))
-            deleteat!(m.z, (head_idx + 1):length(m.z))
-        end
     end
-    return m
+    if head_idx != length(m.vars)
+        deleteat!(m.vars, (head_idx + 1):length(m.vars))
+        deleteat!(m.z, (head_idx + 1):length(m.z))
+    end
+    return nothing
 end
 
 function simplify(m::Monomial, sa::SimplifyAlgorithm)
