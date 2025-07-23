@@ -135,28 +135,19 @@ Computes the adjoint (star) of a monomial by reversing variable order and expone
 """
 star(m::Monomial) = Monomial(reverse(m.vars), reverse(m.z))
 
-function star!(m::Monomial)
-    reverse!(m.vars)
-    reverse!(m.z)
-    return m
-end
+star!(m::Monomial) = (reverse!(m.vars); reverse!(m.z); return m)
 
 """
     _comm!(mono::Monomial, comm_gps::Vector{Vector{Variable}})
 
-Projects a monomial onto commutative groups of variables while maintaining the
-order of variables within each group.
-
-We kept it as separate groups because symmetric canonicalize over the product of
-groups vs product of symmetric canonicalize of each group is different
-
+Stably sorts variables in the monomial based on their commutative group indices.
 
 # Arguments
 - `mono::Monomial`: The monomial to project
-- `comm_gps::Vector{Vector{Variable}}`: Vector of sets defining commutative variable groups
+- `comm_gps::Dict{Variable,Int}`: Dictionary mapping varaible to commutative group index
 
 # Returns
-- `Vector{Monomial}`: Projections of the monomial onto each commutative group
+- `nothing`
 
 # Example
 ```jldoctest; setup=:(using NCTSSoS.FastPolynomials; using NCTSSoS.FastPolynomials: _comm!)
@@ -173,37 +164,18 @@ x¹x¹y¹y¹
 ```
 """
 function _comm!(mono::Monomial, comm_gps::Dict{Variable,Int})
-    isempty(mono.vars) && return Int[]
-    @inbounds for _ in 1:length(mono.vars)
-        for j in 1:(length(mono.vars) - 1)
+    length(mono.vars) <= 1 && return nothing
+    swapped = false
+    @inbounds for i in 1:(length(mono.vars) - 1)
+        for j in 1:(length(mono.vars) - i)
             comm_gps[mono.vars[j]] <= comm_gps[mono.vars[j + 1]] && continue
             mono.vars[j], mono.vars[j + 1] = mono.vars[j + 1], mono.vars[j]
             mono.z[j], mono.z[j + 1] = mono.z[j + 1], mono.z[j]
+            swapped = true
         end
+        !swapped && break
     end
-end
-
-# multiply a variable to a monomial
-@inline function _mul_var!(result::Monomial, var::Variable, expo::Int, is_unipotent::Bool)
-    if is_unipotent
-        iseven(expo) && return result
-        if length(result.vars) == 0 || var != result.vars[end]   # new variable
-            push!(result.vars, var)
-            push!(result.z, 1)
-        else
-            pop!(result.vars)
-            pop!(result.z)
-        end
-    else
-        iszero(expo) && return result
-        if length(result.vars) == 0 || var != result.vars[end]   # new variable
-            push!(result.vars, var)
-            push!(result.z, expo)
-        else
-            result.z[end] += expo
-        end
-    end
-    return result
+    return nothing
 end
 
 expval(m::Monomial) = m
