@@ -86,9 +86,7 @@ function print_object(io::IO, obj::Polynomial; multiline::Bool)
     end
 end
 
-function Base.hash(p::Polynomial, u::UInt)
-    return hash(p.coeffs, hash(p.monos, u))
-end
+Base.hash(p::Polynomial, u::UInt) = hash(p.coeffs, hash(p.monos, u))
 
 maxdegree(p::Polynomial) = maximum(degree.(p.monos))
 
@@ -116,6 +114,4 @@ Computes the support of a polynomial after canonicalization.
 # Returns
 - `Vector{Monomial}`: Unique monomials from the support of a polynomial
 """
-function support(poly::Polynomial{T}) where {T}
-    return unique!(poly.monos)
-end
+support(poly::Polynomial{T}) where {T} = unique!(poly.monos)

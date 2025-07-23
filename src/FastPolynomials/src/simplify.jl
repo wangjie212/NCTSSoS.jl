@@ -9,9 +9,11 @@ function SimplifyAlgorithm(;
     is_unipotent::Bool=false,
     is_projective::Bool=false,
 )
-    pairs = vcat([[var => i for var in comm_gps[i]] for i in 1:length(comm_gps)]...)
-    comm_gps = Dict(pairs)
-    return SimplifyAlgorithm(comm_gps, is_unipotent, is_projective)
+    return SimplifyAlgorithm(
+        Dict(var => i for (i, vars) in enumerate(comm_gps) for var in vars),
+        is_unipotent,
+        is_projective,
+    )
 end
 
 function nosimp(sa::SimplifyAlgorithm)
@@ -19,18 +21,15 @@ function nosimp(sa::SimplifyAlgorithm)
 end
 
 function simplify!(m::Monomial, sa::SimplifyAlgorithm)
-    (nosimp(sa) || isone(m)) && return m
+    (length(m.vars) <= 1 || nosimp(sa)) && return m
 
     _comm!(m, sa.comm_gps)
     @inbounds if sa.is_unipotent
         head_idx = 1
         tail_idx = findfirst(isodd, m.z)
 
-        if isnothing(tail_idx)
-            empty!(m.vars)
-            empty!(m.z)
-            return m
-        end
+        isnothing(tail_idx) && (empty!(m.vars); empty!(m.z); return m)
+
         m.vars[head_idx] = m.vars[tail_idx]
         m.z[head_idx] = mod(m.z[tail_idx], 2)
 
@@ -45,11 +44,8 @@ function simplify!(m::Monomial, sa::SimplifyAlgorithm)
                 head_idx >= 1 && continue
 
                 head_idx = findfirst(isodd, view(m.z, (i + 1):length(m.z)))
-                if isnothing(head_idx)
-                    empty!(m.vars)
-                    empty!(m.z)
-                    return m
-                end
+                isnothing(head_idx) && (empty!(m.vars); empty!(m.z); return m)
+
                 m.vars[1] = m.vars[i + head_idx]
                 m.z[1] = m.z[i + head_idx]
 
