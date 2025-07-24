@@ -107,9 +107,18 @@ function simplify(sw::StateWord{ST}, sa::SimplifyAlgorithm) where {ST}
     return StateWord{ST}(canonicalize.(sw.state_monos, Ref(sa)))
 end
 
+function simplify!(sw::StateWord{ST},sa::SimplifyAlgorithm) where {ST}
+    return simplify(sw,sa)
+end
+
 function simplify(ncsw::NCStateWord, sa::SimplifyAlgorithm)
     return NCStateWord(simplify(ncsw.sw, sa), simplify(ncsw.nc_word, sa))
 end
+
+function simplify!(ncsw::NCStateWord, sa::SimplifyAlgorithm)
+    simplify(ncsw,sa)
+end
+
 
 """
     cyclic_canonicalize(mono::Monomial)
