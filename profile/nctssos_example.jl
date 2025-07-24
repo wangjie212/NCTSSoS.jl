@@ -23,7 +23,6 @@ using NCTSSoS.FastPolynomials: monomial, monomials, neat_dot, star, SimplifyAlgo
     a = monomial(x[[6,3,6,1,2,5,4]], [1,1,1,2,1,3,2]);
     sa_proj = SimplifyAlgorithm(comm_gps=[x[1:3], x[4:6]], is_unipotent=false, is_projective=false)
 )
-#40
 
 order = 3
 n = 30 

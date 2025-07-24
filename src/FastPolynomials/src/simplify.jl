@@ -109,7 +109,7 @@ end
 function simplify!(sw::StateWord{ST}, sa::SimplifyAlgorithm) where {ST}
     canonicalize!.(sw.state_monos, Ref(sa))
     sort!(filter!(!isone, sw.state_monos))
-    isempty(sw.state_monos) && push!(sw.state_monos,one(Monomial))
+    isempty(sw.state_monos) && push!(sw.state_monos, one(Monomial))
     return sw
 end
 
@@ -125,26 +125,31 @@ simplify(ncsw::NCStateWord, sa::SimplifyAlgorithm) = simplify!(copy(ncsw), sa)
 # then simplify
 # assuming simplify and star should commute
 function simplified_star_min!(m::Monomial, sa::SimplifyAlgorithm)
-    # the real star of x1x2y1y2 is not y2y1x2x1 but x2x1y2y1
+    # the real star of x1x2y1y2 is not y2y1x2x1 but x2x1y2y1, considering comm_gps
     simplify!(m, sa)
-    a_idx, b_idx = 1, length(m.vars)
-    while a_idx <= length(m.vars) && b_idx >= 1
-        iszero(m.z[a_idx]) && (a_idx += 1; continue)
-        iszero(m.z[b_idx]) && (b_idx -= 1; continue)
+    for i in 1:(sa.n_gps)
+        a_init = a_idx = findfirst(x -> sa.comm_gps[x] == i, m.vars)
+        b_init = b_idx = findlast(x -> sa.comm_gps[x] == i, m.vars)
+        isnothing(a_init) && continue
+        isnothing(b_init) && continue
+        while a_idx <= b_init && b_idx >= a_init
+            iszero(m.z[a_idx]) && (a_idx += 1; continue)
+            iszero(m.z[b_idx]) && (b_idx -= 1; continue)
 
-        var_cmp = cmp(m.vars[a_idx], m.vars[b_idx])
-        if var_cmp > 0
-            (star!(m); _comm!(m, sa.comm_gps); return m)
-        elseif var_cmp < 0
-            return m
+            var_cmp = cmp(m.vars[a_idx], m.vars[b_idx])
+            if var_cmp > 0
+                (star!(m); _comm!(m, sa.comm_gps); return m)
+            elseif var_cmp < 0
+                return m
+            end
+            if m.z[a_idx] > m.z[b_idx]
+                (star!(m); _comm!(m, sa.comm_gps); return m)
+            elseif m.z[a_idx] < m.z[b_idx]
+                return m
+            end
+            a_idx += 1
+            b_idx -= 1
         end
-        if m.z[a_idx] > m.z[b_idx]
-            (star!(m); _comm!(m, sa.comm_gps); return m)
-        elseif m.z[a_idx] < m.z[b_idx]
-            return m
-        end
-        a_idx += 1
-        b_idx -= 1
     end
     return m
 end
