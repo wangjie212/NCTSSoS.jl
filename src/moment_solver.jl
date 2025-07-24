@@ -1,6 +1,6 @@
 # T: type of the coefficients
 # monomap: map from monomials in DynamicPolynomials to variables in JuMP
-struct MomentProblem{T,M,CR<:ConstraintRef,JS<:AbstractJuMPScalar} 
+struct MomentProblem{T,M,CR<:ConstraintRef,JS<:AbstractJuMPScalar}
     model::GenericModel{T}
     constraints::Vector{CR}
     monomap::Dict{M,JS}  # TODO: maybe refactor.
@@ -39,7 +39,8 @@ The relaxation exploits correlative sparsity to reduce the size of the semidefin
 function moment_relax(pop::PolyOpt{P}, corr_sparsity::CorrelativeSparsity, cliques_term_sparsities::Vector{Vector{TermSparsity{M}}}) where {T,P<:AbstractPolynomial{T},M}
     # NOTE: objective and constraints may have integer coefficients, but popular JuMP solvers does not support integer coefficients
     # left type here to support BigFloat model for higher precision
-    model = GenericModel{real(T)}()
+    !(T <: Real) && error("Moment relaxation is not supported for PolyOpt, use CPolyOpt")
+    model = GenericModel{T}()
 
     sa = SimplifyAlgorithm(comm_gps=pop.comm_gps, is_unipotent=pop.is_unipotent, is_projective=pop.is_projective)
     # the union of clique_total_basis
@@ -54,7 +55,7 @@ function moment_relax(pop::PolyOpt{P}, corr_sparsity::CorrelativeSparsity, cliqu
 
     # map the monomials to JuMP variables, the first variable must be 1
     # TODO: make set_string_name = false to further improve performance
-    (T <: Real) ? @variable(model, y[1:length(total_basis)], set_string_name = true) : @variable(model, y[1:length(total_basis)] in ComplexPlane(), set_string_name = true)
+    @variable(model, y[1:length(total_basis)], set_string_name = false)
     @constraint(model, first(y) == 1)
     monomap = Dict(zip(total_basis, y))
 
@@ -67,7 +68,7 @@ function moment_relax(pop::PolyOpt{P}, corr_sparsity::CorrelativeSparsity, cliqu
                             poly,
                             ts_sub_basis,
                             monomap,
-                            poly in pop.eq_constraints ? Zeros() : (T <: Real ? PSDCone() : HermitianPSDCone()), sa)
+                            poly in pop.eq_constraints ? Zeros() : PSDCone(), sa)
                     end
                 end
             end
@@ -77,13 +78,12 @@ function moment_relax(pop::PolyOpt{P}, corr_sparsity::CorrelativeSparsity, cliqu
                     corr_sparsity.cons[global_con],
                     [one(pop.objective)],
                     monomap,
-                    corr_sparsity.cons[global_con] in pop.eq_constraints ? Zeros() : (T <: Real ? PSDCone() : HermitianPSDCone()),
+                    corr_sparsity.cons[global_con] in pop.eq_constraints ? Zeros() : PSDCone(),
                     sa
                 )
             end]
 
-    make_real = T <: Real ? identity : real
-    @objective(model, Min, make_real(substitute_variables(mapreduce(p -> make_real(p[1]) * canonicalize(expval(p[2]), sa), +, terms(pop.objective); init=make_real(expval(zero(pop.objective)))), monomap)))
+    @objective(model, Min, mapreduce(p -> p[1] * monomap[canonicalize(expval(p[2]), sa)], +, terms(pop.objective)))
 
     return MomentProblem(model, constraint_matrices, monomap, sa)
 end
@@ -97,10 +97,9 @@ function constrain_moment_matrix!(
     sa::SimplifyAlgorithm
 ) where {T,T1,P<:AbstractPolynomial{T},M1,M2,JS<:AbstractJuMPScalar}
     T_prom = promote_type(T, T1)
-    explicit_hermitian = (T <: Real || cone == Zeros()) ? identity : LinearAlgebra.Hermitian
-    moment_mtx = explicit_hermitian([
-        substitute_variables(sum([T_prom(coef) * simplify(expval(_neat_dot3(row_idx, mono, col_idx)), sa) for (coef, mono) in zip(coefficients(poly), monomials(poly))]), monomap) for
+    moment_mtx = [
+        sum([T_prom(coef) * monomap[simplify!(expval(_neat_dot3(row_idx, mono, col_idx)), sa)] for (coef, mono) in zip(coefficients(poly), monomials(poly))]) for
         row_idx in local_basis, col_idx in local_basis
-    ])
+    ]
     return @constraint(model, moment_mtx in cone)
 end

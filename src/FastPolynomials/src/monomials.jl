@@ -24,6 +24,8 @@ struct Monomial
     end
 end
 
+Base.copy(m::Monomial) = Monomial(copy(m.vars), copy(m.z))
+
 function consecutive_unique(vars::Vector{Variable})
     return all(i -> vars[i] != vars[i + 1], 1:(length(vars) - 1))
 end
@@ -136,45 +138,41 @@ star(m::Monomial) = Monomial(reverse(m.vars), reverse(m.z))
 """
     _comm(mono::Monomial, comm_gps::Vector{Vector{Variable}})
 
-Projects a monomial onto commutative groups of variables while maintaining the
-order of variables within each group.
-
-We kept it as separate groups because symmetric canonicalize over the product of
-groups vs product of symmetric canonicalize of each group is different
-
+Stably sorts variables in the monomial based on their commutative group indices.
 
 # Arguments
 - `mono::Monomial`: The monomial to project
-- `comm_gps::Vector{Vector{Variable}}`: Vector of sets defining commutative variable groups
+- `comm_gps::Dict{Variable,Int}`: Dictionary mapping varaible to commutative group index
 
 # Returns
-- `Vector{Monomial}`: Projections of the monomial onto each commutative group
+- `nothing`
 
 # Example
-```jldoctest; setup=:(using NCTSSoS.FastPolynomials; using NCTSSoS.FastPolynomials: _comm)
-julia> @ncpolyvar x y; comm_gps = [[x], [y]]
-2-element Vector{Vector{Variable}}:
- [x]
- [y]
+```jldoctest; setup=:(using NCTSSoS.FastPolynomials; using NCTSSoS.FastPolynomials: _comm!)
+julia> @ncpolyvar x y; comm_gps = Dict(x=>1,y=>2);
 
 julia> mono1 = x*y*x*y
 x¹y¹x¹y¹
 
-julia> _comm(mono1, comm_gps)
-4-element Vector{Int64}:
- 1
- 3
- 2
- 4
+julia> _comm!(mono1, comm_gps)
+
+julia> mono1
+x¹x¹y¹y¹
 ```
 """
-function _comm(mono::Monomial, comm_gps::Vector{Vector{Variable}})
-    isempty(mono.vars) && return Int[]
-    return sortperm(
-        map(mono.vars) do var
-            findfirst(gp -> var in gp, comm_gps)
-        end,
-    )
+function _comm!(mono::Monomial, comm_gps::Dict{Variable,Int})
+    length(mono.vars) == 1 && return nothing
+    swapped = false
+    @inbounds for i in 1:(length(mono.vars) - 1)
+        for j in 1:(length(mono.vars) - i)
+            comm_gps[mono.vars[j]] <= comm_gps[mono.vars[j + 1]] && continue
+            mono.vars[j], mono.vars[j + 1] = mono.vars[j + 1], mono.vars[j]
+            mono.z[j], mono.z[j + 1] = mono.z[j + 1], mono.z[j]
+            swapped = true
+        end
+        !swapped && break
+    end
+    return nothing
 end
 
 # multiply a variable to a monomial

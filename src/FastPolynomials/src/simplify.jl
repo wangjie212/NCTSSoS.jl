@@ -1,47 +1,106 @@
-@kwdef struct SimplifyAlgorithm
-    comm_gps::Vector{Vector{Variable}} = Vector{Variable}[]
-    is_unipotent::Bool = false
-    is_projective::Bool = false
+struct SimplifyAlgorithm
+    comm_gps::Dict{Variable,Int}
+    is_unipotent::Bool
+    is_projective::Bool
+    function SimplifyAlgorithm(;
+        comm_gps::Vector{Vector{Variable}},
+        is_unipotent::Bool=false,
+        is_projective::Bool=false,
+    )
+        return new(
+            Dict(var => i for (i, vars) in enumerate(comm_gps) for var in vars),
+            is_unipotent,
+            is_projective,
+        )
+    end
 end
 
 function nosimp(sa::SimplifyAlgorithm)
     return isone(length(sa.comm_gps)) && !sa.is_unipotent && !sa.is_projective
 end
 
-function simplify(m::Monomial, sa::SimplifyAlgorithm)
-    nosimp(sa) && return m
-    permidcs = _comm(m, sa.comm_gps)
-    vars = Variable[]
-    expos = Int[]
-    if sa.is_unipotent
-        for (var, expo) in zip(view(m.vars, permidcs), view(m.z, permidcs))
-            iseven(expo) && continue
-            if length(vars) == 0 || var != vars[end]   # new variable
-                push!(vars, var)
-                push!(expos, mod(expo, 2))
-            else
-                pop!(vars)
-                pop!(expos)
-            end
-        end
-    elseif sa.is_projective
-        for (var, expo) in zip(view(m.vars, permidcs), view(m.z, permidcs))
-            if length(vars) == 0 || var != vars[end]   # new variable
-                push!(vars, var)
-                push!(expos, one(expo))
-            end
-        end
-    else
-        for (var, expo) in zip(view(m.vars, permidcs), view(m.z, permidcs))
-            if length(vars) == 0 || var != vars[end]   # new variable
-                push!(vars, var)
-                push!(expos, expo)
-            else
-                expos[end] += expo
-            end
+function simplify!(m::Monomial, sa::SimplifyAlgorithm)
+    (isone(m) || nosimp(sa)) && return m
+    _comm!(m, sa.comm_gps)
+
+    sa.is_unipotent && (_simplify_unipotent!(m); return m)
+    sa.is_projective && (_simplify_projective!(m); return m)
+    _simplify_standard!(m)
+    return m
+end
+
+function _simplify_standard!(m::Monomial)
+    head_idx = 1
+    @inbounds for i in 2:length(m.vars)
+        if m.vars[i] == m.vars[head_idx]
+            m.z[head_idx] += m.z[i]
+        else
+            head_idx += 1
+            m.vars[head_idx] = m.vars[i]
+            m.z[head_idx] = m.z[i]
         end
     end
-    return Monomial(vars, expos)
+    if head_idx != length(m.vars)
+        deleteat!(m.vars, (head_idx + 1):length(m.vars))
+        deleteat!(m.z, (head_idx + 1):length(m.z))
+    end
+    return nothing
+end
+
+function _simplify_projective!(m::Monomial)
+    head_idx = 1
+    m.z[head_idx] = 1
+    @inbounds for i in 2:length(m.vars)
+        m.vars[i] == m.vars[head_idx] && continue
+        head_idx += 1
+        m.vars[head_idx] = m.vars[i]
+        m.z[head_idx] = 1
+    end
+    if head_idx != length(m.vars)
+        deleteat!(m.vars, (head_idx + 1):length(m.vars))
+        deleteat!(m.z, (head_idx + 1):length(m.z))
+    end
+    return nothing
+end
+
+function _simplify_unipotent!(m::Monomial)
+    head_idx = 1
+    tail_idx = findfirst(isodd, m.z)
+    isnothing(tail_idx) && (empty!(m.vars); empty!(m.z); return nothing)
+
+    m.vars[head_idx] = m.vars[tail_idx]
+    m.z[head_idx] = mod(m.z[tail_idx], 2)
+
+    tail_idx += 1
+    @inbounds for i in tail_idx:length(m.vars)
+        i < tail_idx && continue
+        iseven(m.z[i]) && continue
+        if m.vars[i] == m.vars[head_idx]
+            head_idx -= 1
+            head_idx >= 1 && continue
+
+            head_idx = findfirst(isodd, view(m.z, (i + 1):length(m.z)))
+            isnothing(head_idx) && (empty!(m.vars); empty!(m.z); return m)
+            m.vars[1] = m.vars[i + head_idx]
+            m.z[1] = 1
+
+            tail_idx = i + head_idx + 1
+            head_idx = 1
+        else
+            head_idx += 1
+            m.vars[head_idx] = m.vars[i]
+            m.z[head_idx] = 1
+        end
+    end
+    if head_idx != length(m.vars)
+        deleteat!(m.vars, (head_idx + 1):length(m.vars))
+        deleteat!(m.z, (head_idx + 1):length(m.z))
+    end
+    return nothing
+end
+
+function simplify(m::Monomial, sa::SimplifyAlgorithm)
+    return simplify!(copy(m), sa)
 end
 
 function simplify(sw::StateWord{ST}, sa::SimplifyAlgorithm) where {ST}
@@ -74,7 +133,7 @@ function cyclic_canonicalize(mono::Monomial, sa::SimplifyAlgorithm)
     return minimum(
         mapreduce(vcat, 1:sum(mono.z)) do shift
             shifted_mono = monomial(circshift!(flatten_vars, 1), circshift!(flatten_z, 1))
-            [simplify(shifted_mono, sa), simplify(star(shifted_mono), sa)]
+            [simplify!(star(shifted_mono), sa), simplify!(shifted_mono, sa)]
         end,
     )
 end

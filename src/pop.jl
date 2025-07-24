@@ -116,7 +116,7 @@ function cpolyopt(objective::P; eq_constraints=Any[], ineq_constraints=Any[], co
     end
     @assert !(is_unipotent && is_projective) "The problem cannot be both unipotent and projective."
 
-    sa = SimplifyAlgorithm(comm_gps, false, false)
+    sa = SimplifyAlgorithm(comm_gps=comm_gps, is_unipotent=false, is_projective=false)
     @assert FastPolynomials.is_symmetric(objective, sa) "Objective must be symmetric"
     for ineq in ineq_constraints
         @assert FastPolynomials.is_symmetric(ineq, sa) "Inequality constraints must be symmetric"
