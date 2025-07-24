@@ -79,9 +79,6 @@ if Sys.isapple()
 
     spop = polyopt(sp*one(Monomial); is_unipotent = true, comm_gps = [x[1:3], y[1:3]])
 
-    using NCTSSoS.FastPolynomials: neat_dot
-    t1 = ς(x[1]*y[1])*one(Monomial)
-    neat_dot(t1,t1)
     d = 2
     solver_config = SolverConfig(; optimizer = SOLVER, order = d)
 

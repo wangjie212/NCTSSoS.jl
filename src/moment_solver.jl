@@ -97,7 +97,6 @@ function constrain_moment_matrix!(
 ) where {T,T1,P<:AbstractPolynomial{T},M1,M2,JS<:AbstractJuMPScalar}
     T_prom = promote_type(T, T1)
     moment_mtx = [
-        # substitute_variables(sum([T_prom(coef) * simplify!(expval(_neat_dot3(row_idx, mono, col_idx)), sa) for (coef, mono) in zip(coefficients(poly), monomials(poly))]), monomap) for
         sum([T_prom(coef) * monomap[simplify!(expval(_neat_dot3(row_idx, mono, col_idx)), sa)] for (coef, mono) in zip(coefficients(poly), monomials(poly))]) for
         row_idx in local_basis, col_idx in local_basis
     ]

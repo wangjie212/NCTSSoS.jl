@@ -102,9 +102,7 @@ function _simplify_unipotent!(m::Monomial)
     return nothing
 end
 
-function simplify(m::Monomial, sa::SimplifyAlgorithm)
-    return simplify!(copy(m), sa)
-end
+simplify(m::Monomial, sa::SimplifyAlgorithm) = simplify!(copy(m), sa)
 
 function simplify!(sw::StateWord{ST}, sa::SimplifyAlgorithm) where {ST}
     canonicalize!.(sw.state_monos, Ref(sa))
@@ -125,33 +123,36 @@ simplify(ncsw::NCStateWord, sa::SimplifyAlgorithm) = simplify!(copy(ncsw), sa)
 # then simplify
 # assuming simplify and star should commute
 function simplified_star_min!(m::Monomial, sa::SimplifyAlgorithm)
-    # the real star of x1x2y1y2 is not y2y1x2x1 but x2x1y2y1, considering comm_gps
+    ms = simplify!(star(m), sa)
     simplify!(m, sa)
-    for i in 1:(sa.n_gps)
-        a_init = a_idx = findfirst(x -> sa.comm_gps[x] == i, m.vars)
-        b_init = b_idx = findlast(x -> sa.comm_gps[x] == i, m.vars)
-        isnothing(a_init) && continue
-        isnothing(b_init) && continue
-        while a_idx <= b_init && b_idx >= a_init
-            iszero(m.z[a_idx]) && (a_idx += 1; continue)
-            iszero(m.z[b_idx]) && (b_idx -= 1; continue)
+    return min(ms, m)
+    # the real star of x1x2y1y2 is not y2y1x2x1 but x2x1y2y1, considering comm_gps
+    # simplify!(m, sa)
+    # @inbounds for i in 1:(sa.n_gps)
+    #     a_init = a_idx = findfirst(x -> sa.comm_gps[x] == i, m.vars)
+    #     b_init = b_idx = findlast(x -> sa.comm_gps[x] == i, m.vars)
+    #     isnothing(a_init) && continue
+    #     isnothing(b_init) && continue
+    #     while a_idx <= b_init && b_idx >= a_init
+    #         iszero(m.z[a_idx]) && (a_idx += 1; continue)
+    #         iszero(m.z[b_idx]) && (b_idx -= 1; continue)
 
-            var_cmp = cmp(m.vars[a_idx], m.vars[b_idx])
-            if var_cmp > 0
-                (star!(m); _comm!(m, sa.comm_gps); return m)
-            elseif var_cmp < 0
-                return m
-            end
-            if m.z[a_idx] > m.z[b_idx]
-                (star!(m); _comm!(m, sa.comm_gps); return m)
-            elseif m.z[a_idx] < m.z[b_idx]
-                return m
-            end
-            a_idx += 1
-            b_idx -= 1
-        end
-    end
-    return m
+    #         var_cmp = cmp(m.vars[a_idx], m.vars[b_idx])
+    #         if var_cmp > 0
+    #             (star!(m); _comm!(m, sa.comm_gps); return m)
+    #         elseif var_cmp < 0
+    #             return m
+    #         end
+    #         if m.z[a_idx] > m.z[b_idx]
+    #             (star!(m); _comm!(m, sa.comm_gps); return m)
+    #         elseif m.z[a_idx] < m.z[b_idx]
+    #             return m
+    #         end
+    #         a_idx += 1
+    #         b_idx -= 1
+    #     end
+    # end
+    # return m
 end
 
 """
@@ -202,17 +203,24 @@ function canonicalize!(sw::StateWord{MaxEntangled}, sa::SimplifyAlgorithm)
     return StateWord{MaxEntangled}(cyclic_canonicalize.(sw.state_monos, Ref(sa)))
 end
 
+canonicalize(sw::StateWord{MaxEntangled}, sa::SimplifyAlgorithm) = canonicalize!(sw, sa)
+
 canonicalize!(m::Monomial, sa::SimplifyAlgorithm) = symmetric_canonicalize!(m, sa)
+canonicalize(m::Monomial, sa::SimplifyAlgorithm) = symmetric_canonicalize!(copy(m), sa)
 
 function canonicalize!(sw::StateWord{Arbitrary}, sa::SimplifyAlgorithm)
     return StateWord{Arbitrary}(symmetric_canonicalize!.(sw.state_monos, Ref(sa)))
 end
+
+canonicalize(sw::StateWord{Arbitrary}, sa::SimplifyAlgorithm) = canonicalize!(copy(sw), sa)
 
 function canonicalize!(ncsw::NCStateWord, sa::SimplifyAlgorithm)
     return NCStateWord(
         canonicalize!(ncsw.sw, sa), symmetric_canonicalize!(ncsw.nc_word, sa)
     )
 end
+
+canonicalize(ncsw::NCStateWord, sa::SimplifyAlgorithm) = canonicalize!(copy(ncsw), sa)
 
 """
     canonicalize(poly::Polynomial)
@@ -272,12 +280,26 @@ function get_basis(
     return get_state_basis(ST, variables, d, sa)
 end
 
+function canonicalize!(sp::StatePolynomial, sa::SimplifyAlgorithm)
+    canonicalize!.(sp.state_words, Ref(sa))
+    return sp
+end
+
 function canonicalize(sp::StatePolynomial, sa::SimplifyAlgorithm)
-    return StatePolynomial((sp.coeffs), canonicalize!.(sp.state_words, Ref(sa)))
+    return StatePolynomial(
+        (sp.coeffs), canonicalize!.(map(x -> copy(x), sp.state_words), Ref(sa))
+    )
 end
 
 function canonicalize(ncsp::NCStatePolynomial, sa::SimplifyAlgorithm)
-    return NCStatePolynomial((ncsp.coeffs), canonicalize!.(ncsp.nc_state_words, Ref(sa)))
+    return NCStatePolynomial(
+        (ncsp.coeffs), canonicalize!.(map(x -> copy(x), ncsp.nc_state_words), Ref(sa))
+    )
+end
+
+function canonicalize!(ncsp::NCStatePolynomial, sa::SimplifyAlgorithm)
+    canonicalize!.(ncsp.nc_state_words)
+    return ncsp
 end
 
 function get_basis(
