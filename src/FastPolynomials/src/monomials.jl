@@ -133,7 +133,11 @@ Computes the adjoint (star) of a monomial by reversing variable order and expone
 # Returns
 - `Monomial`: Adjoint monomial with reversed variables and exponents
 """
-star(m::Monomial) = Monomial(reverse(m.vars), reverse(m.z))
+star(m::Monomial) = star!(copy(m))
+
+function star!(m::Monomial)
+    (length(m.vars) <= 1 && return m; reverse!(m.vars); reverse!(m.z); return m)
+end
 
 """
     _comm(mono::Monomial, comm_gps::Vector{Vector{Variable}})
