@@ -107,8 +107,8 @@ function simplify(sw::StateWord{ST}, sa::SimplifyAlgorithm) where {ST}
     return StateWord{ST}(canonicalize.(sw.state_monos, Ref(sa)))
 end
 
-function simplify!(sw::StateWord{ST},sa::SimplifyAlgorithm) where {ST}
-    return simplify(sw,sa)
+function simplify!(sw::StateWord{ST}, sa::SimplifyAlgorithm) where {ST}
+    return simplify(sw, sa)
 end
 
 function simplify(ncsw::NCStateWord, sa::SimplifyAlgorithm)
@@ -116,9 +116,8 @@ function simplify(ncsw::NCStateWord, sa::SimplifyAlgorithm)
 end
 
 function simplify!(ncsw::NCStateWord, sa::SimplifyAlgorithm)
-    simplify(ncsw,sa)
+    return simplify(ncsw, sa)
 end
-
 
 """
     cyclic_canonicalize(mono::Monomial)
@@ -193,20 +192,6 @@ varaibles because trace polynomial is taken care at StatePoly
 """
 function canonicalize(poly::Polynomial, sa::SimplifyAlgorithm)
     return Polynomial(conj.(poly.coeffs), symmetric_canonicalize.(poly.monos, Ref(sa)))
-end
-
-function _unipotent(sw::StateWord{ST}) where {ST}
-    return StateWord{ST}(_unipotent.(sw.state_monos))
-end
-
-function _unipotent(ncsw::NCStateWord)
-    return NCStateWord(_unipotent(ncsw.sw), _unipotent(ncsw.nc_word))
-end
-
-_projective(sw::StateWord{ST}) where {ST} = StateWord{ST}(_projective.(sw.state_monos))
-
-function _projective(ncsw::NCStateWord)
-    return NCStateWord(_projective(ncsw.sw), _projective(ncsw.nc_word))
 end
 
 # ς(w) = ς(w') stated in https://arxiv.org/abs/2301.12513, Section 2.1
