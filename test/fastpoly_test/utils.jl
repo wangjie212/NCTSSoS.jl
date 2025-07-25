@@ -1,6 +1,6 @@
 using Test, NCTSSoS.FastPolynomials
 using NCTSSoS.FastPolynomials:
-    star, symmetric_canonicalize, cyclic_canonicalize, _comm!
+    star, symmetric_canonicalize, cyclic_canonicalize, _comm!, simplify!
 
 @testset "Utilities" begin
     @ncpolyvar x y z
@@ -173,15 +173,25 @@ using NCTSSoS.FastPolynomials:
         @test mono == x[1] * x[2] * y[1] * y[2]^2
     end
 
-    # @testset "_projective" begin
-    #     @ncpolyvar x y z
-    #     mono = y * x^3 * y * z^3
-    #     @test _projective(mono) == y * x * y * z
-    # end
+    @testset "_projective" begin
+        @ncpolyvar x y z
+        mono = y * x^3 * y * z^3
+        sa = SimplifyAlgorithm(
+            comm_gps=[[x, y, z]],
+            is_projective=true,
+            is_unipotent=false,
+        )
+        @test simplify!(mono,sa) == y * x * y * z
+    end
 
-    # @testset "_unipotent" begin
-    #     @ncpolyvar x y z
-    #     mono = z * x * y * z^2 * y * x * z
-    #     @test _unipotent(mono) == one(mono)
-    # end
+    @testset "_unipotent" begin
+        @ncpolyvar x y z
+        mono = z * x * y * z^2 * y * x * z
+        sa = SimplifyAlgorithm(
+            comm_gps=[[x, y, z]],
+            is_projective=false,
+            is_unipotent=true,
+        )
+        @test simplify!(mono, sa) == one(mono)
+    end
 end

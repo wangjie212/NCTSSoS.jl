@@ -119,6 +119,8 @@ function simplify!(ncsw::NCStateWord, sa::SimplifyAlgorithm)
     return simplify(ncsw, sa)
 end
 
+function simplified_star_min!(mono::Monomial, sa::SimplifyAlgorithm) end
+
 """
     cyclic_canonicalize(mono::Monomial)
 
@@ -133,17 +135,23 @@ Chclic canonical is both cyclic and symmetric
 - `Monomial`: Canonicalized monomial (minimum across all cyclic shifts and their stars)
 """
 function cyclic_canonicalize(mono::Monomial, sa::SimplifyAlgorithm)
-    isempty(mono.vars) && return mono
+    isone(mono) && return mono
     flatten_vars = mapreduce(
         idx -> fill(mono.vars[idx], mono.z[idx]), vcat, eachindex(mono.z)
     )
     flatten_z = ones(Int, sum(mono.z))
-    return minimum(
-        mapreduce(vcat, 1:sum(mono.z)) do shift
-            shifted_mono = monomial(circshift!(flatten_vars, 1), circshift!(flatten_z, 1))
-            [simplify!(star(shifted_mono), sa), simplify!(shifted_mono, sa)]
-        end,
-    )
+    return mapreduce(
+        min, 1:(sum(mono.z) - 1); init=min(simplify!(star(mono), sa), simplify(mono, sa))
+    ) do shift
+        shifted_mono = monomial(circshift!(flatten_vars, 1), circshift!(flatten_z, 1))
+        min(simplify!(star(shifted_mono), sa), simplify!(shifted_mono, sa))
+    end
+    # return minimum(
+    #     mapreduce(vcat, 1:sum(mono.z)) do shift
+    #         shifted_mono = monomial(circshift!(flatten_vars, 1), circshift!(flatten_z, 1))
+    #         [simplify(shifted_mono, sa), simplify!(star!(shifted_mono), sa)]
+    #     end,
+    # )
 end
 
 """
