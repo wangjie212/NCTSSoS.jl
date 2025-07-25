@@ -1,5 +1,6 @@
 struct SimplifyAlgorithm
     comm_gps::Dict{Variable,Int}
+    n_gps::Int
     is_unipotent::Bool
     is_projective::Bool
     function SimplifyAlgorithm(;
@@ -9,6 +10,7 @@ struct SimplifyAlgorithm
     )
         return new(
             Dict(var => i for (i, vars) in enumerate(comm_gps) for var in vars),
+            length(comm_gps),
             is_unipotent,
             is_projective,
         )
@@ -119,7 +121,37 @@ function simplify!(ncsw::NCStateWord, sa::SimplifyAlgorithm)
     return simplify(ncsw, sa)
 end
 
-function simplified_star_min!(mono::Monomial, sa::SimplifyAlgorithm) end
+function simplified_star_min!(mono::Monomial, sa::SimplifyAlgorithm)
+    # return mono = min(simplify!(star(mono), sa), simplify!(mono, sa))
+    # return mono = min(simplify!(mono, sa), simplify!(star(mono), sa))
+    # the real star of x1x2y1y2 is not y2y1x2x1 but x2x1y2y1, considering comm_gps
+    simplify!(mono, sa)
+    @inbounds for i in 1:(sa.n_gps)
+        a_init = a_idx = findfirst(x -> sa.comm_gps[x] == i, mono.vars)
+        b_init = b_idx = findlast(x -> sa.comm_gps[x] == i, mono.vars)
+        isnothing(a_init) && continue
+        isnothing(b_init) && continue
+        while a_idx <= b_init && b_idx >= a_init
+            iszero(mono.z[a_idx]) && (a_idx += 1; continue)
+            iszero(mono.z[b_idx]) && (b_idx -= 1; continue)
+
+            var_cmp = cmp(mono.vars[a_idx], mono.vars[b_idx])
+            if var_cmp > 0
+                (star!(mono); _comm!(mono, sa.comm_gps); return mono)
+            elseif var_cmp < 0
+                return mono
+            end
+            if mono.z[a_idx] > mono.z[b_idx]
+                (star!(mono); _comm!(mono, sa.comm_gps); return mono)
+            elseif mono.z[a_idx] < mono.z[b_idx]
+                return mono
+            end
+            a_idx += 1
+            b_idx -= 1
+        end
+    end
+    return mono
+end
 
 """
     cyclic_canonicalize(mono::Monomial)
@@ -142,16 +174,10 @@ function cyclic_canonicalize(mono::Monomial, sa::SimplifyAlgorithm)
     flatten_z = ones(Int, sum(mono.z))
     return mapreduce(
         min, 1:(sum(mono.z) - 1); init=min(simplify!(star(mono), sa), simplify(mono, sa))
-    ) do shift
+    ) do _
         shifted_mono = monomial(circshift!(flatten_vars, 1), circshift!(flatten_z, 1))
-        min(simplify!(star(shifted_mono), sa), simplify!(shifted_mono, sa))
+        simplified_star_min!(shifted_mono, sa)
     end
-    # return minimum(
-    #     mapreduce(vcat, 1:sum(mono.z)) do shift
-    #         shifted_mono = monomial(circshift!(flatten_vars, 1), circshift!(flatten_z, 1))
-    #         [simplify(shifted_mono, sa), simplify!(star!(shifted_mono), sa)]
-    #     end,
-    # )
 end
 
 """
@@ -166,8 +192,8 @@ Canonicalizes a mono by taking the minimum between itself and its adjoint.
 - `Monomial`: Canonicalized monomial (minimum of original and its star)
 """
 function symmetric_canonicalize(mono::Monomial, sa::SimplifyAlgorithm)
-    isempty(mono.vars) && return mono
-    return min(simplify(mono, sa), simplify(star(mono), sa))
+    isone(mono) && return mono
+    return simplified_star_min!(copy(mono), sa)
 end
 
 function canonicalize(sw::StateWord{MaxEntangled}, sa::SimplifyAlgorithm)
