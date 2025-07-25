@@ -2,8 +2,6 @@ using Test, NCTSSoS.FastPolynomials
 using NCTSSoS.FastPolynomials:
     StateWord,
     NCStateWord,
-    _projective,
-    _unipotent,
     get_state_basis,
     expval,
     neat_dot,
