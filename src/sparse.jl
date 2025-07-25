@@ -164,7 +164,7 @@ function Base.show(io::IO, sparsity::TermSparsity)
 end
 
 function init_activated_supp(partial_obj::P, cons::Vector{P}, mom_mtx_bases::Vector{M}, sa::SimplifyAlgorithm) where {T,P<:AbstractPolynomial{T},M}
-    return sorted_union(canonicalize.(monomials(partial_obj), Ref(sa)), mapreduce(a -> simplify.(monomials(a), Ref(sa)), vcat, cons; init=M[]), [simplify(neat_dot(b, b), sa) for b in mom_mtx_bases])
+    return sorted_union(canonicalize.(monomials(partial_obj), Ref(sa)), mapreduce(a -> simplify.(monomials(a), Ref(sa)), vcat, cons; init=M[]), [simplify!(neat_dot(b, b), sa) for b in mom_mtx_bases])
 end
 
 """
@@ -213,8 +213,8 @@ function get_term_sparsity_graph(cons_support::Vector{M}, activated_supp::Vector
         for supp in cons_support
             connected_mono_lr = _neat_dot3(bases[i], supp, bases[j])
             connected_mono_rl = _neat_dot3(bases[j], supp, bases[i])
-            expval_cm_lr = expval(simplify(connected_mono_lr, sa)) * one(Monomial)
-            expval_cm_rl = expval(simplify(connected_mono_rl, sa)) * one(Monomial)
+            expval_cm_lr = expval(simplify!(connected_mono_lr, sa)) * one(Monomial)
+            expval_cm_rl = expval(simplify!(connected_mono_rl, sa)) * one(Monomial)
             if expval_cm_lr in sorted_activated_supp || expval_cm_rl in sorted_activated_supp
                 add_edge!(G, i, j)
                 continue
@@ -261,6 +261,6 @@ Computes the support of a term sparsity graph for a given polynomial.
 function term_sparsity_graph_supp(G::SimpleGraph, basis::Vector{M}, g::P, sa::SimplifyAlgorithm) where {M,P}
     # following (10.4) in Sparse Polynomial Optimization: Theory and Practise
     # NOTE: Do I need to symmetric canonicalize it?
-    gsupp(a, b) = map(g_supp -> simplify(_neat_dot3(a, g_supp, b), sa), monomials(g))
+    gsupp(a, b) = map(g_supp -> simplify!(_neat_dot3(a, g_supp, b), sa), monomials(g))
     return union([gsupp(basis[v], basis[v]) for v in vertices(G)]..., [gsupp(basis[e.src], basis[e.dst]) for e in edges(G)]...)
 end
