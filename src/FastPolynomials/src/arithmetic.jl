@@ -45,11 +45,11 @@ function _concat_var_expos(
 
     la = length(a)
     lb = length(b)
-    if a[end] == b[begin]
+    @inbounds if a[end] == b[begin]
         total_len = la + lb - 1
         w = Vector{Variable}(undef, total_len)
         z = Vector{Int}(undef, total_len)
-        @inbounds for k in 1:(la - 1)
+        for k in 1:(la - 1)
             w[k] = a[k]
             z[k] = a_z[k]
         end
@@ -57,7 +57,7 @@ function _concat_var_expos(
         w[la] = a[la]
         z[la] = a_z[la] + b_z[begin]
 
-        @inbounds for k in 2:lb
+        for k in 2:lb
             w[la + k - 1] = b[k]
             z[la + k - 1] = b_z[k]
         end
@@ -65,11 +65,11 @@ function _concat_var_expos(
         total_len = la + lb
         w = Vector{Variable}(undef, total_len)
         z = Vector{Int}(undef, total_len)
-        @inbounds for k in 1:la
+        for k in 1:la
             w[k] = a[k]
             z[k] = a_z[k]
         end
-        @inbounds for k in 1:lb
+        for k in 1:lb
             w[la + k] = b[k]
             z[la + k] = b_z[k]
         end
@@ -112,11 +112,11 @@ function _concat_var_expos3(
 
     la, lb, lc = length(a), length(b), length(c)
 
-    if a[end] == b[begin] && b[end] == c[begin]
+    @inbounds if a[end] == b[begin] && b[end] == c[begin]
         total_len = la + lb + lc - 2
         w = Vector{Variable}(undef, total_len)
         z = Vector{Int}(undef, total_len)
-        @inbounds for k in 1:(la - 1)
+        for k in 1:(la - 1)
             w[k] = a[k]
             z[k] = a_z[k]
         end
@@ -124,7 +124,7 @@ function _concat_var_expos3(
         w[la] = a[la]
         z[la] = a_z[la] + b_z[begin]
 
-        @inbounds for k in 2:(lb - 1)
+        for k in 2:(lb - 1)
             w[la + k - 1] = b[k]
             z[la + k - 1] = b_z[k]
         end
@@ -132,13 +132,13 @@ function _concat_var_expos3(
         if lb > 1
             w[la + lb - 1] = b[lb]
             z[la + lb - 1] = b_z[lb] + c_z[begin]
-            @inbounds for k in 2:lc
+            for k in 2:lc
                 w[la + lb + k - 2] = c[k]
                 z[la + lb + k - 2] = c_z[k]
             end
         else
             z[la] += c_z[begin]
-            @inbounds for k in 2:lc
+            for k in 2:lc
                 w[la + k - 1] = c[k]
                 z[la + k - 1] = c_z[k]
             end
@@ -149,12 +149,12 @@ function _concat_var_expos3(
         w = Vector{Variable}(undef, total_len)
         z = Vector{Int}(undef, total_len)
 
-        @inbounds for k in 1:la
+        for k in 1:la
             w[k] = a[k]
             z[k] = a_z[k]
         end
 
-        @inbounds for k in 1:(lb - 1)
+        for k in 1:(lb - 1)
             w[la + k] = b[k]
             z[la + k] = b_z[k]
         end
@@ -162,7 +162,7 @@ function _concat_var_expos3(
         w[la + lb] = b[lb]
         z[la + lb] = b_z[lb] + c_z[begin]
 
-        @inbounds for k in 2:lc
+        for k in 2:lc
             w[la + lb + k - 1] = c[k]
             z[la + lb + k - 1] = c_z[k]
         end
@@ -171,7 +171,7 @@ function _concat_var_expos3(
         w = Vector{Variable}(undef, total_len)
         z = Vector{Int}(undef, total_len)
 
-        @inbounds for k in 1:(la - 1)
+        for k in 1:(la - 1)
             w[k] = a[k]
             z[k] = a_z[k]
         end
@@ -179,12 +179,12 @@ function _concat_var_expos3(
         w[la] = a[la]
         z[la] = a_z[la] + b_z[begin]
 
-        @inbounds for k in 2:lb
+        for k in 2:lb
             w[la + k - 1] = b[k]
             z[la + k - 1] = b_z[k]
         end
 
-        @inbounds for k in 1:lc
+        for k in 1:lc
             w[la + lb + k - 1] = c[k]
             z[la + lb + k - 1] = c_z[k]
         end
@@ -192,15 +192,15 @@ function _concat_var_expos3(
         total_len = la + lb + lc
         w = Vector{Variable}(undef, total_len)
         z = Vector{Int}(undef, total_len)
-        @inbounds for k in 1:la
+        for k in 1:la
             w[k] = a[k]
             z[k] = a_z[k]
         end
-        @inbounds for k in 1:lb
+        for k in 1:lb
             w[la + k] = b[k]
             z[la + k] = b_z[k]
         end
-        @inbounds for k in 1:lc
+        for k in 1:lc
             w[la + lb + k] = c[k]
             z[la + lb + k] = c_z[k]
         end

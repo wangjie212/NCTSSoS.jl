@@ -12,11 +12,6 @@ sp = -1.0 * sp1 * sp1 - 1.0 * sp2 * sp2
 
 d = 3
 
-# SUITE["State Poly Moment Problem"] = @benchmarkable cs_nctssos(spop, solver_config; dualize=false) setup = (
-#     spop = polyopt(sp * one(Monomial); is_unipotent=true, comm_gps=[x, y]);
-#     solver_config = SolverConfig(; optimizer=Mosek.Optimizer, order=d)
-# )
-
 SUITE["State Poly SOS Problem"] = @benchmarkable cs_nctssos(spop, solver_config) setup = (
     spop = polyopt(sp * one(Monomial); is_unipotent=true, comm_gps=[x, y]);
     solver_config = SolverConfig(; optimizer=Mosek.Optimizer, order=d)

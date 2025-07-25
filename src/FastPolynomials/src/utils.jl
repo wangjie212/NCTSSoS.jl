@@ -23,4 +23,4 @@ Returns sorted union of multiple collections.
 # Returns
 - Sorted vector containing union of all input collections
 """
-sorted_union(xs...) = sort(union(xs...))
+sorted_union(xs...) = sort!(union(xs...))

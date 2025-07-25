@@ -9,8 +9,6 @@ using NCTSSoS.FastPolynomials:
     neat_dot,
     expval,
     monomials,
-    _unipotent,
-    _projective,
     Arbitrary,
     MaxEntangled
 

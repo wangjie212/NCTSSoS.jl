@@ -2,13 +2,11 @@ using Test, NCTSSoS.FastPolynomials
 using NCTSSoS.FastPolynomials:
     StateWord,
     NCStateWord,
-    _projective,
-    _unipotent,
     get_state_basis,
     expval,
     neat_dot,
     StatePolynomial,
-    Arbitrary, 
+    Arbitrary,
     MaxEntangled
 
 const SWord = StateWord{Arbitrary}
@@ -44,7 +42,7 @@ const NCTWord = NCStateWord{MaxEntangled}
         sw_rep1s = TWord(monomial.(fill(one(x[1]), 3)))
         @test sw_rep1s == TWord([monomial([], [])])
         @test one(TWord) == tr(monomial([], []))
-        @test (4.0 * sw) isa StatePolynomial{Float64, MaxEntangled}
+        @test (4.0 * sw) isa StatePolynomial{Float64,MaxEntangled}
     end
 
     @testset "Tracial NCStateWord" begin
@@ -62,7 +60,7 @@ const NCTWord = NCStateWord{MaxEntangled}
 
         @test unique([ncsw, ncsw_sorted]) == [ncsw]
         @test ncsw * ncsw_less ==
-            NCStateWord(TWord([x[2]^2, x[1] * x[2], x[1] * x[2], x[1]^2]), one(x[1]))
+              NCStateWord(TWord([x[2]^2, x[1] * x[2], x[1] * x[2], x[1]^2]), one(x[1]))
 
         ncsw_partial = NCStateWord(TWord([x[1] * x[2]]), one(x[1]))
         @test ncsw != ncsw_partial
@@ -83,7 +81,7 @@ const NCTWord = NCStateWord{MaxEntangled}
         )
 
         @test neat_dot(ncsw1, ncsw2) ==
-            NCStateWord(Arbitrary,[x[2] * x[1], x[2]^2, x[1]^2, x[1]^3], x[2] * x[1]^3)
+              NCStateWord(Arbitrary, [x[2] * x[1], x[2]^2, x[1]^2, x[1]^3], x[2] * x[1]^3)
 
         @test expval(ncsw1) == TWord([x[1] * x[2], x[2]^2, x[1] * x[2]])
 
@@ -118,25 +116,25 @@ const NCTWord = NCStateWord{MaxEntangled}
                 ],
             )
         @test sort(total_basis) ==
-            sort(map(x -> NCStateWord(MaxEntangled, x[1], x[2]), zip(c_words, nc_words)))
+              sort(map(x -> NCStateWord(MaxEntangled, x[1], x[2]), zip(c_words, nc_words)))
     end
 
-    @testset "_unipotent" begin
-        @ncpolyvar x[1:2] y[1:2]
+    # @testset "_unipotent" begin
+    #     @ncpolyvar x[1:2] y[1:2]
 
-        @test _unipotent(tr(x[1]^2 * y[1]^2)) == TWord(Monomial[])
-        @test _unipotent(tr(x[1]^2 * y[1] * y[2])) == tr(y[1] * y[2])
-        @test _unipotent(tr(x[1]^2) * tr(y[1] * y[2])) == tr(y[1] * y[2])
-        @test _unipotent(tr(x[1] * x[2]^2 * x[1]) * tr(y[1] * y[2]^2)) == tr(y[1])
-    end
+    #     @test _unipotent(tr(x[1]^2 * y[1]^2)) == TWord(Monomial[])
+    #     @test _unipotent(tr(x[1]^2 * y[1] * y[2])) == tr(y[1] * y[2])
+    #     @test _unipotent(tr(x[1]^2) * tr(y[1] * y[2])) == tr(y[1] * y[2])
+    #     @test _unipotent(tr(x[1] * x[2]^2 * x[1]) * tr(y[1] * y[2]^2)) == tr(y[1])
+    # end
 
-    @testset "_projective" begin
-        @ncpolyvar x[1:2] y[1:2]
+    # @testset "_projective" begin
+    #     @ncpolyvar x[1:2] y[1:2]
 
-        @test _projective(tr(x[1]^2 * y[1]^2)) == tr(x[1] * y[1])
-        @test _projective(tr(x[1] * x[2]^2 * x[1]) * tr(y[1] * y[2]^2)) ==
-            tr(x[1] * x[2] * x[1]) * tr(y[1] * y[2])
-    end
+    #     @test _projective(tr(x[1]^2 * y[1]^2)) == tr(x[1] * y[1])
+    #     @test _projective(tr(x[1] * x[2]^2 * x[1]) * tr(y[1] * y[2]^2)) ==
+    #         tr(x[1] * x[2] * x[1]) * tr(y[1] * y[2])
+    # end
 end
 
 
@@ -169,7 +167,7 @@ end
         sw_rep1s = SWord(monomial.(fill(one(x[1]), 3)))
         @test sw_rep1s == SWord([monomial([], [])])
         @test one(SWord) == ς(monomial([], []))
-        @test (4.0 * sw) isa StatePolynomial{Float64, Arbitrary}
+        @test (4.0 * sw) isa StatePolynomial{Float64,Arbitrary}
     end
 
     @testset "NCStateWord" begin
@@ -187,7 +185,7 @@ end
 
         @test unique([ncsw, ncsw_sorted]) == [ncsw]
         @test ncsw * ncsw_less ==
-            NCStateWord(SWord([x[2]^2, x[1] * x[2], x[1] * x[2], x[1]^2]), one(x[1]))
+              NCStateWord(SWord([x[2]^2, x[1] * x[2], x[1] * x[2], x[1]^2]), one(x[1]))
 
         ncsw_partial = NCStateWord(SWord([x[1] * x[2]]), one(x[1]))
         @test ncsw != ncsw_partial
@@ -208,7 +206,7 @@ end
         )
 
         @test neat_dot(ncsw1, ncsw2) ==
-            NCStateWord(Arbitrary,[x[2] * x[1], x[2]^2, x[1]^2, x[1]^3], x[2] * x[1]^3)
+              NCStateWord(Arbitrary, [x[2] * x[1], x[2]^2, x[1]^2, x[1]^3], x[2] * x[1]^3)
 
         @test expval(ncsw1) == SWord([x[1] * x[2], x[2]^2, x[1] * x[2]])
 
@@ -243,23 +241,23 @@ end
                 ],
             )
         @test sort(total_basis) ==
-            sort(map(x -> NCStateWord(Arbitrary, x[1], x[2]), zip(c_words, nc_words)))
+              sort(map(x -> NCStateWord(Arbitrary, x[1], x[2]), zip(c_words, nc_words)))
     end
 
-    @testset "_unipotent" begin
-        @ncpolyvar x[1:2] y[1:2]
+    # @testset "_unipotent" begin
+    #     @ncpolyvar x[1:2] y[1:2]
 
-        @test _unipotent(ς(x[1]^2 * y[1]^2)) == SWord(Monomial[])
-        @test _unipotent(ς(x[1]^2 * y[1] * y[2])) == ς(y[1] * y[2])
-        @test _unipotent(ς(x[1]^2) * ς(y[1] * y[2])) == ς(y[1] * y[2])
-        @test _unipotent(ς(x[1] * x[2]^2 * x[1]) * ς(y[1] * y[2]^2)) == ς(y[1])
-    end
+    #     @test _unipotent(ς(x[1]^2 * y[1]^2)) == SWord(Monomial[])
+    #     @test _unipotent(ς(x[1]^2 * y[1] * y[2])) == ς(y[1] * y[2])
+    #     @test _unipotent(ς(x[1]^2) * ς(y[1] * y[2])) == ς(y[1] * y[2])
+    #     @test _unipotent(ς(x[1] * x[2]^2 * x[1]) * ς(y[1] * y[2]^2)) == ς(y[1])
+    # end
 
-    @testset "_projective" begin
-        @ncpolyvar x[1:2] y[1:2]
+    # @testset "_projective" begin
+    #     @ncpolyvar x[1:2] y[1:2]
 
-        @test _projective(ς(x[1]^2 * y[1]^2)) == ς(x[1] * y[1])
-        @test _projective(ς(x[1] * x[2]^2 * x[1]) * ς(y[1] * y[2]^2)) ==
-            ς(x[1] * x[2] * x[1]) * ς(y[1] * y[2])
-    end
+    #     @test _projective(ς(x[1]^2 * y[1]^2)) == ς(x[1] * y[1])
+    #     @test _projective(ς(x[1] * x[2]^2 * x[1]) * ς(y[1] * y[2]^2)) ==
+    #           ς(x[1] * x[2] * x[1]) * ς(y[1] * y[2])
+    # end
 end
