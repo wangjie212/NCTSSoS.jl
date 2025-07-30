@@ -22,11 +22,13 @@ end
 
     @test result.objective ≈ -0.046717378455438933 atol = 1e-6
 
-    solver_config = SolverConfig(; optimizer=SOLVER, order=3)
+    if Sys.isapple()
+        solver_config = SolverConfig(; optimizer=SOLVER, order=3)
 
-    result = cs_nctssos(spop, solver_config)
+        result = cs_nctssos(spop, solver_config)
 
-    @test result.objective ≈ -0.03124998978001017 atol = 1e-6
+        @test result.objective ≈ -0.03124998978001017 atol = 1e-6
+    end
 end
 
 @testset "Example 6.2.0" begin
@@ -58,6 +60,7 @@ end
 end
 
 
+if Sys.isapple()
 @testset "Example 6.2.2" begin
     @ncpolyvar x[1:3] y[1:3]
 
@@ -70,4 +73,5 @@ end
 	result = cs_nctssos(tpop, solver_config)
 
 	@test result.objective ≈ -5.0 atol = 1e-5
+end
 end

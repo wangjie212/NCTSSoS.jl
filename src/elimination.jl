@@ -2,7 +2,7 @@ struct NoElimination <: EliminationAlgorithm end
 struct AsIsElimination <: EliminationAlgorithm end
 struct MaximalElimination <: EliminationAlgorithm end
 
-function cliquetree(graph, ::NoElimination, snd::SupernodeType)
+function cliquetree(graph::AbstractGraph{V}, ::NoElimination, snd::SupernodeType) where {V}
     return cliquetree(complete_graph(nv(graph)), BFS(), snd)
 end
 

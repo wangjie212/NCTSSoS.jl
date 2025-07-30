@@ -72,7 +72,6 @@ end
     end
 end
 
-
 @testset "StatePolyOpt Constructor" begin
     @testset "Example 7.2.1" begin
         @ncpolyvar x[1:2] y[1:2]

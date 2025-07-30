@@ -24,6 +24,8 @@ struct Monomial
     end
 end
 
+Base.copy(m::Monomial) = Monomial(copy(m.vars), copy(m.z))
+
 function consecutive_unique(vars::Vector{Variable})
     return all(i -> vars[i] != vars[i + 1], 1:(length(vars) - 1))
 end
@@ -131,113 +133,50 @@ Computes the adjoint (star) of a monomial by reversing variable order and expone
 # Returns
 - `Monomial`: Adjoint monomial with reversed variables and exponents
 """
-star(m::Monomial) = Monomial(reverse(m.vars), reverse(m.z))
+star(m::Monomial) = star!(copy(m))
+
+function star!(m::Monomial)
+    (length(m.vars) <= 1 && return m; reverse!(m.vars); reverse!(m.z); return m)
+end
 
 """
-    _comm(mono::Monomial, comm_gps::Vector{Vector{Variable}})
+    _comm!(mono::Monomial, comm_gps::Vector{Vector{Variable}})
 
-Projects a monomial onto commutative groups of variables while maintaining the
-order of variables within each group.
-
-We kept it as separate groups because symmetric canonicalize over the product of
-groups vs product of symmetric canonicalize of each group is different
-
+Stably sorts variables in the monomial based on their commutative group indices.
 
 # Arguments
 - `mono::Monomial`: The monomial to project
-- `comm_gps::Vector{Vector{Variable}}`: Vector of sets defining commutative variable groups
+- `comm_gps::Dict{Variable,Int}`: Dictionary mapping varaible to commutative group index
 
 # Returns
-- `Vector{Monomial}`: Projections of the monomial onto each commutative group
+- `nothing`
 
 # Example
-```jldoctest; setup=:(using NCTSSoS.FastPolynomials; using NCTSSoS.FastPolynomials: _comm)
-julia> @ncpolyvar x y; comm_gps = [[x], [y]]
-2-element Vector{Vector{Variable}}:
- [x]
- [y]
+```jldoctest; setup=:(using NCTSSoS.FastPolynomials; using NCTSSoS.FastPolynomials: _comm!)
+julia> @ncpolyvar x y; comm_gps = Dict(x=>1,y=>2);
 
 julia> mono1 = x*y*x*y
 x¹y¹x¹y¹
 
-julia> _comm(mono1, comm_gps)
-2-element Vector{Monomial}:
- x²
- y²
+julia> _comm!(mono1, comm_gps)
+
+julia> mono1
+x¹x¹y¹y¹
 ```
 """
-function _comm(mono::Monomial, comm_gps::Vector{Vector{Variable}})
-    map(comm_gps) do vars
-        # TODO: probably a filter + collect will do
-        result = one(Monomial)
-        for (var, expon) in zip(mono.vars, mono.z)
-            if var in vars
-                _mul_var!(result, var, expon, false)
-            end
+function _comm!(mono::Monomial, comm_gps::Dict{Variable,Int})
+    length(mono.vars) == 1 && return nothing
+    @inbounds for i in 1:(length(mono.vars) - 1)
+        swapped = false
+        for j in 1:(length(mono.vars) - i)
+            comm_gps[mono.vars[j]] <= comm_gps[mono.vars[j + 1]] && continue
+            mono.vars[j], mono.vars[j + 1] = mono.vars[j + 1], mono.vars[j]
+            mono.z[j], mono.z[j + 1] = mono.z[j + 1], mono.z[j]
+            swapped = true
         end
-        result
+        !swapped && break
     end
-end
-
-# multiply a variable to a monomial
-@inline function _mul_var!(result::Monomial, var::Variable, expo::Int, is_unipotent::Bool)
-    # Q: do we need to consider commutative case?
-    if is_unipotent
-        iseven(expo) && return result
-        if length(result.vars) == 0 || var != result.vars[end]   # new variable
-            push!(result.vars, var)
-            push!(result.z, 1)
-        else
-            pop!(result.vars)
-            pop!(result.z)
-        end
-    else
-        iszero(expo) && return result
-        if length(result.vars) == 0 || var != result.vars[end]   # new variable
-            push!(result.vars, var)
-            push!(result.z, expo)
-        else
-            result.z[end] += expo
-        end
-    end
-    return result
-end
-
-"""
-    _unipotent(mono::Monomial)
-
-Applies unipotent transformation to a monomial by reducing exponents modulo 2 iteratively.
-
-# Arguments
-- `mono::Monomial`: The monomial to transform
-
-# Returns
-- `Monomial`: Unipotent form of the monomial with all exponents reduced to 0 or 1
-"""
-function _unipotent(mono::Monomial)
-    isempty(mono.vars) && return mono
-    result = one(Monomial)
-    for (var, expo) in zip(mono.vars, mono.z)
-        _mul_var!(result, var, expo, true)
-    end
-    return result
-end
-
-"""
-    _projective(mono::Monomial)
-
-Applies projective transformation to a monomial by setting all non-zero exponents to 1.
-
-# Arguments
-- `mono::Monomial`: The monomial to transform
-
-# Returns
-- `Monomial`: Projective form with all non-zero exponents set to 1
-"""
-function _projective(mono::Monomial)
-    prod(zip(mono.vars, mono.z); init=one(Monomial)) do (var, expo)
-        var^(iszero(expo) ? expo : one(expo))
-    end
+    return nothing
 end
 
 expval(m::Monomial) = m

@@ -12,7 +12,7 @@ function moment_relax(cpop::ComplexPolyOpt{P}, corr_sparsity::CorrelativeSparsit
     total_basis = sorted_union(map(zip(corr_sparsity.clq_cons, cliques_term_sparsities)) do (cons_idx, term_sparsities)
         reduce(vcat, [
             map(monomials(poly)) do m
-                simplify(expval(_neat_dot3(rol_idx, m, col_idx)), sa)
+                simplify!(expval(_neat_dot3(rol_idx, m, col_idx)), sa)
             end
             for (poly, term_sparsity) in zip([one(cpop.objective); corr_sparsity.cons[cons_idx]], term_sparsities) for basis in term_sparsity.block_bases for rol_idx in basis for col_idx in basis
         ])
@@ -25,7 +25,7 @@ function moment_relax(cpop::ComplexPolyOpt{P}, corr_sparsity::CorrelativeSparsit
                         constrain_moment_matrix(
                             poly,
                             ts_sub_basis,
-                            poly in cpop.eq_constraints ? :Zero : :HPSD , sa)
+                            poly in cpop.eq_constraints ? :Zero : :HPSD, sa)
                     end
                 end
             end
@@ -38,8 +38,8 @@ function moment_relax(cpop::ComplexPolyOpt{P}, corr_sparsity::CorrelativeSparsit
                 )
             end]
 
-    simplified_objective = sum(c*simplify(m,sa) for (c,m) in terms(cpop.objective))
-    return ComplexMomentProblem(simplified_objective,constraints,total_basis,sa)
+    simplified_objective = sum(c * simplify(m, sa) for (c, m) in terms(cpop.objective))
+    return ComplexMomentProblem(simplified_objective, constraints, total_basis, sa)
 end
 
 function constrain_moment_matrix(
@@ -49,8 +49,8 @@ function constrain_moment_matrix(
     sa::SimplifyAlgorithm
 ) where {T,P<:AbstractPolynomial{T},M}
     moment_mtx = [
-        sum(coef * simplify(_neat_dot3(row_idx,mono,col_idx),sa) for (coef, mono) in terms(poly)) for
+        sum(coef * simplify!(_neat_dot3(row_idx, mono, col_idx), sa) for (coef, mono) in terms(poly)) for
         row_idx in local_basis, col_idx in local_basis
-        ]
+    ]
     return (cone, moment_mtx)
 end
