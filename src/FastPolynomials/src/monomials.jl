@@ -140,7 +140,7 @@ function star!(m::Monomial)
 end
 
 """
-    _comm(mono::Monomial, comm_gps::Vector{Vector{Variable}})
+    _comm!(mono::Monomial, comm_gps::Vector{Vector{Variable}})
 
 Stably sorts variables in the monomial based on their commutative group indices.
 
