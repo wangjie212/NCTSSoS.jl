@@ -18,7 +18,7 @@ struct SimplifyAlgorithm
 end
 
 function nosimp(sa::SimplifyAlgorithm)
-    return isone(length(sa.comm_gps)) && !sa.is_unipotent && !sa.is_projective
+    return isone(sa.n_gps) && !sa.is_unipotent && !sa.is_projective
 end
 
 function simplify!(m::Monomial, sa::SimplifyAlgorithm)

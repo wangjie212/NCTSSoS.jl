@@ -166,8 +166,8 @@ x¹x¹y¹y¹
 """
 function _comm!(mono::Monomial, comm_gps::Dict{Variable,Int})
     length(mono.vars) == 1 && return nothing
-    swapped = false
     @inbounds for i in 1:(length(mono.vars) - 1)
+        swapped = false
         for j in 1:(length(mono.vars) - i)
             comm_gps[mono.vars[j]] <= comm_gps[mono.vars[j + 1]] && continue
             mono.vars[j], mono.vars[j + 1] = mono.vars[j + 1], mono.vars[j]
