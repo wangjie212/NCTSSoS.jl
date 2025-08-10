@@ -49,7 +49,11 @@ Polynomial(a::Polynomial) = a
 function Base.convert(::Type{Polynomial{T}}, a::Variable) where {T}
     return Polynomial([one(T)], [Monomial([a], [1])])
 end
+function Base.convert(::Type{Polynomial{T1}}, a::Polynomial{T2}) where {T1,T2}
+    return Polynomial(T1.(a.coeffs), a.monos)
+end
 Base.convert(::Type{Polynomial{T}}, a::Monomial) where {T} = Polynomial([one(T)], [a])
+Base.promote_rule(::Type{Polynomial{T1}}, ::Type{Polynomial{T2}}) where {T1,T2} = Polynomial{promote_type(T1, T2)}
 
 """
     variables(p::Polynomial)

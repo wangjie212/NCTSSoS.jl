@@ -55,6 +55,18 @@ A `PolyOpt{P}` structure representing the polynomial optimization problem.
 - A problem cannot be both unipotent and projective simultaneously.
 """
 function polyopt(objective::P; eq_constraints=Any[], ineq_constraints=Any[], comm_gps=Vector{Variable}[], is_unipotent::Bool=false, is_projective::Bool=false) where {T,P<:AbstractPolynomial{T}}
+    # if any of the objective, eq_constraints, or ineq_constraints are complex, then use the complex version
+    iscomplex(::AbstractPolynomial{T}) where {T} = T <: Complex
+    _eltype(cons) = isempty(cons) ? Union{} : eltype(cons)
+    if iscomplex(objective) || any(iscomplex, eq_constraints) || any(iscomplex, ineq_constraints)
+        @show typeof(objective), _eltype(eq_constraints), _eltype(ineq_constraints)
+        TO = typeof(objective)
+        CT1 = mapreduce(typeof, promote_type, eq_constraints; init=TO)
+        @show CT1
+        CT = mapreduce(typeof, promote_type, ineq_constraints; init=CT1)
+        @show CT
+        return _cpolyopt(convert(CT, objective), collect(CT, eq_constraints), collect(CT, ineq_constraints), comm_gps, is_unipotent, is_projective)
+    end
     @assert !(T <: Integer) "The polynomial coefficients can not be integers (not supported by JuMP solvers)."
     eq_cons = unique!(collect(P, eq_constraints))
     ineq_cons = unique!(collect(P, ineq_constraints))
@@ -103,7 +115,7 @@ struct ComplexPolyOpt{P} <: OptimizationProblem{P}
 end
 
 
-function cpolyopt(objective::P; eq_constraints=Any[], ineq_constraints=Any[], comm_gps=Vector{Variable}[], is_unipotent::Bool=false, is_projective::Bool=false) where {T,P<:AbstractPolynomial{T}}
+function _cpolyopt(objective::P, eq_constraints::Vector{P}, ineq_constraints::Vector{P}, comm_gps::Vector{Vector{Variable}}, is_unipotent::Bool, is_projective::Bool) where {T<:Complex, P<:AbstractPolynomial{T}}
     @assert !(T <: Integer) "The polynomial coefficients can not be integers (not supported by JuMP solvers)."
     eq_cons = unique!(collect(P, eq_constraints))
     ineq_cons = unique!(collect(P, ineq_constraints))

@@ -151,6 +151,24 @@ struct NCStatePolynomial{T,ST} <: AbstractPolynomial{T}
         return new{T,ST}(coeffs, nc_state_words)
     end
 end
+
+# cast from polynomial
+function NCStatePolynomial(p::Polynomial{T}) where {T}
+    return NCStatePolynomial(p.coeffs, NCStateWord.(p.monos))
+end
+
+function Base.promote_rule(::Type{NCStatePolynomial{T1,VT1}}, ::Type{NCStatePolynomial{T2,VT2}}) where {T1,T2,VT1,VT2}
+    return NCStatePolynomial{promote_type(T1, T2), promote_type(VT1, VT2)}
+end
+Base.convert(::Type{NCStatePolynomial{T,VT}}, p::NCStatePolynomial{T2,VT}) where {T,VT,T2} = NCStatePolynomial(T.(p.coeffs), p.nc_state_words)
+
+function is_symmetric(p::NCStatePolynomial, sa::SimplifyAlgorithm)
+    @info "must fix me!"
+    return true
+end
+
+maxdegree(p::NCStatePolynomial) = reduce(max, degree.(p.nc_state_words))
+
 # the safer way to construct an NCStatePolynomial
 function ncstatepoly(coeffs::Vector{T}, nc_state_words::Vector{NCStateWord{ST}}) where {T,ST}
     uniq_nc_state_words = sorted_unique(nc_state_words)
@@ -193,7 +211,7 @@ function Base.:(==)(a::NCStatePolynomial, b::NCStatePolynomial)
 end
 
 function Base.hash(ncsp::NCStatePolynomial, u::UInt)
-    return hash(hash.(ncsp.coeffs, u), hash.(ncsp.nc_state_words, u))
+    return hash(hash(ncsp.coeffs, u), hash(ncsp.nc_state_words, u))
 end
 
 function Base.:(+)(a::NCStatePolynomial{T1}, b::NCStatePolynomial{T2}) where {T1,T2}

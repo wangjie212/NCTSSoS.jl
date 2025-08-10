@@ -39,6 +39,8 @@ function moment_relax(cpop::ComplexPolyOpt{P}, corr_sparsity::CorrelativeSparsit
             end]
 
     simplified_objective = sum(c * simplify(m, sa) for (c, m) in terms(cpop.objective))
+    @show typeof(simplified_objective)
+    @show typeof(constraints)
     return ComplexMomentProblem(simplified_objective, constraints, total_basis, sa)
 end
 

@@ -9,7 +9,7 @@ using Test, NCTSSoS, NCTSSoS.FastPolynomials
 
         fake_ineq_cons = reduce(vcat, [[x[i] * y[i] - im * z[i], y[i] * x[i] + im * z[i], y[i] * z[i] - im * x[i], z[i] * y[i] + im * x[i], z[i] * x[i] - im * y[i], x[i] * z[i] + im * y[i]] for i in 1:N])
 
-        @test_throws AssertionError pop = cpolyopt(ham; ineq_constraints=fake_ineq_cons, comm_gps=[[x[i], y[i], z[i]] for i in 1:N], is_unipotent=true)
+        @test_throws AssertionError pop = polyopt(ham; ineq_constraints=fake_ineq_cons, comm_gps=[[x[i], y[i], z[i]] for i in 1:N], is_unipotent=true)
     end
 end
 
