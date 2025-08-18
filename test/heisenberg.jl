@@ -1,13 +1,15 @@
-using Test, NCTSSoS
+using NCTSSoS, NCTSSoS.FastPolynomials, Test
 using MosekTools
+using JuMP
 
 SOLVER = Mosek.Optimizer
 
+T = ComplexF64
 N = 6
 J1 = 1.0
 @ncpolyvar x[1:N] y[1:N] z[1:N]
 
-ham = sum(ComplexF64(J1 / 4) * op[i] * op[mod1(i + 1, N)] for op in [x, y, z] for i in 1:N)
+ham = sum(T(J1 / 4) * op[i] * op[mod1(i + 1, N)] for op in [x, y, z] for i in 1:N)
 
 eq_cons = reduce(vcat, [[x[i] * y[i] - im * z[i], y[i] * x[i] + im * z[i], y[i] * z[i] - im * x[i], z[i] * y[i] + im * x[i], z[i] * x[i] - im * y[i], x[i] * z[i] + im * y[i]] for i in 1:N])
 
@@ -15,7 +17,7 @@ pop = cpolyopt(ham; eq_constraints=eq_cons, comm_gps=[[x[i], y[i], z[i]] for i i
 
 solver_config = SolverConfig(optimizer=SOLVER, order=2)
 
-res = cs_nctssos(pop, solver_config; dualize=false)
+res = cs_nctssos(pop, solver_config)
 
 @test res.objective / N ≈ -0.467129 atol=1e-6
 
