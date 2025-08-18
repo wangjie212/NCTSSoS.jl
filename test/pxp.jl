@@ -103,11 +103,15 @@ function does_solve(target_energy, spreading_upper)
     end
 end
 
-res_lower, res_upper = solve_n1n2_bounds(energy_spectrum[5], 300)
+# res_lower, res_upper = solve_n1n2_bounds(energy_spectrum[5], 300)
 
-is_solved_and_feasible(res_lower.model)
-is_solved_and_feasible(res_upper.model)
+# is_solved_and_feasible(res_lower.model)
+# is_solved_and_feasible(res_upper.model)
 
-tight_spreading = does_solve(energy_spectrum[5], 300)
+# tight_spreading = does_solve(energy_spectrum[5], 300)
 
 tight_spreadings = [277.8101921081543, 47.6008415222168, 66.45956039428711, 82.20663070678711, 156.52642250061035, 309.25512313842773, 312.9763603210449]
+
+[energy_spectrum[i+1] - energy_spectrum[i] for i in 1:length(energy_spectrum)-1]
+
+sqrt.(tight_spreadings)
