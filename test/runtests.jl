@@ -8,6 +8,7 @@ using NCTSSoS, Test
     if Sys.isapple()
         # Only test moment_problem locally due to time constraints
         include("moment_solver.jl")
+        include("heisenberg.jl")
     end
     include("sos_solver.jl")
     include("interface.jl")
