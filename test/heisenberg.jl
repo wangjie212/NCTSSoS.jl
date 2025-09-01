@@ -2,7 +2,10 @@ using NCTSSoS, NCTSSoS.FastPolynomials, Test
 using MosekTools
 using JuMP
 
-SOLVER = Mosek.Optimizer
+# SOLVER = Mosek.Optimizer
+
+# using NCTSSOS paraemters don't help
+SOLVER = optimizer_with_attributes(Mosek.Optimizer, "MSK_DPAR_INTPNT_CO_TOL_PFEAS" => 1e-8, "MSK_DPAR_INTPNT_CO_TOL_DFEAS" => 1e-8, "MSK_DPAR_INTPNT_CO_TOL_REL_GAP" => 1e-8, "MSK_IPAR_NUM_THREADS" => 0)
 
 @testset "Bounding s0s1" begin
     T = ComplexF64
@@ -38,6 +41,24 @@ SOLVER = Mosek.Optimizer
     op_lower_bounds = Float64[]
     op_upper_bounds = Float64[]
     # for (idx, J2) in enumerate(0.0:0.05:2.0)
+
+    energy_spectrum = [-0.47499999999999987,
+        -0.22500000000000006,
+        -0.225,
+        -0.22499999999999995,
+        -0.07499999999999998,
+        -0.025000000000000015,
+        -0.025000000000000015,
+        -0.024999999999999998,
+        -0.024999999999999988,
+        -0.024999999999999974,
+        -0.02499999999999997,
+        0.27499999999999986,
+        0.2749999999999999,
+        0.27499999999999997,
+        0.275,
+        0.275]
+
         idx, J2 = 1 , 0.1
         @ncpolyvar x[1:N] y[1:N] z[1:N]
 
@@ -47,10 +68,12 @@ SOLVER = Mosek.Optimizer
 
         eq_cons = reduce(vcat, [[x[i] * y[i] - im * z[i], y[i] * x[i] + im * z[i], y[i] * z[i] - im * x[i], z[i] * y[i] + im * x[i], z[i] * x[i] - im * y[i], x[i] * z[i] + im * y[i]] for i in 1:N])
 
-        push!(eq_cons, obj - 0.5)
+        δ = 0.000001
+
+        which_state = 5
 
         # because energy bounds are negative
-        # ineq_cons = [obj-0.5]
+        ineq_cons = [δ - (ham * ham - 2 * energy_spectrum[which_state] * N * ham + energy_spectrum[which_state]^2 * N^2)] # why would a positive constant always stall the program?
         # ineq_cons = [0.9 * N * energy_upper_bounds[idx] - ham, ham - energy_lower_bounds[idx] * N * 1.1]
 
         # why is negative upper bound of hamiltonian not able to be handled?
@@ -59,16 +82,11 @@ SOLVER = Mosek.Optimizer
         # 1.1 * N * energy_lower_bounds[idx]
         # ineq_cons = [0.99 * N * energy_lower_bounds[idx] - ham, ]
 
-        using SCS
-        SOLVER = SCS.Optimizer
-
-        pop = cpolyopt(obj; eq_constraints=eq_cons, comm_gps=[[x[i], y[i], z[i]] for i in 1:N], is_unipotent=true)
-        # pop = cpolyopt(obj; eq_constraints=eq_cons, ineq_constraints=ineq_cons, comm_gps=[[x[i], y[i], z[i]] for i in 1:N], is_unipotent=true)
+        pop = cpolyopt(obj; eq_constraints=eq_cons, ineq_constraints=ineq_cons, comm_gps=[[x[i], y[i], z[i]] for i in 1:N], is_unipotent=true)
 
         solver_config = SolverConfig(optimizer=SOLVER, order=2)
 
         res = cs_nctssos(pop, solver_config);
-
 
         # why is it terminating due to slow progress  
         termination_status(res.model)
@@ -76,11 +94,12 @@ SOLVER = Mosek.Optimizer
 
         @assert is_solved_and_feasible(res.model)
 
-        res.objective
+        res.objective / 4
+        # -0.001578482727100055 + 0.0im
 
         push!(op_lower_bounds,res.objective)
 
-        pop = cpolyopt(-obj; eq_constraints=eq_cons, ineq_constraints=ineq_cons, comm_gps=[[x[i], y[i], z[i]] for i in 1:N], is_unipotent=true)
+        pop = cpolyopt(obj; eq_constraints=eq_cons, ineq_constraints=ineq_cons, comm_gps=[[x[i], y[i], z[i]] for i in 1:N], is_unipotent=true)
 
         solver_config = SolverConfig(optimizer=SOLVER, order=2)
 
@@ -103,6 +122,19 @@ SOLVER = Mosek.Optimizer
         println(lb / 4, ",")
     end
 end
+
+# s0s1_vals = [
+#     -0.16666666666666657,
+#     -0.16666666666666657,
+#     -0.08004709661437667,
+#     -2.7856520089408856e-17,
+#     -3.408084308945605e-17,
+#     -3.899516274508277e-17,
+#     6.385764772817207e-17,
+#     9.579194098506272e-17,
+#     1.1493569501470919e-16,
+#     1.2608731144223405e-16,
+#     -1.1373213176545312e-16]
 
 
 @testset "J1 J2 Model" begin
@@ -133,18 +165,6 @@ end
     end
 end
 
-# s0s1_vals = [
-#     -0.16666666666666657,
-#     -0.16666666666666657,
-#     -0.08004709661437667,
-#     -2.7856520089408856e-17,
-#     -3.408084308945605e-17,
-#     -3.899516274508277e-17,
-#     6.385764772817207e-17,
-#     9.579194098506272e-17,
-#     1.1493569501470919e-16,
-#     1.2608731144223405e-16,
-#     -1.1373213176545312e-16]
 
 
 @testset "XXX Model" begin
@@ -293,3 +313,27 @@ end
 
 
 
+# Compute the energy spectrum
+using Yao
+using LinearAlgebra
+
+N = 4
+J1, J2 = 1.0, 0.1
+
+ham = sum(J1 / 4 * kron(N, i => op, mod1(i + 1, N) => op) for op in (X, Y, Z) for i in 1:N) + sum(J2 / 4 * kron(N, i => op, mod1(i + 2, N) => op) for op in (X, Y, Z) for i in 1:N)
+
+s1s2 = Matrix(kron(N,1=>X,2=>X))/4
+
+evals, eigvecs = eigen(Matrix(ham))
+
+
+evals
+evals[end]
+
+s1s2s
+s1s2s[5]
+
+s1s2s = map(1:length(evals)) do which_state
+    # eigvecs[:, which_state]' * Matrix(ham) * eigvecs[:, which_state] / N
+    real(eigvecs[:, which_state]' * s1s2 * eigvecs[:, which_state])
+end
