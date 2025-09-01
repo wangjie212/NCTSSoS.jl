@@ -7,7 +7,7 @@ using JuMP
 # using NCTSSOS paraemters don't help
 SOLVER = optimizer_with_attributes(Mosek.Optimizer, "MSK_DPAR_INTPNT_CO_TOL_PFEAS" => 1e-8, "MSK_DPAR_INTPNT_CO_TOL_DFEAS" => 1e-8, "MSK_DPAR_INTPNT_CO_TOL_REL_GAP" => 1e-8, "MSK_IPAR_NUM_THREADS" => 0)
 
-@testset "Bounding s0s1" begin
+# @testset "Bounding s0s1" begin
     T = ComplexF64
     N = 4
     J1 = 1.0
@@ -40,7 +40,7 @@ SOLVER = optimizer_with_attributes(Mosek.Optimizer, "MSK_DPAR_INTPNT_CO_TOL_PFEA
 
     op_lower_bounds = Float64[]
     op_upper_bounds = Float64[]
-    # for (idx, J2) in enumerate(0.0:0.05:2.0)
+    # for (idx, J2) in enumerate(0.1:0.2:2.1)
 
     energy_spectrum = [-0.47499999999999987,
         -0.22500000000000006,
@@ -68,13 +68,16 @@ SOLVER = optimizer_with_attributes(Mosek.Optimizer, "MSK_DPAR_INTPNT_CO_TOL_PFEA
 
         eq_cons = reduce(vcat, [[x[i] * y[i] - im * z[i], y[i] * x[i] + im * z[i], y[i] * z[i] - im * x[i], z[i] * y[i] + im * x[i], z[i] * x[i] - im * y[i], x[i] * z[i] + im * y[i]] for i in 1:N])
 
-        δ = 0.000001
+        # δ = 0.00001
 
-        which_state = 5
+        # which_state = 1
 
         # because energy bounds are negative
-        ineq_cons = [δ - (ham * ham - 2 * energy_spectrum[which_state] * N * ham + energy_spectrum[which_state]^2 * N^2)] # why would a positive constant always stall the program?
-        # ineq_cons = [0.9 * N * energy_upper_bounds[idx] - ham, ham - energy_lower_bounds[idx] * N * 1.1]
+        # ineq_cons = [δ - (ham * ham - 2 * energy_spectrum[which_state] * N * ham + energy_spectrum[which_state]^2 * N^2)] # why would a positive constant always stall the program?
+        # ineq_cons = [δ - (ham * ham - 2 * energy_upper_bounds[idx] * N * ham + energy_upper_bounds[idx]^2 * N^2)] # why would a positive constant always stall the program?
+
+        # does ineq_cons have problem?
+        # ineq_cons = [0.8 * N * energy_upper_bounds[idx] - ham, ham - energy_lower_bounds[idx] * N * 1.2]
 
         # why is negative upper bound of hamiltonian not able to be handled?
         # N * energy_lower_bounds[idx]
@@ -82,7 +85,8 @@ SOLVER = optimizer_with_attributes(Mosek.Optimizer, "MSK_DPAR_INTPNT_CO_TOL_PFEA
         # 1.1 * N * energy_lower_bounds[idx]
         # ineq_cons = [0.99 * N * energy_lower_bounds[idx] - ham, ]
 
-        pop = cpolyopt(obj; eq_constraints=eq_cons, ineq_constraints=ineq_cons, comm_gps=[[x[i], y[i], z[i]] for i in 1:N], is_unipotent=true)
+        # pop = cpolyopt(obj; eq_constraints=eq_cons, ineq_constraints=ineq_cons, comm_gps=[[x[i], y[i], z[i]] for i in 1:N], is_unipotent=true)
+        pop = cpolyopt(obj; eq_constraints=eq_cons, comm_gps=[[x[i], y[i], z[i]] for i in 1:N], is_unipotent=true)
 
         solver_config = SolverConfig(optimizer=SOLVER, order=2)
 
@@ -99,15 +103,15 @@ SOLVER = optimizer_with_attributes(Mosek.Optimizer, "MSK_DPAR_INTPNT_CO_TOL_PFEA
 
         push!(op_lower_bounds,res.objective)
 
-        pop = cpolyopt(obj; eq_constraints=eq_cons, ineq_constraints=ineq_cons, comm_gps=[[x[i], y[i], z[i]] for i in 1:N], is_unipotent=true)
+        # pop = cpolyopt(-obj; eq_constraints=eq_cons, ineq_constraints=ineq_cons, comm_gps=[[x[i], y[i], z[i]] for i in 1:N], is_unipotent=true)
 
-        solver_config = SolverConfig(optimizer=SOLVER, order=2)
+        # solver_config = SolverConfig(optimizer=SOLVER, order=2)
 
-        res = cs_nctssos(pop, solver_config)
+        # res = cs_nctssos(pop, solver_config)
 
-        @assert is_solved_and_feasible(res.model)
+        # @assert is_solved_and_feasible(res.model)
 
-        push!(op_upper_bounds,-res.objective)
+        # push!(op_upper_bounds,-res.objective)
     # end
 
     println("lower")
@@ -121,7 +125,7 @@ SOLVER = optimizer_with_attributes(Mosek.Optimizer, "MSK_DPAR_INTPNT_CO_TOL_PFEA
     for lb in op_upper_bounds
         println(lb / 4, ",")
     end
-end
+# end
 
 # s0s1_vals = [
 #     -0.16666666666666657,
@@ -135,6 +139,18 @@ end
 #     1.1493569501470919e-16,
 #     1.2608731144223405e-16,
 #     -1.1373213176545312e-16]
+
+# -0.16692742407323502,
+# -0.1671230764127574,
+# -0.24999999475762216,
+# -0.0003784339320219016,
+# -0.0002018791383156422,
+# -0.00014264932191695038,
+# -0.00011229503564829524,
+# -9.318954665506478e-5,
+# -8.009445490018117e-5,
+# -7.049847837621646e-5,
+# -6.310125486421946e-5,
 
 
 @testset "J1 J2 Model" begin
@@ -325,6 +341,8 @@ ham = sum(J1 / 4 * kron(N, i => op, mod1(i + 1, N) => op) for op in (X, Y, Z) fo
 s1s2 = Matrix(kron(N,1=>X,2=>X))/4
 
 evals, eigvecs = eigen(Matrix(ham))
+
+evals
 
 
 evals
