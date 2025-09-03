@@ -250,42 +250,42 @@ end
     @test res.objective / N ≈ -0.44100019443650207 atol = 1e-6
 end
 
-# using Pkg
-# Pkg.activate("/home/yushengzhao/LearnTNTheHardWay.jl")
-# # DMRG Reference Code
-# using MPSKitModels
-# using MPSKit
-# using KrylovKit
-# using TensorKit
+using Pkg
+Pkg.activate("/home/yushengzhao/LearnTNTheHardWay.jl")
+# DMRG Reference Code
+using MPSKitModels
+using MPSKit
+using KrylovKit
+using TensorKit
 
-# N = 4
-# χ = 200
-# max_bond_dimension = ℂ^χ
-# physical_space = ℂ^2
-# state = FiniteMPS(rand, ComplexF64, N, physical_space, max_bond_dimension)
-# lattice = FiniteChain(N)
+N = 6
+χ = 200
+max_bond_dimension = ℂ^χ
+physical_space = ℂ^2
+state = FiniteMPS(rand, ComplexF64, N, physical_space, max_bond_dimension)
+lattice = FiniteChain(N)
 
-# h = 0.25
-# h2s = collect(0.1:0.2:2.1) ./4
-# upper_bounds = zeros(length(h2s))
-# s0s1_vals = zeros(length(h2s))
-# for (i, h2) in enumerate(h2s)
-#     H_heisenberg = @mpoham sum(h * op(){lattice[i],lattice[mod1(i + 1, N)]} + h2 * op(){lattice[i],lattice[mod1(i + 2, N)]} for op in (S_xx, S_yy, S_zz) for i in 1:N)
+h = 0.25
+h2s = collect(0.1:0.2:2.1) ./4
+upper_bounds = zeros(length(h2s))
+s0s1_vals = zeros(length(h2s))
+for (i, h2) in enumerate(h2s)
+    H_heisenberg = @mpoham sum(h * op(){lattice[i],lattice[mod1(i + 1, N)]} + h2 * op(){lattice[i],lattice[mod1(i + 2, N)]} for op in (S_xx, S_yy, S_zz) for i in 1:N)
 
-#     ground_state, cache, delta = find_groundstate(state, H_heisenberg, DMRG())
+    ground_state, cache, delta = find_groundstate(state, H_heisenberg, DMRG())
 
-#     s0s1_vals[i] = real(expectation_value(ground_state, @mpoham S_xx(){lattice[1],lattice[2]}))
+    s0s1_vals[i] = real(expectation_value(ground_state, @mpoham S_xx(){lattice[1],lattice[2]}))
 
-#     upper_bounds[i] = real(expectation_value(ground_state, H_heisenberg)) / N * 4
-# end
+    upper_bounds[i] = real(expectation_value(ground_state, H_heisenberg)) / N * 4
+end
 
-# for val in upper_bounds
-#     println(val, ",")
-# end
+for val in upper_bounds
+    println(val, ",")
+end
 
-# for val in s0s1_vals
-#     println(val, ",")
-# end
+for val in s0s1_vals
+    println(val, ",")
+end
 
 # s0s1_vals
 
@@ -330,28 +330,6 @@ end
 using Yao
 using LinearAlgebra
 
-N = 2
-J1 = 1.0
-
-ham = sum(J1 / 4 * kron(N, i => op, mod1(i + 1, N) => op) for op in (X, Y, Z) for i in 1:N)
-
-evals, eigvecs = eigen(Matrix(ham))
-
-evals
-
-
-evals
-evals[end]
-
-s1s2s
-s1s2s[5]
-
-s1s2s = map(1:length(evals)) do which_state
-    # eigvecs[:, which_state]' * Matrix(ham) * eigvecs[:, which_state] / N
-    real(eigvecs[:, which_state]' * s1s2 * eigvecs[:, which_state])
-end
-
-
 N = 4
 J1, J2 = 1.0, 0.1
 
@@ -363,12 +341,8 @@ evals, eigvecs = eigen(Matrix(ham))
 
 evals
 
-
 evals
 evals[end]
-
-s1s2s
-s1s2s[5]
 
 s1s2s = map(1:length(evals)) do which_state
     # eigvecs[:, which_state]' * Matrix(ham) * eigvecs[:, which_state] / N

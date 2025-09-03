@@ -41,15 +41,16 @@ function cs_nctssos_with_blockade(pop::OP, solver_config::SolverConfig, blockade
    end
 
    # recover blockade constraints
-    # for (type, cons) in moment_problem.constraints
-    #     type == :HPSD && continue
-    #     if cons[1, 1] in blockade_constraints
-    #         cons[2:end, 2:end] .*= zero(T)
-    #         cons[2:end, 1] .*= zero(T)
-    #         cons[1, 2:end] .*= zero(T)
-    #     end
-    #     @show cons
-    # end
+    for (type, cons) in moment_problem.constraints
+        type == :HPSD && continue
+        if cons[1, 1] in blockade_constraints
+            cons[2:end, 2:end] .*= zero(T)
+            # why can we ignore those zeroing?
+            # cons[2:end, 1] .*= zero(T)
+            # cons[1, 2:end] .*= zero(T)
+        end
+        @show cons
+    end
 
     # for (type, cons) in moment_problem.constraints
     #     type == :Zero && continue

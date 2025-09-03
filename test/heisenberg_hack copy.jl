@@ -10,7 +10,7 @@ function cs_nctssos_with_entry!(pop::OP, solver_config::SolverConfig, entry_cons
 
    corr_sparsity = NCTSSoS.correlative_sparsity(pop, order, solver_config.cs_algo)
 
-   cliques_objective = [reduce(+, [issubset(sort!(variables(mono)), clique) ? coef * mono : zero(coef) * one(mono) for (coef, mono) in zip(coefficients(pop.objective), monomials(pop.objective))]) for clique in corr_sparsity.cliques]
+     cliques_objective = [reduce(+, [issubset(sort!(variables(mono)), clique) ? coef * mono : zero(coef) * one(mono) for (coef, mono) in zip(coefficients(pop.objective), monomials(pop.objective))]) for clique in corr_sparsity.cliques]
 
    initial_activated_supps = map(zip(cliques_objective, corr_sparsity.clq_cons, corr_sparsity.clq_mom_mtx_bases)) do (partial_obj, cons_idx, mom_mtx_base)
         NCTSSoS.init_activated_supp(partial_obj, corr_sparsity.cons[cons_idx], mom_mtx_base, sa)
@@ -41,7 +41,7 @@ T = ComplexF64
 
 @ncpolyvar x[1:N] y[1:N] z[1:N]
 
-solver_config = SolverConfig(optimizer=SOLVER, order=2)
+solver_config = SolverConfig(optimizer=SOLVER, order=4)
 
 op = one(T) * x[1]
 
@@ -49,32 +49,26 @@ ham = one(T) * z[1]
 
 eq_cons = reduce(vcat, [[x[i] * y[i] - im * z[i], y[i] * x[i] + im * z[i], y[i] * z[i] - im * x[i], z[i] * y[i] + im * x[i], z[i] * x[i] - im * y[i], x[i] * z[i] + im * y[i]] for i in 1:N])
 
-lower_bound_energy = -0.00001
-upper_bound_energy = -0.0
+lower_bound_energy = -1.000000000001
+upper_bound_energy = -0.999999999999
 ineq_cons = [ham - lower_bound_energy, upper_bound_energy - ham]
 
-pop = cpolyopt(-op; eq_constraints=eq_cons, comm_gps=[[x[i], y[i], z[i]] for i in 1:N], is_unipotent=true)
-
+pop = cpolyopt(op; eq_constraints=eq_cons, comm_gps=[[x[i], y[i], z[i]] for i in 1:N], is_unipotent=true)
 res = cs_nctssos_with_entry!(pop, solver_config, ineq_cons; dualize=true)
 
-@show res.objective
-
-@show termination_status(res.model)
+@assert isapprox(res.objective, 0; atol=1e-5)
+termination_status(res.model)
 
 @assert is_solved_and_feasible(res.model)
 
-# lower_bound_energy = energy * N * 1.11 
 for lower_bound_energy in 1.0:-0.1:-1.0
-     # lower_bound_energy = -0.9
-     # upper_bound_energy = energy * N * 0.8
-
      ineq_cons = [ham - lower_bound_energy]
 
      pop = cpolyopt(ham; eq_constraints=eq_cons, comm_gps=[[x[i], y[i], z[i]] for i in 1:N], is_unipotent=true)
 
      res = cs_nctssos_with_entry!(pop, solver_config, ineq_cons; dualize=true)
 
-     @show res.objective
+     @assert isapprox(res.objective ,lower_bound_energy;atol=1e-5)
 
      @show termination_status(res.model)
 
