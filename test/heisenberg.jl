@@ -2,12 +2,9 @@ using NCTSSoS, NCTSSoS.FastPolynomials, Test
 using MosekTools
 using JuMP
 
-# SOLVER = Mosek.Optimizer
-
-# using NCTSSOS paraemters don't help
 SOLVER = optimizer_with_attributes(Mosek.Optimizer, "MSK_DPAR_INTPNT_CO_TOL_PFEAS" => 1e-8, "MSK_DPAR_INTPNT_CO_TOL_DFEAS" => 1e-8, "MSK_DPAR_INTPNT_CO_TOL_REL_GAP" => 1e-8, "MSK_IPAR_NUM_THREADS" => 0)
 
-# @testset "Bounding s0s1" begin
+@testset "Bounding s0s1" begin
     T = ComplexF64
     N = 4
     J1 = 1.0
@@ -125,7 +122,7 @@ SOLVER = optimizer_with_attributes(Mosek.Optimizer, "MSK_DPAR_INTPNT_CO_TOL_PFEA
     for lb in op_upper_bounds
         println(lb / 4, ",")
     end
-# end
+end
 
 # s0s1_vals = [
 #     -0.16666666666666657,
@@ -332,6 +329,28 @@ end
 # Compute the energy spectrum
 using Yao
 using LinearAlgebra
+
+N = 2
+J1 = 1.0
+
+ham = sum(J1 / 4 * kron(N, i => op, mod1(i + 1, N) => op) for op in (X, Y, Z) for i in 1:N)
+
+evals, eigvecs = eigen(Matrix(ham))
+
+evals
+
+
+evals
+evals[end]
+
+s1s2s
+s1s2s[5]
+
+s1s2s = map(1:length(evals)) do which_state
+    # eigvecs[:, which_state]' * Matrix(ham) * eigvecs[:, which_state] / N
+    real(eigvecs[:, which_state]' * s1s2 * eigvecs[:, which_state])
+end
+
 
 N = 4
 J1, J2 = 1.0, 0.1

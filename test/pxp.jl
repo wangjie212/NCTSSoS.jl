@@ -2,11 +2,18 @@ using NCTSSoS, NCTSSoS.FastPolynomials
 using MosekTools
 using JuMP
 
-function cs_nctssos_with_blockade(pop::OP, solver_config::SolverConfig, blockade_constraints::Vector{Polynomial{T}}; dualize::Bool=true) where {T, P<:Polynomial{T}, OP<:NCTSSoS.OptimizationProblem{P}}
+# TODO: do 3x3 case with various operators' expectation value
+
+function cs_nctssos_with_blockade(pop::OP, solver_config::SolverConfig, blockade_constraints::Vector{Polynomial{T}}, eigen_state_constraints::Vector{Polynomial{T}}; dualize::Bool=true) where {T,P<:Polynomial{T},OP<:NCTSSoS.OptimizationProblem{P}}
+
     # temporarily add blockade constraints as algebraic constraints
-   for c in blockade_constraints
-       push!(pop.eq_constraints, c)
-   end
+#    for c in blockade_constraints
+#        push!(pop.eq_constraints, c)
+#    end
+
+#    for c in eigen_state_constraints
+#         push!(pop.ineq_constraints,c)
+#    end
 
    sa = SimplifyAlgorithm(comm_gps=pop.comm_gps, is_projective=pop.is_projective, is_unipotent=pop.is_unipotent)
    order = iszero(solver_config.order) ? maximum([ceil(Int, maxdegree(poly) / 2) for poly in [pop.objective; pop.eq_constraints; pop.ineq_constraints]]) : solver_config.order
@@ -25,11 +32,35 @@ function cs_nctssos_with_blockade(pop::OP, solver_config::SolverConfig, blockade
 
    moment_problem = NCTSSoS.moment_relax(pop, corr_sparsity, cliques_term_sparsities)
 
-   # recover blockade constraints
-   for (type, cons) in moment_problem.constraints
-       type == :HPSD && continue
-       (cons[1, 1] in blockade_constraints) && (cons[2:end, 2:end] .*= zero(T))
+   for c in blockade_constraints
+     push!(moment_problem.constraints,(:Zero, [c;;]))
    end
+
+   for c in eigen_state_constraints
+     push!(moment_problem.constraints,(:HPSD, [c;;]))
+   end
+
+   # recover blockade constraints
+    # for (type, cons) in moment_problem.constraints
+    #     type == :HPSD && continue
+    #     if cons[1, 1] in blockade_constraints
+    #         cons[2:end, 2:end] .*= zero(T)
+    #         cons[2:end, 1] .*= zero(T)
+    #         cons[1, 2:end] .*= zero(T)
+    #     end
+    #     @show cons
+    # end
+
+    # for (type, cons) in moment_problem.constraints
+    #     type == :Zero && continue
+    #     # mother fuck, forgot to clear out first col and first row
+    #     if cons[1, 1] in eigen_state_constraints
+    #         cons[2:end, 2:end] .*= zero(T)
+    #         cons[2:end, 1] .*= zero(T)
+    #         cons[1, 2:end] .*= zero(T)
+    #     end
+    #     @show cons
+    # end
 
    (pop isa NCTSSoS.ComplexPolyOpt{P} && !dualize) && error("Solving Moment Problem for Complex Poly Opt is not supported")
    problem_to_solve = !dualize ? moment_problem : NCTSSoS.sos_dualize(moment_problem)
@@ -58,17 +89,20 @@ function solve_n1n2_bounds(target_energy, cur_spreading)
 
     n1n2 = ((one(T) - z[1]) / 2) * ((one(T) - z[2]) / 2)
 
+
+    pop_lower = cpolyopt(n1n2; eq_constraints=Pauli_algebra, comm_gps=[[x[i], y[i], z[i]] for i in 1:N], is_unipotent=true)
+
+    SOLVER = optimizer_with_attributes(Mosek.Optimizer, "MSK_DPAR_INTPNT_CO_TOL_PFEAS" => 1e-8, "MSK_DPAR_INTPNT_CO_TOL_DFEAS" => 1e-8, "MSK_DPAR_INTPNT_CO_TOL_REL_GAP" => 1e-8, "MSK_IPAR_NUM_THREADS" => 0)
+
+    solver_config = SolverConfig(optimizer=SOLVER, order=2)
+
     energy_cons = [-(H - target_energy) * (H - target_energy) + cur_spreading]
 
-    pop_lower = cpolyopt(n1n2; ineq_constraints=energy_cons, eq_constraints=Pauli_algebra, comm_gps=[[x[i], y[i], z[i]] for i in 1:N], is_unipotent=true)
+    res_lower = cs_nctssos_with_blockade(pop_lower, solver_config, blockade_constraints, energy_cons)
 
-    solver_config = SolverConfig(optimizer=Mosek.Optimizer, order=2)
+    pop_upper = cpolyopt(-n1n2; eq_constraints=Pauli_algebra, comm_gps=[[x[i], y[i], z[i]] for i in 1:N], is_unipotent=true)
 
-    res_lower = cs_nctssos_with_blockade(pop_lower, solver_config, blockade_constraints)
-
-    pop_upper = cpolyopt(-n1n2; ineq_constraints=energy_cons, eq_constraints=Pauli_algebra, comm_gps=[[x[i], y[i], z[i]] for i in 1:N], is_unipotent=true)
-
-    res_upper = cs_nctssos_with_blockade(pop_upper, solver_config, blockade_constraints)
+    res_upper = cs_nctssos_with_blockade(pop_upper, solver_config, blockade_constraints, energy_cons)
 
     return res_lower, res_upper
 end
@@ -81,6 +115,8 @@ energy_spectrum = [-39.20406261331271,
     15.245634541416734,
     47.298087863292544,
     57.54066642011262]
+
+res_lower, res_upper = solve_n1n2_bounds(energy_spectrum[1], 0.1)
 
 function does_solve(target_energy, spreading_upper)
     spreading_lower = 0.0
@@ -103,6 +139,6 @@ function does_solve(target_energy, spreading_upper)
     end
 end
 
-tight_spreading = [does_solve(energy_spectrum[i], 1000) for i in 1:length(energy_spectrum)]
+tight_spreading = [does_solve(energy_spectrum[i], 0.001) for i in 1:length(energy_spectrum)]
 
 tight_spreadings = [277.8101921081543, 47.6008415222168, 66.45956039428711, 82.20663070678711, 156.52642250061035, 309.25512313842773, 312.9763603210449]
