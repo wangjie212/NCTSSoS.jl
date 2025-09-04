@@ -35,7 +35,7 @@ end
 
 SOLVER = optimizer_with_attributes(Mosek.Optimizer, "MSK_DPAR_INTPNT_CO_TOL_PFEAS" => 1e-8, "MSK_DPAR_INTPNT_CO_TOL_DFEAS" => 1e-8, "MSK_DPAR_INTPNT_CO_TOL_REL_GAP" => 1e-8, "MSK_IPAR_NUM_THREADS" => 0)
 
-N = 4
+N = 3
 T = ComplexF64
 i = 1 
 
@@ -102,36 +102,53 @@ J1, J2 = 1.0, 0.1 + (i - 1) * 0.2
 
 obj = one(T) * x[1] * x[2]
 
-ham = sum(T(J1 / 4) * op[i] * op[mod1(i + 1, N)] + T(J2 / 4) * op[i] * op[mod1(i + 2, N)] for op in [x, y, z] for i in 1:N)
+ham = sum(T(J1 / 4) * op[i] * op[mod1(i + 1, N)] for op in [x, y, z] for i in 1:N) + sum(T(J2 / 4) * op[i] * op[mod1(i + 2, N)] for op in [x, y, z] for i in [1])
 
 eq_cons = reduce(vcat, [[x[i] * y[i] - im * z[i], y[i] * x[i] + im * z[i], y[i] * z[i] - im * x[i], z[i] * y[i] + im * x[i], z[i] * x[i] - im * y[i], x[i] * z[i] + im * y[i]] for i in 1:N])
 
-ineq_cons = [ham - energy_lower_bounds[i]*N]
 
+pop_l = cpolyopt(obj; eq_constraints=eq_cons, comm_gps=[[x[i], y[i], z[i]] for i in 1:N], is_unipotent=true)
 
-pop_l = cpolyopt(obj; eq_constraints=eq_cons, ineq_constraints=ineq_cons, comm_gps=[[x[i], y[i], z[i]] for i in 1:N], is_unipotent=true)
+pop_u = cpolyopt(-obj; eq_constraints=eq_cons, comm_gps=[[x[i], y[i], z[i]] for i in 1:N], is_unipotent=true)
 
-pop_u = cpolyopt(-obj; eq_constraints=eq_cons, ineq_constraints=ineq_cons, comm_gps=[[x[i], y[i], z[i]] for i in 1:N], is_unipotent=true)
-
-solver_config = SolverConfig(optimizer=SOLVER, order=2)
+solver_config = SolverConfig(optimizer=SOLVER, order=3)
 
 # would it be better to use (H - (up+lb)/2)^2 = sqrt(up-lb) ?
-# ineq_cons = [ham - energy_lower_bounds[i] * N, energy_upper_bounds[i] * N - ham]
-ineq_cons = [energy_upper_bounds[i] * N - ham]
+ineq_cons = [ham - energy_lower_bounds[i] * N, energy_upper_bounds[i] * N - ham]
 # ineq_cons = [-(ham - (energy_lower_bounds[i] * N + energy_upper_bounds[i] * N) / 2)^2 + sqrt(energy_upper_bounds[i] - energy_lower_bounds[i])]
 
 res_l = cs_nctssos_with_entry(pop_l, solver_config, ineq_cons; dualize=true)
 
 res_u = cs_nctssos_with_entry(pop_u, solver_config, ineq_cons; dualize=true)
 
-using DelimitedFiles
-
-open("res.txt","w") do io
-     writedlm(io, [res_l.objective/4, -res_u.objective/4])
-end
+res_l.objective/4
+-res_u.objective/4
 
 termination_status(res_l.model)
 is_solved_and_feasible(res_l.model)
 
 termination_status(res_u.model)
 is_solved_and_feasible(res_u.model)
+
+using Yao
+using LinearAlgebra
+
+N = 3
+J1, J2 = 1.0, 0.1
+
+ham = sum(J1 / 4 * kron(N, i => op, mod1(i + 1, N) => op) for op in (X, Y, Z) for i in 1:N) + sum(J2 / 4 * kron(N, i => op, mod1(i + 2, N) => op) for op in (X, Y, Z) for i in [1])
+
+s1s2 = Matrix(kron(N,1=>X,2=>X))/4
+
+evals, eigvecs = eigen(Matrix(ham))
+
+# has degeneracy
+evals
+
+evals ./ N
+evals[end]
+
+s1s2s = map(1:length(evals)) do which_state
+    # eigvecs[:, which_state]' * Matrix(ham) * eigvecs[:, which_state] / N
+    real(eigvecs[:, which_state]' * s1s2 * eigvecs[:, which_state])
+end

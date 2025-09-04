@@ -258,7 +258,7 @@ using MPSKit
 using KrylovKit
 using TensorKit
 
-N = 6
+N = 10
 χ = 200
 max_bond_dimension = ℂ^χ
 physical_space = ℂ^2
@@ -330,7 +330,7 @@ end
 using Yao
 using LinearAlgebra
 
-N = 4
+N = 6
 J1, J2 = 1.0, 0.1
 
 ham = sum(J1 / 4 * kron(N, i => op, mod1(i + 1, N) => op) for op in (X, Y, Z) for i in 1:N) + sum(J2 / 4 * kron(N, i => op, mod1(i + 2, N) => op) for op in (X, Y, Z) for i in 1:N)
@@ -341,7 +341,7 @@ evals, eigvecs = eigen(Matrix(ham))
 
 evals
 
-evals
+evals ./ N
 evals[end]
 
 s1s2s = map(1:length(evals)) do which_state

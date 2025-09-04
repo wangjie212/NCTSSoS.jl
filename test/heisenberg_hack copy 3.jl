@@ -35,100 +35,68 @@ end
 
 SOLVER = optimizer_with_attributes(Mosek.Optimizer, "MSK_DPAR_INTPNT_CO_TOL_PFEAS" => 1e-8, "MSK_DPAR_INTPNT_CO_TOL_DFEAS" => 1e-8, "MSK_DPAR_INTPNT_CO_TOL_REL_GAP" => 1e-8, "MSK_IPAR_NUM_THREADS" => 0)
 
-N = 4
+N = 10 
 T = ComplexF64
-i = 1 
 
 # this is supposed to be upper bounds because it's from DMRG
 energy_lower_bounds = [
-     -0.475,
-     -0.42500000000000004,
-     -0.3749999999999999,
-     -0.5249999999999996,
-     -0.6749999999999997,
-     -0.8250000000000001,
-     -0.9749999999999995,
-     -1.125,
-     -1.2749999999999995,
-     -1.4249999999999994,
-     -1.5749999999999997]
-
-# energy_lower_bounds = [
-# -0.44667162694019064,
-# -0.40833333333333327,
-# -0.37499999999999994,
-# -0.42500000000000004,
-# -0.47499999999999987,
-# -0.5249999999999999,
-# -0.5749999999999998,
-# -0.6249999999999997,
-# -0.6749999999999998,
-# -0.7249999999999998,
-# -0.7749999999999998
-# ]
-
-energy_upper_bounds = [
-     -0.47499999725973996,
-     -0.424999998456548,
-     -0.3749999999529608,
-     -0.5249999999094307,
-     -0.674999999842614,
-     -0.8249999985406258,
-     -0.9749999998616854,
-     -1.1249999996288769,
-     -1.2749999993449743,
-     -1.4249999999641514,
-     -1.574999999996572
+     -0.43286676510889616,
+     -0.39861081639315044,
+     -0.3750000000000001,
+     -0.403134244708691,
+     -0.46685450336963996,
+     -0.5358985722626579,
+     -0.6067542029652743,
+     -0.678582898886551,
+     -0.7510320744136272,
+     -0.8239121834672108,
+     -0.8971075269023185
 ]
 
-# energy_upper_bounds = [
-#      -0.4466716248248655,
-#      -0.40833333318460446,
-#      -0.3749999997829185,
-#      -0.4249999999582507,
-#      -0.47499999962478495,
-#      -0.5249999997928769,
-#      -0.5749999999996329,
-#      -0.6249999999996749,
-#      -0.6749999999905304,
-#      -0.7249999971735893,
-#      -0.774999997626372
-# ]
-
-i = 1
-J1, J2 = 1.0, 0.1 + (i - 1) * 0.2
-
-@ncpolyvar x[1:N] y[1:N] z[1:N]
-
-obj = one(T) * x[1] * x[2]
-
-ham = sum(T(J1 / 4) * op[i] * op[mod1(i + 1, N)] + T(J2 / 4) * op[i] * op[mod1(i + 2, N)] for op in [x, y, z] for i in 1:N)
-
-eq_cons = reduce(vcat, [[x[i] * y[i] - im * z[i], y[i] * x[i] + im * z[i], y[i] * z[i] - im * x[i], z[i] * y[i] + im * x[i], z[i] * x[i] - im * y[i], x[i] * z[i] + im * y[i]] for i in 1:N])
-
-ineq_cons = [ham - energy_lower_bounds[i]*N]
+energy_upper_bounds = [
 
 
-pop_l = cpolyopt(obj; eq_constraints=eq_cons, ineq_constraints=ineq_cons, comm_gps=[[x[i], y[i], z[i]] for i in 1:N], is_unipotent=true)
+]
 
-pop_u = cpolyopt(-obj; eq_constraints=eq_cons, ineq_constraints=ineq_cons, comm_gps=[[x[i], y[i], z[i]] for i in 1:N], is_unipotent=true)
+for i in 1:11
+     J1, J2 = 1.0, 0.1 + (i - 1) * 0.2
 
-solver_config = SolverConfig(optimizer=SOLVER, order=2)
+     @ncpolyvar x[1:N] y[1:N] z[1:N]
+
+     obj = one(T) * x[1] * x[2]
+
+     ham = sum(T(J1 / 4) * op[i] * op[mod1(i + 1, N)] + T(J2 / 4) * op[i] * op[mod1(i + 2, N)] for op in [x, y, z] for i in 1:N)
+
+     eq_cons = reduce(vcat, [[x[i] * y[i] - im * z[i], y[i] * x[i] + im * z[i], y[i] * z[i] - im * x[i], z[i] * y[i] + im * x[i], z[i] * x[i] - im * y[i], x[i] * z[i] + im * y[i]] for i in 1:N])
+
+     solver_config = SolverConfig(optimizer=SOLVER, order=2)
+
+     pop = cpolyopt(ham; eq_constraints=eq_cons, comm_gps=[[x[i], y[i], z[i]] for i in 1:N], is_unipotent=true)
+
+     res = cs_nctssos(pop, solver_config)
+
+     @assert is_solved_and_feasible(res.model)
+     push!(energy_upper_bounds, res.objective)
+end
+
+energy_upper_bounds
+
+pop_l = cpolyopt(obj; eq_constraints=eq_cons, comm_gps=[[x[i], y[i], z[i]] for i in 1:N], is_unipotent=true)
+
+pop_u = cpolyopt(-obj; eq_constraints=eq_cons, comm_gps=[[x[i], y[i], z[i]] for i in 1:N], is_unipotent=true)
+
+solver_config = SolverConfig(optimizer=SOLVER, order=3)
 
 # would it be better to use (H - (up+lb)/2)^2 = sqrt(up-lb) ?
-# ineq_cons = [ham - energy_lower_bounds[i] * N, energy_upper_bounds[i] * N - ham]
-ineq_cons = [energy_upper_bounds[i] * N - ham]
+ineq_cons = [ham - energy_lower_bounds[i] * N, energy_upper_bounds[i] * N - ham]
 # ineq_cons = [-(ham - (energy_lower_bounds[i] * N + energy_upper_bounds[i] * N) / 2)^2 + sqrt(energy_upper_bounds[i] - energy_lower_bounds[i])]
 
 res_l = cs_nctssos_with_entry(pop_l, solver_config, ineq_cons; dualize=true)
 
 res_u = cs_nctssos_with_entry(pop_u, solver_config, ineq_cons; dualize=true)
 
-using DelimitedFiles
-
-open("res.txt","w") do io
-     writedlm(io, [res_l.objective/4, -res_u.objective/4])
-end
+res_l.objective/4
+-res_u.objective/4
 
 termination_status(res_l.model)
 is_solved_and_feasible(res_l.model)
