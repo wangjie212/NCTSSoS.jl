@@ -1,6 +1,9 @@
 using NCTSSoS, NCTSSoS.FastPolynomials
-using MosekTools
+using Clarabel
+# using MosekTools
 using JuMP
+
+SOLVER = optimizer_with_attributes(Clarabel.Optimizer, "direct_solve_method" => :cudss)
 
 function cs_nctssos_with_entry(pop::OP, solver_config::SolverConfig, entry_constraints::Vector{Polynomial{T}}; dualize::Bool=true) where {T,P<:Polynomial{T},OP<:NCTSSoS.OptimizationProblem{P}}
 
@@ -33,11 +36,10 @@ function cs_nctssos_with_entry(pop::OP, solver_config::SolverConfig, entry_const
    return NCTSSoS.PolyOptResult(objective_value(problem_to_solve.model), corr_sparsity, cliques_term_sparsities, problem_to_solve.model)
 end
 
-SOLVER = optimizer_with_attributes(Mosek.Optimizer, "MSK_DPAR_INTPNT_CO_TOL_PFEAS" => 1e-8, "MSK_DPAR_INTPNT_CO_TOL_DFEAS" => 1e-8, "MSK_DPAR_INTPNT_CO_TOL_REL_GAP" => 1e-8, "MSK_IPAR_NUM_THREADS" => 0)
+# SOLVER = optimizer_with_attributes(Mosek.Optimizer, "MSK_DPAR_INTPNT_CO_TOL_PFEAS" => 1e-8, "MSK_DPAR_INTPNT_CO_TOL_DFEAS" => 1e-8, "MSK_DPAR_INTPNT_CO_TOL_REL_GAP" => 1e-8, "MSK_IPAR_NUM_THREADS" => 0)
 
 N = 4
 T = ComplexF64
-i = 1 
 
 # this is supposed to be upper bounds because it's from DMRG
 energy_lower_bounds = [
@@ -53,20 +55,6 @@ energy_lower_bounds = [
      -1.4249999999999994,
      -1.5749999999999997]
 
-# energy_lower_bounds = [
-# -0.44667162694019064,
-# -0.40833333333333327,
-# -0.37499999999999994,
-# -0.42500000000000004,
-# -0.47499999999999987,
-# -0.5249999999999999,
-# -0.5749999999999998,
-# -0.6249999999999997,
-# -0.6749999999999998,
-# -0.7249999999999998,
-# -0.7749999999999998
-# ]
-
 energy_upper_bounds = [
      -0.47499999725973996,
      -0.424999998456548,
@@ -81,20 +69,10 @@ energy_upper_bounds = [
      -1.574999999996572
 ]
 
-# energy_upper_bounds = [
-#      -0.4466716248248655,
-#      -0.40833333318460446,
-#      -0.3749999997829185,
-#      -0.4249999999582507,
-#      -0.47499999962478495,
-#      -0.5249999997928769,
-#      -0.5749999999996329,
-#      -0.6249999999996749,
-#      -0.6749999999905304,
-#      -0.7249999971735893,
-#      -0.774999997626372
-# ]
+lower_bounds = Float64[]
+upper_bounds = Float64[]
 
+# for i in 1:11
 i = 1
 J1, J2 = 1.0, 0.1 + (i - 1) * 0.2
 
@@ -106,8 +84,7 @@ ham = sum(T(J1 / 4) * op[i] * op[mod1(i + 1, N)] + T(J2 / 4) * op[i] * op[mod1(i
 
 eq_cons = reduce(vcat, [[x[i] * y[i] - im * z[i], y[i] * x[i] + im * z[i], y[i] * z[i] - im * x[i], z[i] * y[i] + im * x[i], z[i] * x[i] - im * y[i], x[i] * z[i] + im * y[i]] for i in 1:N])
 
-ineq_cons = [ham - energy_lower_bounds[i]*N]
-
+ineq_cons = [ham - energy_lower_bounds[i] * N]
 
 pop_l = cpolyopt(obj; eq_constraints=eq_cons, ineq_constraints=ineq_cons, comm_gps=[[x[i], y[i], z[i]] for i in 1:N], is_unipotent=true)
 
@@ -115,23 +92,25 @@ pop_u = cpolyopt(-obj; eq_constraints=eq_cons, ineq_constraints=ineq_cons, comm_
 
 solver_config = SolverConfig(optimizer=SOLVER, order=2)
 
-# would it be better to use (H - (up+lb)/2)^2 = sqrt(up-lb) ?
-# ineq_cons = [ham - energy_lower_bounds[i] * N, energy_upper_bounds[i] * N - ham]
-ineq_cons = [energy_upper_bounds[i] * N - ham]
-# ineq_cons = [-(ham - (energy_lower_bounds[i] * N + energy_upper_bounds[i] * N) / 2)^2 + sqrt(energy_upper_bounds[i] - energy_lower_bounds[i])]
+res = cs_nctssos(pop_l, solver_config)
 
-res_l = cs_nctssos_with_entry(pop_l, solver_config, ineq_cons; dualize=true)
+# ineq_cons = [energy_upper_bounds[i] * N - ham]
 
-res_u = cs_nctssos_with_entry(pop_u, solver_config, ineq_cons; dualize=true)
+# res_l = cs_nctssos_with_entry(pop_l, solver_config, ineq_cons; dualize=true)
+# res_u = cs_nctssos_with_entry(pop_u, solver_config, ineq_cons; dualize=true)
+
+is_solved_and_feasible(res_l.model) || error("Lower bound problem not solved or feasible at J2 = $J2")
+is_solved_and_feasible(res_u.model) || error("Upper bound problem not solved or feasible at J2 = $J2")
+
+push!(lower_bounds, res_l.objective / 4)
+push!(upper_bounds, -res_u.objective / 4)
+# end
+
+# the larger the J2 the harder it is to obtain good bounds of s0s1
+# at J2 = 0.9, this formulation (order = 2) fails to bound s0s1
 
 using DelimitedFiles
 
 open("res.txt","w") do io
-     writedlm(io, [res_l.objective/4, -res_u.objective/4])
+     writedlm(io, hcat(lower_bounds, upper_bounds))
 end
-
-termination_status(res_l.model)
-is_solved_and_feasible(res_l.model)
-
-termination_status(res_u.model)
-is_solved_and_feasible(res_u.model)
