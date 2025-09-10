@@ -330,21 +330,22 @@ end
 using Yao
 using LinearAlgebra
 
-N = 6
-J1, J2 = 1.0, 0.1
+N = 3
+J1 = 1.0
 
-ham = sum(J1 / 4 * kron(N, i => op, mod1(i + 1, N) => op) for op in (X, Y, Z) for i in 1:N) + sum(J2 / 4 * kron(N, i => op, mod1(i + 2, N) => op) for op in (X, Y, Z) for i in 1:N)
+ground_state_energies = Float64[]
+s1s2values = Float64[]
 
-s1s2 = Matrix(kron(N,1=>X,2=>X))/4
+for J2 in 0.1:0.2:2.0
+    ham = sum(J1 / 4 * kron(N, i => Z, mod1(i + 1, N) => Z) for i in 1:N) + sum(J2 / 2 * put(N, i => X) for i in 1:N)
 
-evals, eigvecs = eigen(Matrix(ham))
+    evals, eigves = eigen(Matrix(ham))
 
-evals
-
-evals ./ N
-evals[end]
-
-s1s2s = map(1:length(evals)) do which_state
-    # eigvecs[:, which_state]' * Matrix(ham) * eigvecs[:, which_state] / N
-    real(eigvecs[:, which_state]' * s1s2 * eigvecs[:, which_state])
+    s1s2 = Matrix(kron(N, 1 => Z, 2 => Z)) / 4
+    push!(ground_state_energies, minimum(real(evals)) / N)
+    push!(s1s2values, real(eigves[:, argmin(real(evals))]' * s1s2 * eigves[:, argmin(real(evals))]))
 end
+
+ground_state_energies
+
+s1s2values

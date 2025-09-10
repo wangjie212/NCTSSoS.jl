@@ -164,7 +164,7 @@ function Base.show(io::IO, sparsity::TermSparsity)
 end
 
 function init_activated_supp(partial_obj::P, cons::Vector{P}, mom_mtx_bases::Vector{M}, sa::SimplifyAlgorithm) where {T,P<:AbstractPolynomial{T},M}
-    return sorted_union(canonicalize.(monomials(partial_obj), Ref(sa)), mapreduce(a -> simplify.(monomials(a), Ref(sa)), vcat, cons; init=M[]), [simplify!(neat_dot(b, b), sa) for b in mom_mtx_bases])
+    return sorted_union(canonicalize.(monomials(partial_obj), Ref(sa)), mapreduce(a -> FastPolynomials.simplify.(monomials(a), Ref(sa)), vcat, cons; init=M[]), [simplify!(neat_dot(b, b), sa) for b in mom_mtx_bases])
 end
 
 """

@@ -2,6 +2,17 @@ using NCTSSoS, NCTSSoS.FastPolynomials
 using MosekTools
 using JuMP
 
+ -0.11892547876100075
+ -0.1999999999999994
+ -0.288675134594812
+ -0.38134355029701733
+ -0.47627352424814867
+ -0.5725815626252594
+ -0.6697825646477007
+ -0.7675918792439959
+ -0.8658328118479361
+ -0.9643904066487076
+
 function cs_nctssos_with_entry(pop::OP, solver_config::SolverConfig, entry_constraints::Vector{Polynomial{T}}; dualize::Bool=true) where {T,P<:Polynomial{T},OP<:NCTSSoS.OptimizationProblem{P}}
 
    sa = SimplifyAlgorithm(comm_gps=pop.comm_gps, is_projective=pop.is_projective, is_unipotent=pop.is_unipotent)
