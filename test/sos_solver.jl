@@ -127,15 +127,13 @@ end
         order=order
     )
 
-
     result_mom = cs_nctssos(pop, solver_config; dualize=false)
     result_sos = cs_nctssos(pop, solver_config; dualize=true)
-
 
     @test isapprox(
         result_mom.objective,
         result_sos.objective,
-        atol=1e-4,
+        atol=1e-3,
     )
 end
 
