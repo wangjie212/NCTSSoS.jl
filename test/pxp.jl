@@ -6,15 +6,6 @@ using JuMP
 
 function cs_nctssos_with_blockade(pop::OP, solver_config::SolverConfig, blockade_constraints::Vector{Polynomial{T}}, eigen_state_constraints::Vector{Polynomial{T}}; dualize::Bool=true) where {T,P<:Polynomial{T},OP<:NCTSSoS.OptimizationProblem{P}}
 
-    # temporarily add blockade constraints as algebraic constraints
-#    for c in blockade_constraints
-#        push!(pop.eq_constraints, c)
-#    end
-
-#    for c in eigen_state_constraints
-#         push!(pop.ineq_constraints,c)
-#    end
-
    sa = SimplifyAlgorithm(comm_gps=pop.comm_gps, is_projective=pop.is_projective, is_unipotent=pop.is_unipotent)
    order = iszero(solver_config.order) ? maximum([ceil(Int, maxdegree(poly) / 2) for poly in [pop.objective; pop.eq_constraints; pop.ineq_constraints]]) : solver_config.order
 
@@ -49,19 +40,18 @@ function cs_nctssos_with_blockade(pop::OP, solver_config::SolverConfig, blockade
             # cons[2:end, 1] .*= zero(T)
             # cons[1, 2:end] .*= zero(T)
         end
-        @show cons
+        # @show cons
     end
 
-    # for (type, cons) in moment_problem.constraints
-    #     type == :Zero && continue
-    #     # mother fuck, forgot to clear out first col and first row
-    #     if cons[1, 1] in eigen_state_constraints
-    #         cons[2:end, 2:end] .*= zero(T)
-    #         cons[2:end, 1] .*= zero(T)
-    #         cons[1, 2:end] .*= zero(T)
-    #     end
-    #     @show cons
-    # end
+    for (type, cons) in moment_problem.constraints
+        type == :Zero && continue
+        if cons[1, 1] in eigen_state_constraints
+            cons[2:end, 2:end] .*= zero(T)
+            cons[2:end, 1] .*= zero(T)
+            cons[1, 2:end] .*= zero(T)
+        end
+        # @show cons
+    end
 
    (pop isa NCTSSoS.ComplexPolyOpt{P} && !dualize) && error("Solving Moment Problem for Complex Poly Opt is not supported")
    problem_to_solve = !dualize ? moment_problem : NCTSSoS.sos_dualize(moment_problem)
