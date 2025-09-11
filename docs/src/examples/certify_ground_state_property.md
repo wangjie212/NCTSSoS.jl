@@ -1,5 +1,7 @@
 # [Certifying Ground State Properties](@id certify-property)
 
+Use AI to format and explain the code, add sections. 
+
 Understanding the ground-state properties of quantum many-body systems is a
 **ubiquitous and central problem in quantum physics**
 [wang2024Certifying](@cite), critical for comprehending the low-energy phases
@@ -112,6 +114,7 @@ end
 
 ```julia
 # this is supposed to be upper bounds because it's from DMRG
+# remove these inputs
 energy_lower_bounds = [
      -0.11892547876100075,
      -0.1999999999999994,
