@@ -1,102 +1,58 @@
-# NCTSSoS.jl
-`NCTSSoS.jl` aims to provide a user-friendly and efficient tool for solving optimization problems with non-commutative/trace/state polynomials, which is based on the structured moment-SOHS hierarchy. To use `NCTSSoS.jl` in Julia, run
+<div align="center">
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/src/assets/dark_logo.png">
+  <source media="(prefers-color-scheme: light)" srcset="docs/src/assets/light_logo.png">
+  <img alt="NCTSSoS Logo">
+</picture>
+</div>
 
-```Julia
-pkg> add NCTSSoS
- ```
+---
+[![][docs-stable-img]][docs-stable-url]
+[![CI][main-ci-img]][main-ci-url]
+[![codecov][codecov-img]][codecov-url]
+[![Aqua QA](https://raw.githubusercontent.com/JuliaTesting/Aqua.jl/master/badge.svg)](https://github.com/JuliaTesting/Aqua.jl)
+[![License](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)
 
- | **Documentation** |
- |:-----------------:|
- | [![](https://img.shields.io/badge/docs-latest-blue.svg)](https://wangjie212.github.io/NCTSSoS/dev) |
+[NCTSSoS.jl](https://github.com/wangjie212/NCTSSoS) aims to provide a *efficient* tool for solving sparse noncommutative polynomial optimization problems which is based on the structured moment-SOHS hierarchy.
 
-## Dependencies
-- [Julia](https://julialang.org/)
-- [JuMP](https://github.com/jump-dev/JuMP.jl)
-- [DynamicPolynomials](https://github.com/JuliaAlgebra/DynamicPolynomials.jl)
-- [CliqueTrees](https://github.com/AlgebraicJulia/CliqueTrees.jl)
-- [ChordalGraph](https://github.com/wangjie212/ChordalGraph)
+It is a successor to [NCTSSOS](https://github.com/wangjie212/NCTSSOS).
 
-NCTSSoS has been tested on Ubuntu, MacOS, and Windows.
+## Installation
 
-## Usage
-### Unconstrained non-commutative polynomial optimization
-Taking $f=1+x_1^4+x_2^4+x_3^4+x_1x_2+x_2x_1+x_2x_3+x_3x_2$ as an example, to compute the first step of the NCTSSOS hierarchy, run
+<p>
+NCTSSoS is a &nbsp;
+    <a href="https://julialang.org">
+        <img src="https://raw.githubusercontent.com/JuliaLang/julia-logo-graphics/master/images/julia.ico" width="16em">
+        Julia Language
+    </a>
+    &nbsp; package. To install NCTSSoS,
+    please <a href="https://docs.julialang.org/en/v1/manual/getting-started/">open
+    Julia's interactive session (known as REPL)</a> and press <kbd>]</kbd> key in the REPL to use the package mode, and then type the following command:
+</p>
 
-```Julia
-using NCTSSoS
-using DynamicPolynomials
-using Clarabel
-@ncpolyvar x[1:3]
-f = 1.0 + x[1]^4 + x[2]^4 + x[3]^4 + x[1]*x[2] + x[2]*x[1] + x[2]*x[3] + x[3]*x[2]
+For stable release:
 
-pop =  PolyOpt(f)
-
-solver_config_dense = SolverConfig(optimizer=Clarabel.Optimizer)
-
-result_dense = cs_nctssos(pop, solver_config_dense)
+```julia
+pkg> add NCTSSoS 
 ```
 
-Recommended solver for SDP problem is `Mosek.jl` and `Clarabel.jl`
+For current master:
 
-To use correlative sparsity
-
-```Julia
-result_cs = cs_nctssos(pop, SolverConfig(optimizer=Clarabel.Optimizer; cs_algo=MF()))
+```julia
+pkg> add NCTSSoS#master
 ```
+[main-ci-img]: https://github.com/wangjie212/NCTSSoS.jl/actions/workflows/CI.yml/badge.svg
+[main-ci-url]: https://github.com/wangjie212/NCTSSoS.jl/actions/workflows/CI.yml
 
-To use term sparsity
+[codecov-img]: https://codecov.io/gh/wangjie212/NCTSSoS.jl/branch/main/graph/badge.svg
+[codecov-url]: https://codecov.io/gh/wangjie212/NCTSSoS.jl
 
-```Julia
-result_cs_ts = cs_nctssos(pop, SolverConfig(optimizer=Clarabel.Optimizer; cs_algo=MF(), ts_algo=MMD()))
-```
+[docs-stable-img]: https://img.shields.io/badge/docs-stable-blue.svg
+[docs-stable-url]: https://wangjie212.github.io/NCTSSoS.jl/stable
 
+## Supporting and Citing
 
-### Constrained non-commutative polynomial optimization
-Taking the objective $f=2-x_1^2+x_1x_2^2x_1-x_2^2$ and constraints $g=4-x_1^2-x_2^2\ge0$, $h=x_1x_2+x_2x_1-2=0$ as an example, to solve the first step of the NCTSSOS hierarchy, run
-
-```Julia
-@ncpolyvar x[1:2]
-f = 2.0 - x[1]^2 + x[1]*x[2]^2*x[1] - x[2]^2
-g = 4.0 - x[1]^2 - x[2]^2
-h1 = x[1]*x[2] + x[2]*x[1] - 2.0
-h2 = -h1
-
-pop =  PolyOpt(f, [g, h1, h2])
-
-result_dense = cs_nctssos(pop, SolverConfig(optimizer=Clarabel.Optimizer))
-```
-
-To use Correlative Sparsity
-
-```Julia
-result_cs = cs_nctssos(pop, SolverConfig(optimizer=Clarabel.Optimizer; cs_algo=MF()))
-```
-
-To exploit correlative sparsity and term sparsity simultaneously, do
-
-```Julia
-result_cs_ts = cs_nctssos(pop, SolverConfig(optimizer=Clarabel.Optimizer; cs_algo=MF(), ts_algo=MMD()))
-```
-
-To exploit higher iteration of term sparsity, do
-
-```Julia
-result_cs_ts_higher = cs_nctssos_higher(pop, result_cs_ts, SolverConfig(optimizer=Clarabel.Optimizer, mom_order=2, cs_algo=MF(), ts_algo=MMD()))
-```
-
-## How to Contribute
-We welcome contributions to NCTSSoS.jl! Here are the steps to get started:
-
-After cloning the repository, use `make init` to set up the environment to run tests and examples.
-
-`make init-docs servedocs` to set up the environment to build and serve the documentation.
-
-## References
-[1] [Exploiting Term Sparsity in Noncommutative Polynomial Optimization](https://arxiv.org/abs/2010.06956), 2021.
-
-[2] [Sparse polynomial optimization: theory and practice](https://arxiv.org/abs/2208.11158), 2023.
-
-[3] [State polynomials: positivity, optimization and nonlinear Bell inequalities](https://arxiv.org/abs/2301.12513), 2023.
+Much of the software in this ecosystem was developed as part of academic research. If you would like to help support it, please star the repository as such metrics may help us secure funding in the future. If you use our software as part of your research, teaching, or other activities, we would be grateful if you could cite our work. The [CITATION.bib](CITATION.bib) file in the root of this repository lists the relevant papers.
 
 ## Contact
 [Jie Wang](https://wangjie212.github.io/jiewang/): wangjie212@amss.ac.cn

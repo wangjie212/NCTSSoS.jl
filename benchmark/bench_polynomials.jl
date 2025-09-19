@@ -4,8 +4,6 @@ using NCTSSoS.FastPolynomials
 
 const SUITE = BenchmarkGroup()
 
-n = 5
-@ncpolyvar x[1:n]
 function poly_create(x, n)
     f = 0.0
     for i = 1:n
@@ -26,15 +24,15 @@ function poly_create(x, n)
     end
 end
 
+n = 5
+
+@ncpolyvar x[1:n]
+
 SUITE["Polynomial Creation"] = @benchmarkable poly_create(x, n)
-
-
-@ncpolyvar x[1:5]
 
 p1 = x[1]^2 + 2x[2]*x[3] + 3x[3]*x[1] + 4x[4]^100*x[5]^2
 
 SUITE["Polynomial get variables"] = @benchmarkable variables(p1)
-
 end
 
 BenchPolynomials.SUITE

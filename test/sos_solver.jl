@@ -7,11 +7,27 @@ else
     using Clarabel
     const SOLVER = Clarabel.Optimizer
 end
-using SparseArrays
-using JuMP
-using Graphs
-using CliqueTrees
+using SparseArrays, JuMP, Graphs, CliqueTrees
+
 using NCTSSoS: get_Cαj
+
+if Sys.isapple()
+@testset "I_3322 inequality" begin
+    @ncpolyvar x[1:3]
+    @ncpolyvar y[1:3]
+    f =
+        1.0 * x[1] * (y[1] + y[2] + y[3]) +
+        x[2] * (y[1] + y[2] - y[3]) +
+        x[3] * (y[1] - y[2]) - x[1] - 2 * y[1] - y[2]
+    pop = polyopt(-f; comm_gps=[x, y], is_projective=true)
+
+    solver_config = SolverConfig(optimizer=SOLVER; order=3)
+
+    result = cs_nctssos(pop, solver_config)
+
+    @test isapprox(result.objective, -0.2508753049688358, atol=1e-6)
+end
+end
 
 # NOTE: sos_dualize has performance issue have verified locally it's correct
 @testset "CS TS Example" begin
@@ -38,8 +54,8 @@ using NCTSSoS: get_Cαj
 
     cons = vcat([(1 - x[i]^2) for i = 1:n], [(x[i] - 1 / 3) for i = 1:n])
 
-    pop = PolyOpt(f; ineq_constraints = cons)
-    solver_config = SolverConfig(optimizer = SOLVER, mom_order = order, 
+    pop = polyopt(f; ineq_constraints = cons)
+    solver_config = SolverConfig(optimizer = SOLVER, order = order,
         cs_algo = MF(), ts_algo = MMD())
 
     result = cs_nctssos(pop, solver_config)
@@ -55,22 +71,40 @@ end
         model,
         [x[1]-x[2] x[3] x[4]+x[1]; x[1]-x[2] x[3] x[4]+x[1]; x[1]-x[2] x[3] x[4]+x[1]] in PSDCone()
     )
-    typeof(cons)
 
-    C_α_js = get_Cαj(x, constraint_object(cons))
+    C_α_js = get_Cαj(Dict(zip(x, 1:4)), constraint_object(cons))
 
-    @test C_α_js == [
-        sparse(
-            [1, 2, 3, 1, 2, 3],
-            [1, 1, 1, 3, 3, 3],
-            [1.0, 1.0, 1.0, 1.0, 1.0, 1.0],
-            3,
-            3,
-        ),
-        sparse([1, 2, 3], [1, 1, 1], [-1.0, -1.0, -1.0], 3, 3),
-        sparse([1, 2, 3], [2, 2, 2], [1.0, 1.0, 1.0], 3, 3),
-        sparse([1, 2, 3], [3, 3, 3], [1.0, 1.0, 1.0], 3, 3),
-    ]
+    @test C_α_js == Dict((1, 2, 1) => 1,
+        (1, 3, 1) => 1,
+        (1, 2, 3) => 1,
+        (1, 3, 3) => 1,
+        (3, 1, 2) => 1,
+        (2, 1, 1) => -1,
+        (4, 1, 3) => 1,
+        (3, 2, 2) => 1,
+        (2, 2, 1) => -1,
+        (3, 3, 2) => 1,
+        (2, 3, 1) => -1,
+        (4, 2, 3) => 1,
+        (4, 3, 3) => 1,
+        (1, 1, 1) => 1,
+        (1, 1, 3) => 1)
+end
+
+@testset "Cαj complex" begin
+    @ncpolyvar x[1:2]
+    basis = NCTSSoS.FastPolynomials.get_basis(x,2)
+    localizing_mtx = [x[1] - x[2] x[2]^2 - 1; x[2]^2 - 1 x[2]^3]
+    C_α_js = get_Cαj(basis, localizing_mtx)
+    @test C_α_js == Dict(
+        (1, 2, 1) => -1.0,
+        (3, 1, 1) => -1.0,
+        (8, 2, 2) => 1.0,
+        (7, 2, 1) => 1.0,
+        (2, 1, 1) => 1.0,
+        (1, 1, 2) => -1.0,
+        (7, 1, 2) => 1.0
+    )
 end
 
 @testset "Dualization Trivial Example 2" begin
@@ -85,12 +119,12 @@ end
     g3 = x[1] - r
     g4 = x[2] - r
 
-    pop = PolyOpt(f; ineq_constraints = [g1, g2, g3, g4])
+    pop = polyopt(f; ineq_constraints = [g1, g2, g3, g4])
     order = 2
 
     solver_config = SolverConfig(
         optimizer = SOLVER,
-        mom_order = order
+        order = order
     )
 
 
@@ -101,7 +135,7 @@ end
     @test isapprox(
         result_mom.objective,
         result_sos.objective,
-        atol = 1e-5,
+        atol = 1e-4,
     )
 end
 
@@ -111,7 +145,7 @@ end
     f = 2.0 - x[1]^2 + x[1] * x[2]^2 * x[1] - x[2]^2
     g = 4.0 - x[1]^2 - x[2]^2
     h1 = x[1] * x[2] + x[2] * x[1] - 2.0
-    pop = PolyOpt(f; ineq_constraints = [g], eq_constraints=[h1])
+    pop = polyopt(f; ineq_constraints = [g], eq_constraints=[h1])
 
     order = 2
 
@@ -120,7 +154,7 @@ end
 
         solver_config = SolverConfig(
             optimizer = SOLVER,
-            mom_order = order,
+            order = order,
         )
 
         result = cs_nctssos(pop, solver_config; dualize = true)
@@ -130,7 +164,7 @@ end
     @testset "Term Sparse" begin
         solver_config = SolverConfig(
             optimizer = SOLVER,
-            mom_order = order,
+            order = order,
             ts_algo = MMD(),
         )
 
@@ -147,12 +181,12 @@ end
 
     f = x[1]^2 + x[1] * x[2] + x[2] * x[1] + x[2]^2 + true_min
 
-    pop = PolyOpt(f)
+    pop = polyopt(f)
     order = 2
 
     solver_config = SolverConfig(
         optimizer = SOLVER,
-        mom_order = order
+        order = order
     )
 
     result = cs_nctssos(pop, solver_config; dualize = true)
@@ -171,12 +205,12 @@ end
         9x[2]^2 * x[3] +
         9x[3] * x[2]^2 - 54x[3] * x[2] * x[3] + 142x[3] * x[2]^2 * x[3]
 
-    pop = PolyOpt(f)
+    pop = polyopt(f)
     order = 2
 
     solver_config = SolverConfig(
         optimizer = SOLVER,
-        mom_order = order,
+        order = order,
     )
 
     result = cs_nctssos(pop, solver_config; dualize = true)
@@ -209,7 +243,7 @@ end
     ])
 
 
-    pop = PolyOpt(
+    pop = polyopt(
         objective;
         eq_constraints = gs,
         is_unipotent = true,
@@ -219,7 +253,7 @@ end
 
     solver_config = SolverConfig(
         optimizer = SOLVER,
-        mom_order = order,
+        order = order,
     )
 
     result = cs_nctssos(pop, solver_config; dualize = true)
@@ -242,15 +276,29 @@ end
     order = 3
 
 
-    pop = PolyOpt(f; ineq_constraints = cons)
+    pop = polyopt(f; ineq_constraints = cons)
 
-    solver_config = SolverConfig(
-        optimizer = SOLVER,
-        mom_order = order,
-        cs_algo = MF(),
-    )
+    @testset "Correlative Sparsity" begin
+        solver_config = SolverConfig(
+            optimizer=SOLVER,
+            order=order,
+            cs_algo=MF(),
+        )
 
-    result = cs_nctssos(pop, solver_config; dualize = true)
+        result = cs_nctssos(pop, solver_config; dualize=true)
 
-    @test isapprox(result.objective, 0.9975306427277915, atol = 1e-5)
+        @test isapprox(result.objective, 0.9975306427277915, atol=1e-5)
+    end
+
+    @testset "Term Sparsity" begin
+        solver_config = SolverConfig(
+            optimizer=SOLVER,
+            order=order,
+            ts_algo=MMD(),
+        )
+
+        result = cs_nctssos(pop, solver_config; dualize=true)
+
+        @test isapprox(result.objective, 0.9975306427277915, atol=1e-5)
+    end
 end

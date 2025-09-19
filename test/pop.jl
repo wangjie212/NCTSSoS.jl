@@ -1,5 +1,18 @@
 using Test, NCTSSoS, NCTSSoS.FastPolynomials
 
+@testset "ComplexPolyOpt Constructor" begin
+    @testset "Naive Non-symmetric Inequality Example" begin
+        N = 1
+        @ncpolyvar x[1:N] y[1:N] z[1:N]
+
+        ham = sum(ComplexF64(1 / 2) * op[1] for op in [x, y, z])
+
+        fake_ineq_cons = reduce(vcat, [[x[i] * y[i] - im * z[i], y[i] * x[i] + im * z[i], y[i] * z[i] - im * x[i], z[i] * y[i] + im * x[i], z[i] * x[i] - im * y[i], x[i] * z[i] + im * y[i]] for i in 1:N])
+
+        @test_throws AssertionError pop = cpolyopt(ham; ineq_constraints=fake_ineq_cons, comm_gps=[[x[i], y[i], z[i]] for i in 1:N], is_unipotent=true)
+    end
+end
+
 @testset "PolyOpt Constructor" begin
     nvars = 10
     ncons = 3
@@ -8,7 +21,7 @@ using Test, NCTSSoS, NCTSSoS.FastPolynomials
     constraints = [1.0 * sum(i .* x) for i = 1:ncons]
 
     @testset "Unconstrained" begin
-        pop = PolyOpt(objective)
+        pop = polyopt(objective)
 
         @test isempty(pop.eq_constraints)
         @test isempty(pop.ineq_constraints)
@@ -17,29 +30,24 @@ using Test, NCTSSoS, NCTSSoS.FastPolynomials
         @test sort.(pop.comm_gps) == sort.([x])
         @test !pop.is_unipotent
         @test !pop.is_projective
-
-        pop = PolyOpt(objective; comm_gps = [[x[1]], x[2:end]], obj_type = TRACE)
-
-        @test pop.comm_gps == [[x[1]], x[2:end]]
-        @test pop isa PolyOpt{Polynomial{Float64},TRACE}
     end
 
     @testset "Constrainted Optimization Problem" begin
-        pop = PolyOpt(objective; ineq_constraints = constraints)
+        pop = polyopt(objective; ineq_constraints=constraints)
 
         @test pop.ineq_constraints == constraints
         @test isempty(pop.eq_constraints)
 
-        pop = PolyOpt(objective; ineq_constraints = [constraints; sum(x)])
+        pop = polyopt(objective; ineq_constraints=[constraints; sum(x)])
 
         @test length(pop.ineq_constraints) == ncons
 
-        pop = PolyOpt(
+        pop = polyopt(
             objective;
-            eq_constraints = constraints[2:2:end],
-            ineq_constraints = constraints[1:2:end],
-            is_unipotent = false,
-            is_projective = true,
+            eq_constraints=constraints[2:2:end],
+            ineq_constraints=constraints[1:2:end],
+            is_unipotent=false,
+            is_projective=true,
         )
 
         @test length(pop.eq_constraints) == 1
@@ -49,21 +57,20 @@ using Test, NCTSSoS, NCTSSoS.FastPolynomials
     end
 
     @testset "Invalid Input" begin
-        @test_throws AssertionError PolyOpt(
+        @test_throws AssertionError polyopt(
             objective;
-            is_unipotent = true,
-            is_projective = true,
+            is_unipotent=true,
+            is_projective=true,
         )
         p1 = Polynomial(
             [1, 1],
             [monomial([x[1], x[2]], [1, 1]), monomial([x[2], x[3]], [1, 1])],
         )
-        @test_throws AssertionError PolyOpt(p1)
+        @test_throws AssertionError polyopt(p1)
         @ncpolyvar y[1:nvars]
-        @test_throws AssertionError PolyOpt(objective; comm_gps = [[x], [y]])
+        @test_throws AssertionError polyopt(objective; comm_gps=[[x], [y]])
     end
 end
-
 
 @testset "StatePolyOpt Constructor" begin
     @testset "Example 7.2.1" begin
@@ -96,7 +103,7 @@ end
         )
         true_obj = sum([sp1_sq, sp2_sq])
 
-        pop = PolyOpt(sp * one(Monomial); is_unipotent = true, comm_gps = [x, y])
+        pop = polyopt(sp * one(Monomial); is_unipotent=true, comm_gps=[x, y])
         @test pop.objective == true_obj * one(Monomial)
         @test isempty(pop.eq_constraints)
         @test isempty(pop.ineq_constraints)
@@ -111,7 +118,7 @@ end
             cov(1, 1) + cov(1, 2) + cov(1, 3) + cov(2, 1) + cov(2, 2) - cov(2, 3) +
             cov(3, 1) - cov(3, 2)
 
-        pop = PolyOpt(sp * one(Monomial); is_unipotent = true, comm_gps = [x, y])
+        pop = polyopt(sp * one(Monomial); is_unipotent=true, comm_gps=[x, y])
         true_obj = sum(
             [
                 1.0,
@@ -159,7 +166,7 @@ end
         @test pop.comm_gps == [x, y]
 
         @ncpolyvar z[1:3]
-        @test_throws AssertionError PolyOpt(sp*one(Monomial); comm_gps = [x, y, z])
+        @test_throws AssertionError polyopt(sp * one(Monomial); comm_gps=[x, y, z])
     end
 
     @testset "Example 8.1.2" begin
@@ -184,7 +191,7 @@ end
             -1.0 * J2 * J2,
             -1.0 * L * L,
         ])
-        pop = PolyOpt(sp*one(Monomial); is_unipotent = true, comm_gps = [A, B])
+        pop = polyopt(sp * one(Monomial); is_unipotent=true, comm_gps=[A, B])
         @test isempty(pop.eq_constraints)
         @test isempty(pop.ineq_constraints)
         @test pop.is_unipotent == true

@@ -2,7 +2,7 @@ using Test, NCTSSoS
 using JuMP
 using NCTSSoS.FastPolynomials
 using NCTSSoS: get_dim, sorted_unique
-using NCTSSoS.FastPolynomials: sorted_union, get_basis
+using NCTSSoS.FastPolynomials: get_basis
 
 @testset "Utilities" begin
     @ncpolyvar x y z
@@ -25,15 +25,15 @@ m" begin
 
         basis = get_basis([x, y, z], 3)
 
-        pop = PolyOpt(obj; is_unipotent = true)
+        pop = polyopt(obj; is_unipotent = true)
         sa = SimplifyAlgorithm(comm_gps=pop.comm_gps, is_unipotent=pop.is_unipotent, is_projective=pop.is_projective)
         @test simplify((y * x^2 * y), sa) == one(Monomial)
 
-        pop = PolyOpt(obj; is_projective = true)
+        pop = polyopt(obj; is_projective = true)
         sa = SimplifyAlgorithm(comm_gps=pop.comm_gps, is_unipotent=pop.is_unipotent, is_projective=pop.is_projective)
         @test simplify((y * x^2 * y), sa) == y * x * y
 
-        pop = PolyOpt(obj; comm_gps = [[x], [y, z]], is_unipotent = true)
+        pop = polyopt(obj; comm_gps = [[x], [y, z]], is_unipotent = true)
         sa = SimplifyAlgorithm(comm_gps=pop.comm_gps, is_unipotent=pop.is_unipotent, is_projective=pop.is_projective)
         @test simplify((y * x^2 * y), sa) == one(y)
 
@@ -52,7 +52,7 @@ m" begin
             x * y * z,
         ])
 
-        pop = PolyOpt(obj; comm_gps = [[x], [y, z]], is_projective = true)
+        pop = polyopt(obj; comm_gps = [[x], [y, z]], is_projective = true)
         sa = SimplifyAlgorithm(comm_gps=pop.comm_gps, is_unipotent=pop.is_unipotent, is_projective=pop.is_projective)
         @test simplify((y * x^2 * y), sa) == x * y
 

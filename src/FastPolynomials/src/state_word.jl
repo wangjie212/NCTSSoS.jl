@@ -1,3 +1,6 @@
+abstract type StateType end
+struct Arbitrary <: StateType end
+struct MaxEntangled <: StateType end
 """
     StateWord
 
@@ -13,11 +16,11 @@ operators with respect to a state.
 Creates a StateWord from monomials, filtering out identity elements and sorting.
 If all monomials are identity, stores a single identity monomial.
 """
-struct StateWord
+struct StateWord{ST<:StateType}
     state_monos::Vector{Monomial}
-    function StateWord(monos::Vector{Monomial})
+    function StateWord{ST}(monos::Vector{Monomial}) where {ST}
         filter!(!isone, sort!(monos))
-        return new(isempty(monos) ? [one(Monomial)] : monos)
+        return new{ST}(isempty(monos) ? [one(Monomial)] : monos)
     end
 end
 
@@ -41,11 +44,34 @@ julia> ς(x^2*y)
 <x²y¹>
 ```
 """
-ς(m::Union{Monomial,Variable}) = StateWord([monomial(m)])
+ς(m::Union{Monomial,Variable}) = StateWord{Arbitrary}([monomial(m)])
+
+"""
+    tr(m::Union{Monomial,Variable})
+
+Creates a StateWord with MaxEntangled state type from a monomial or variable.
+The name tr stands for trace, commonly used in quantum contexts.
+
+# Arguments
+- `m::Union{Monomial,Variable}`: Monomial or variable to convert
+
+# Returns
+- `StateWord{MaxEntangled}`: StateWord with MaxEntangled state type containing the input as a single state monomial
+
+# Example
+```jldoctest; setup=:(using NCTSSoS.FastPolynomials; using NCTSSoS.FastPolynomials: tr)
+julia> @ncpolyvar x y z
+(x, y, z)
+
+julia> tr(x^2*y)
+tr(x²y¹)
+```
+"""
+tr(m::Union{Monomial,Variable}) = StateWord{MaxEntangled}([monomial(m)])
 
 variables(sw::StateWord) = sorted_union(variables.(sw.state_monos)...)
 
-star(sw::StateWord) = StateWord(star.(sw.state_monos))
+star(sw::StateWord{ST}) where {ST} = StateWord{ST}(star.(sw.state_monos))
 
 function degree(sw::StateWord)
     return mapreduce(degree, +, sw.state_monos; init=zero(Int))
@@ -60,8 +86,10 @@ function Base.show(io::IO, mime::MIME"text/plain", obj::StateWord)
     return print_object(io, obj; multiline=multiline)
 end
 
-function Base.string(obj::StateWord)
-    return join(map(x -> "<$(string(x))>", obj.state_monos), " * ")
+function Base.string(obj::StateWord{ST}) where {ST}
+    lencloser = ST == MaxEntangled ? "tr(" : "<"
+    rencloser = ST == MaxEntangled ? ")" : ">"
+    return join(map(x -> lencloser * "$(string(x))" * rencloser, obj.state_monos), " * ")
 end
 
 function print_object(io::IO, obj::StateWord; multiline::Bool)
@@ -75,30 +103,19 @@ end
 
 Base.:(==)(a::StateWord, b::StateWord) = iszero(cmp(a, b))
 
-"""
-    Base.hash(a::StateWord, u::UInt)
-
-Computes hash value for a StateWord based on its state monomials.
-Need to guarantee it is always sorted
-
-# Arguments
-- `a::StateWord`: The StateWord to hash
-- `u::UInt`: Hash seed value
-
-# Returns
-- `UInt`: Hash value of the state monomials (requires sorted invariant)
-"""
 Base.hash(a::StateWord, u::UInt) = hash(a.state_monos, u)
 
 Base.isless(a::StateWord, b::StateWord) = cmp(a, b) < 0
 
-Base.:(*)(a::StateWord, b::StateWord) = StateWord([a.state_monos; b.state_monos])
-Base.:(*)(a::StateWord, b::Monomial) = NCStateWord(a, b)
+function Base.:(*)(a::StateWord{ST}, b::StateWord{ST}) where {ST}
+    return StateWord{ST}([a.state_monos; b.state_monos])
+end
+Base.:(*)(a::StateWord{ST}, b::Monomial) where {ST} = NCStateWord{ST}(a, b)
 
-Base.one(::Type{StateWord}) = StateWord([one(Monomial)])
-Base.one(_::StateWord) = one(StateWord)
-Base.zero(::Type{StateWord}) = 0.0 * one(StateWord)
-Base.zero(::StateWord) = 0.0 * one(StateWord)
+Base.one(::Type{StateWord{ST}}) where {ST} = StateWord{ST}([one(Monomial)])
+Base.one(_::StateWord{ST}) where {ST} = one(StateWord{ST})
+Base.zero(::Type{StateWord{ST}}) where {ST} = 0.0 * one(StateWord{ST})
+Base.zero(::StateWord{ST}) where {ST} = 0.0 * one(StateWord{ST})
 
 """
     NCStateWord
@@ -122,13 +139,15 @@ julia> ncsw = sw * (x*z)
 <x²y¹> * x¹z¹
 ```
 """
-struct NCStateWord
-    sw::StateWord
+struct NCStateWord{ST}
+    sw::StateWord{ST}
     nc_word::Monomial
 end
 
-NCStateWord(sw::Vector, nc_word) = NCStateWord(StateWord(monomial.(sw)), nc_word)
-NCStateWord(sw::StateWord) = NCStateWord(sw, one(Monomial))
+function NCStateWord(::Type{ST}, sw::Vector, nc_word) where {ST}
+    return NCStateWord(StateWord{ST}(monomial.(sw)), monomial(nc_word))
+end
+NCStateWord(sw::StateWord{ST}) where {ST} = NCStateWord(ST, sw, one(Monomial))
 
 degree(ncsw::NCStateWord) = degree(ncsw.nc_word) + degree(ncsw.sw)
 
@@ -190,10 +209,12 @@ function print_object(io::IO, obj::NCStateWord; multiline::Bool)
     return multiline ? print(io, string(obj)) : Base.show_default(io, obj)
 end
 
-Base.one(::Type{NCStateWord}) = NCStateWord(one(StateWord), one(Monomial))
-Base.one(_::NCStateWord) = one(NCStateWord)
-Base.zero(::Type{NCStateWord}) = 0.0 * one(NCStateWord)
-Base.zero(::NCStateWord) = 0.0 * one(NCStateWord)
+function Base.one(::Type{NCStateWord{ST}}) where {ST}
+    return NCStateWord(one(StateWord{ST}), one(Monomial))
+end
+Base.one(_::NCStateWord{ST}) where {ST} = one(NCStateWord{ST})
+Base.zero(::Type{NCStateWord{ST}}) where {ST} = 0.0 * one(NCStateWord{ST})
+Base.zero(::NCStateWord{ST}) where {ST} = 0.0 * one(NCStateWord{ST})
 
 """
     expval(a::NCStateWord)
@@ -206,4 +227,9 @@ Computes the expectation value by combining state monomials with the non-commuta
 # Returns
 - `StateWord`: StateWord containing all state monomials plus the non-commutative word
 """
-expval(a::NCStateWord) = StateWord([a.sw.state_monos; a.nc_word])
+expval(a::NCStateWord{ST}) where {ST} = StateWord{ST}([a.sw.state_monos; a.nc_word])
+
+# degrade to default behaviro for now
+function _neat_dot3(a::NCStateWord{ST}, b::NCStateWord{ST}, c::NCStateWord{ST}) where {ST}
+    return neat_dot(a, b * c)
+end

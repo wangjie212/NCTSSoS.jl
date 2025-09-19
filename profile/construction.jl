@@ -20,7 +20,7 @@ for i = 1:n
     push!(cons, x[i] - 1 / 3)
 end
 pop =  PolyOpt(f; constraints = cons);
-solver_config = SolverConfig(optimizer=Mosek.Optimizer; mom_order=3, cs_algo=MF(), ts_algo=MMD())
+solver_config = SolverConfig(optimizer=Mosek.Optimizer; order=3, cs_algo=MF(), ts_algo=MMD())
 
 @btime cs_nctssos($pop, $solver_config);
 cs_nctssos(pop, solver_config)
@@ -38,7 +38,7 @@ sp = cov(1, 1) + cov(1, 2) + cov(1, 3) + cov(2, 1) + cov(2, 2) - cov(2, 3) + cov
 
 spop = StatePolyOpt(sp; is_unipotent=true, comm_gps=[x[1:3], y[1:3]])
 
-solver_config = SolverConfig(; optimizer=Mosek.Optimizer, mom_order=2)
+solver_config = SolverConfig(; optimizer=Mosek.Optimizer, order=2)
 
 @btime cs_nctssos($spop, $solver_config)
 

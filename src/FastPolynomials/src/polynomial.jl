@@ -47,7 +47,7 @@ end
 Polynomial(a::Polynomial) = a
 
 function Base.convert(::Type{Polynomial{T}}, a::Variable) where {T}
-    return Polynomial([one(T)], [monomial([a], [1])])
+    return Polynomial([one(T)], [Monomial([a], [1])])
 end
 Base.convert(::Type{Polynomial{T}}, a::Monomial) where {T} = Polynomial([one(T)], [a])
 
@@ -73,19 +73,6 @@ function Base.show(io::IO, mime::MIME"text/plain", obj::Polynomial)
     return print_object(io, obj; multiline=multiline)
 end
 
-"""
-    print_object(io, obj; multiline)
-
-Prints a Polynomial object to an IO stream.
-
-# Arguments
-- `io::IO`: The output stream
-- `obj::Polynomial`: The polynomial to print
-- `multiline::Bool`: Whether to use expanded format
-
-# Returns
-- Nothing (prints to IO stream)
-"""
 function print_object(io::IO, obj::Polynomial; multiline::Bool)
     if multiline
         return print(io, join(
@@ -99,18 +86,6 @@ function print_object(io::IO, obj::Polynomial; multiline::Bool)
     end
 end
 
-"""
-    Base.hash(p::Polynomial, u::UInt)
-
-Computes hash value for a polynomial based on its coefficients and monomials.
-
-# Arguments
-- `p::Polynomial`: The polynomial to hash
-- `u::UInt`: Hash seed value
-
-# Returns
-- `UInt`: Hash value combining coefficients and monomials
-"""
 function Base.hash(p::Polynomial, u::UInt)
     return hash(p.coeffs, hash(p.monos, u))
 end
@@ -123,37 +98,24 @@ Base.one(::Type{Polynomial{T}}) where {T} = Polynomial([one(T)], [one(Monomial)]
 Base.one(::Polynomial{T}) where {T} = Polynomial([one(T)], [one(Monomial)])
 Base.zero(::Polynomial{T}) where {T} = Polynomial([zero(T)], [one(Monomial)])
 
+Base.real(p::Polynomial) = Polynomial(real.(p.coeffs), p.monos)
+
 coefficients(p::Polynomial) = p.coeffs
 monomials(p::Polynomial) = p.monos
 terms(p::Polynomial) = zip(p.coeffs, p.monos)
+expval(p::Polynomial) = p
 
 """
-    support(poly::Polynomial{T}, canonicalize::Function) where {T}
+    support(poly::Polynomial{T}) where {T}
 
 Computes the support of a polynomial after canonicalization.
 
 # Arguments
 - `poly::Polynomial{T}`: The polynomial
-- `canonicalize::Function`: Function to canonicalize support
 
 # Returns
-- `Vector{Monomial}`: Unique canonicalized monomials from the polynomial
+- `Vector{Monomial}`: Unique monomials from the support of a polynomial
 """
-function support(poly::Polynomial{T}, canonicalize::Function) where {T}
-    return unique!(canonicalize.(poly.monos))
-end
-
-"""
-    cyclic_canonicalize(poly::Polynomial)
-
-Canonicalizes a polynomial by applying cyclic canonicalization to all monomials.
-
-# Arguments
-- `poly::Polynomial`: The polynomial to canonicalize
-
-# Returns
-- `Polynomial`: Canonicalized polynomial with same coefficients and canonicalized monomials
-"""
-function cyclic_canonicalize(poly::Polynomial)
-    return Polynomial(poly.coeffs, cyclic_canonicalize.(poly.monos))
+function support(poly::Polynomial{T}) where {T}
+    return unique!(poly.monos)
 end

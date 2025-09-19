@@ -11,15 +11,82 @@ else
 end
 using Graphs
 
-using NCTSSoS.FastPolynomials: get_basis, monomials, neat_dot
-using NCTSSoS:
-    substitute_variables,
-    correlative_sparsity,
-    TermSparsity,
-    sorted_union,
-    symmetric_canonicalize,
-    iterate_term_sparse_supp,
-    moment_relax
+using NCTSSoS.FastPolynomials: get_basis 
+using NCTSSoS: substitute_variables
+
+@testset "Complex Polynomial Optimization" begin
+    @testset "1D Trasverse Filed Ising Model" begin
+        N = 3
+        @ncpolyvar x[1:N] y[1:N] z[1:N]
+
+        J = 1.0
+        h = 2.0
+        ham = sum(-complex(J / 4) * z[i] * z[mod1(i + 1, N)] for i in 1:N) + sum(-h / 2 * x[i] for i in 1:N)
+
+        eq_cons = reduce(vcat, [[x[i] * y[i] - im * z[i], y[i] * x[i] + im * z[i], y[i] * z[i] - im * x[i], z[i] * y[i] + im * x[i], z[i] * x[i] - im * y[i], x[i] * z[i] + im * y[i]] for i in 1:N])
+
+        cpop = cpolyopt(ham; eq_constraints=eq_cons, comm_gps=[[x[i], y[i], z[i]] for i in 1:N], is_unipotent=true)
+
+        solver_config = SolverConfig(optimizer=SOLVER, order=1)
+
+        sa = SimplifyAlgorithm(comm_gps=cpop.comm_gps, is_projective=cpop.is_projective, is_unipotent=cpop.is_unipotent)
+
+        order = iszero(solver_config.order) ? maximum([ceil(Int, maxdegree(poly) / 2) for poly in [cpop.objective; cpop.eq_constraints; cpop.ineq_constraints]]) : solver_config.order
+
+        corr_sparsity = NCTSSoS.correlative_sparsity(cpop, order, solver_config.cs_algo)
+
+        cliques_objective = [reduce(+, [issubset(sort!(variables(mono)), clique) ? coef * mono : zero(coef) * one(mono) for (coef, mono) in NCTSSoS.FastPolynomials.terms(cpop.objective)]) for clique in corr_sparsity.cliques]
+
+        initial_activated_supps = map(zip(cliques_objective, corr_sparsity.clq_cons, corr_sparsity.clq_mom_mtx_bases)) do (partial_obj, cons_idx, mom_mtx_base)
+            NCTSSoS.init_activated_supp(partial_obj, corr_sparsity.cons[cons_idx], mom_mtx_base, sa)
+        end
+
+        cliques_term_sparsities = map(zip(initial_activated_supps, corr_sparsity.clq_cons, corr_sparsity.clq_mom_mtx_bases, corr_sparsity.clq_localizing_mtx_bases)) do (init_act_supp, cons_idx, mom_mtx_bases, localizing_mtx_bases)
+            NCTSSoS.term_sparsities(init_act_supp, corr_sparsity.cons[cons_idx], mom_mtx_bases, localizing_mtx_bases, solver_config.ts_algo, sa)
+        end
+
+        cmp = NCTSSoS.moment_relax(cpop,corr_sparsity, cliques_term_sparsities)
+
+        @test length(cmp.constraints) == 19
+        @test length(cmp.total_basis) == 55
+    end
+
+    @testset "Naive Example" begin
+        N = 1
+        @ncpolyvar x[1:N] y[1:N] z[1:N]
+
+        ham = sum(ComplexF64(1 / 2) * op[1] for op in [x, y, z])
+
+        eq_cons = reduce(vcat, [[x[i] * y[i] - im * z[i], y[i] * x[i] + im * z[i], y[i] * z[i] - im * x[i], z[i] * y[i] + im * x[i], z[i] * x[i] - im * y[i], x[i] * z[i] + im * y[i]] for i in 1:N])
+
+        cpop = cpolyopt(ham; eq_constraints=eq_cons, comm_gps=[[x[i], y[i], z[i]] for i in 1:N], is_unipotent=true)
+
+        solver_config = SolverConfig(optimizer=SOLVER, order=1)
+
+        sa = SimplifyAlgorithm(comm_gps=cpop.comm_gps, is_projective=cpop.is_projective, is_unipotent=cpop.is_unipotent)
+        order = iszero(solver_config.order) ? maximum([ceil(Int, maxdegree(poly) / 2) for poly in [cpop.objective; cpop.eq_constraints; cpop.ineq_constraints]]) : solver_config.order
+
+        corr_sparsity = NCTSSoS.correlative_sparsity(cpop, order, solver_config.cs_algo)
+
+        cliques_objective = [reduce(+, [issubset(sort!(variables(mono)), clique) ? coef * mono : zero(coef) * one(mono) for (coef, mono) in NCTSSoS.FastPolynomials.terms(cpop.objective)]) for clique in corr_sparsity.cliques]
+
+        initial_activated_supps = map(zip(cliques_objective, corr_sparsity.clq_cons, corr_sparsity.clq_mom_mtx_bases)) do (partial_obj, cons_idx, mom_mtx_base)
+            NCTSSoS.init_activated_supp(partial_obj, corr_sparsity.cons[cons_idx], mom_mtx_base, sa)
+        end
+
+        cliques_term_sparsities = map(zip(initial_activated_supps, corr_sparsity.clq_cons, corr_sparsity.clq_mom_mtx_bases, corr_sparsity.clq_localizing_mtx_bases)) do (init_act_supp, cons_idx, mom_mtx_bases, localizing_mtx_bases)
+            NCTSSoS.term_sparsities(init_act_supp, corr_sparsity.cons[cons_idx], mom_mtx_bases, localizing_mtx_bases, solver_config.ts_algo, sa)
+        end
+
+        cmp = NCTSSoS.moment_relax(cpop,corr_sparsity, cliques_term_sparsities)
+
+        @test length(cmp.constraints) == 7
+
+        @test cmp.constraints[1][1] == :HPSD
+        @test size(cmp.constraints[1][2]) == (4,4)
+        @test length(cmp.total_basis) == 10 
+    end
+end
 
 @testset "Special Constraint Type " begin
     @testset "CHSH Inequality" begin
@@ -27,29 +94,13 @@ using NCTSSoS:
         @ncpolyvar y[1:2]
 
         f = 1.0 * x[1] * y[1] + x[1] * y[2] + x[2] * y[1] - x[2] * y[2]
-        pop = PolyOpt(f; comm_gps = [x, y], is_unipotent = true)
+        pop = polyopt(f; comm_gps = [x, y], is_unipotent = true)
 
-        solver_config = SolverConfig(optimizer = SOLVER; mom_order = 1)
+        solver_config = SolverConfig(optimizer = SOLVER; order = 1)
 
         result = cs_nctssos(pop, solver_config; dualize=false)
 
         @test isapprox(result.objective, -2.8284271321623193, atol = 1e-6)
-    end
-
-    @testset "I_3322 inequality" begin
-        @ncpolyvar x[1:3]
-        @ncpolyvar y[1:3]
-        f =
-            1.0 * x[1] * (y[1] + y[2] + y[3]) +
-            x[2] * (y[1] + y[2] - y[3]) +
-            x[3] * (y[1] - y[2]) - x[1] - 2 * y[1] - y[2]
-        pop = PolyOpt(-f; comm_gps = [x, y], is_projective = true)
-
-        solver_config = SolverConfig(optimizer = SOLVER; mom_order = 3)
-
-        result = cs_nctssos(pop, solver_config)
-
-        @test isapprox(result.objective, -0.2508753049688358, atol = 1e-6)
     end
 end
 
@@ -75,14 +126,12 @@ end
         ])
     end
 
-    # NOTE: should not symmetric canonicalize the polynomial since it might
-    # take away some support in the polynomial
     cons = vcat([(1 - x[i]^2) for i = 1:n], [(x[i] - 1 / 3) for i = 1:n])
 
-    pop = PolyOpt(f; ineq_constraints = cons)
+    pop = polyopt(f; ineq_constraints = cons)
 
     solver_config =
-        SolverConfig(optimizer = SOLVER; cs_algo = MF(), ts_algo = MMD())
+        SolverConfig(optimizer=SOLVER; order=order, cs_algo=MF(), ts_algo=MMD())
 
     result = cs_nctssos(pop, solver_config; dualize=false)
 
@@ -114,7 +163,7 @@ end
     ])
 
 
-    pop = PolyOpt(
+    pop = polyopt(
         objective;
         eq_constraints = gs,
         is_unipotent = true,
@@ -124,7 +173,7 @@ end
 
     solver_config = SolverConfig(
         optimizer = SOLVER,
-        mom_order = order,
+        order = order,
         cs_algo = cs_algo
     )
 
@@ -155,13 +204,13 @@ end
         9x[2]^2 * x[3] +
         9x[3] * x[2]^2 - 54x[3] * x[2] * x[3] + 142x[3] * x[2]^2 * x[3]
 
-    pop = PolyOpt(f)
+    pop = polyopt(f)
 
     @testset "Dense" begin
 
         solver_config = SolverConfig(
             optimizer = SOLVER,
-            mom_order = order,
+            order = order,
             cs_algo = NoElimination(),
         )
 
@@ -179,7 +228,7 @@ end
     @testset "Sprase" begin
         solver_config = SolverConfig(
             optimizer = SOLVER,
-            mom_order = order,
+            order = order,
             ts_algo = MMD(),
         )
 
@@ -196,13 +245,13 @@ end
     f = 2.0 - x[1]^2 + x[1] * x[2]^2 * x[1] - x[2]^2
     g = 4.0 - x[1]^2 - x[2]^2
     h1 = x[1] * x[2] + x[2] * x[1] - 2.0
-    pop = PolyOpt(f; eq_constraints=[h1], ineq_constraints=[g])
+    pop = polyopt(f; eq_constraints=[h1], ineq_constraints=[g])
 
 
     @testset "Dense" begin
         solver_config = SolverConfig(
             optimizer = SOLVER,
-            mom_order = order)
+            order = order)
 
         result = cs_nctssos(pop, solver_config; dualize = false)
         @test isapprox(result.objective, -1.0, atol = 1e-6)
@@ -211,7 +260,7 @@ end
     @testset "Term Sparse" begin
         solver_config = SolverConfig(
             optimizer = SOLVER,
-            mom_order = order,
+            order = order,
             cs_algo = MF(),
             ts_algo = MMD(),
         )
@@ -235,12 +284,12 @@ end
     cons = vcat([1.0 - x[i]^2 for i = 1:n], [x[i] - 1.0 / 3 for i = 1:n])
     order = 3
 
-    pop = PolyOpt(f; ineq_constraints = cons)
+    pop = polyopt(f; ineq_constraints = cons)
 
     @testset "Correlative Sparse" begin
         solver_config = SolverConfig(
             optimizer = SOLVER,
-            mom_order = order,
+            order = order,
             cs_algo = MF(),
         )
         result = cs_nctssos(pop, solver_config; dualize = false)
@@ -257,11 +306,13 @@ end
     @testset "Term Sparse" begin
         solver_config = SolverConfig(
             optimizer = SOLVER,
-            mom_order = order,
+            order = order,
             ts_algo = MMD(),
         )
 
         result = cs_nctssos(pop, solver_config; dualize = false)
+
+        result = cs_nctssos_higher(pop, result, solver_config;dualize=false)
 
         @test isapprox(
             result.objective,
