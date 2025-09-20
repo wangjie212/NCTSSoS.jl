@@ -147,7 +147,9 @@ end
 function NCStateWord(::Type{ST}, sw::Vector, nc_word) where {ST}
     return NCStateWord(StateWord{ST}(monomial.(sw)), monomial(nc_word))
 end
-NCStateWord(sw::StateWord{ST}) where {ST} = NCStateWord(ST, sw, one(Monomial))
+NCStateWord(sw::StateWord{ST}) where {ST} = NCStateWord(sw, one(Monomial))
+# convert from monomial
+NCStateWord(m::Monomial) = NCStateWord(StateWord{Arbitrary}(Monomial[]), m)
 
 degree(ncsw::NCStateWord) = degree(ncsw.nc_word) + degree(ncsw.sw)
 
