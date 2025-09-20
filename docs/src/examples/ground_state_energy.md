@@ -1,13 +1,11 @@
-# Certifying Ground State
+# Obtaining Ground State Energy Lower Bound
 
 Finding the ground state of a quantum system is a fundamental problem in quantum
 mechanics [wang2024Certifying](@cite). Variational methods are commonly used to
 approximate the ground state. Due to the variational nature of these methods,
 only an upper bound can be obtained [kull2024Lower](@cite). Polynomial
 optimization techniques provides a way to find the lower bound of the ground
-state energy. With such lower bound, estimates of properties of the ground
-state, correlations functions, structure factors and order parameters, can also
-be obtained. We provide examples on 1D and 2D Heisenberg models.
+state energy. 
 
 In general, we consider the following Hamiltonian:
 ```math
@@ -121,3 +119,9 @@ res = cs_nctssos_higher(pop,res,solver_config)
 
 res.objective / N
 ```
+
+## Next step
+
+With such lower bounds, estimates of properties of the ground
+state, correlations functions, structure factors and order parameters, can also
+be obtained. We provide examples in another [section](@ref certify-property).

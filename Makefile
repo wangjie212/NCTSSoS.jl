@@ -19,7 +19,7 @@ update-docs:
 	$(JL) -e 'using Pkg; Pkg.activate("docs"); Pkg.update(); Pkg.precompile()'
 
 test:
-	$(JL) -e 'using Pkg; Pkg.test()'
+	LOCAL_TESTING=true $(JL) -e 'using Pkg; Pkg.test()'
 
 servedocs:
 	$(JL) -e 'using Pkg; Pkg.activate("docs"); using LiveServer; servedocs(;skip_dirs = ["docs/src/assets", "docs/src/generated"])'
