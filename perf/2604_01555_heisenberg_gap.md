@@ -213,9 +213,9 @@ retained PSD state-optimality blocks: the smallest eigenvalue was
 This distinguishes the known Mosek numerical sensitivity from a symbolic
 sign or adjoint error in the new constraints.
 
-## 2026-08-14: exact paper configuration (k=10) on a large-memory host
+## 2026-08-14: nominal paper configuration (k=10) on a large-memory host
 
-The exact QMBCertify configuration — `N=100`, 10-site RDM, `linear_psd` state
+The nominal QMBCertify configuration — `N=100`, 10-site RDM, `linear_psd` state
 optimality with separation-5 two-site words, and the axis-permutation
 quotient — was run on a 128-core, ~1 TiB host (`6xa800`) where the model fits.
 Settings: moment-LMI form, Mosek with 32 threads, `1e-8` feasibility and
@@ -244,6 +244,90 @@ still misses the `1e-5` parity target by about 5x.  Mosek terminated with
 `SLOW_PROGRESS` (both primal and dual statuses `FEASIBLE_POINT`, primal and
 dual objectives agreeing to `3.4e-7` absolute), so the remaining gap may be
 numerical stalling rather than model weakness.  A diagnostic rerun with 64
-threads, tolerances relaxed to `1e-7`, and Mosek logging enabled is used to
-distinguish the two; the harness exposes the tolerance through
+threads, tolerances relaxed to `1e-7`, and Mosek logging enabled was
+performed to investigate the two possibilities; its inconclusive result
+is recorded below.  The harness exposes the tolerance through
 `NCTS_MOSEK_TOL` (default `1e-8`).
+
+### Diagnostic rerun result (64 threads, tol 1e-7; consolidated from PR #375)
+
+Same model and host; only threads, tolerance, and logging changed.
+
+```text
+RESULT N=100 order=4 rdm=10 state=linear_psd state_range=5 axis_symmetry=true
+objective=-44.3309868524 per_site=-0.4433098685
+objective_bound=-44.3309862053 bound_per_site=-0.4433098621
+status=SLOW_PROGRESS primal=FEASIBLE_POINT dual=FEASIBLE_POINT
+wall=3703.8s max_block=252 n_blocks=214 unique_moments=31485
+```
+
+Wall time was 61.7 minutes at 1607% average CPU; peak RSS was 271.0 GiB
+(`Maximum resident set size: 284155972 kB`).  Mosek's per-iteration log was
+not captured despite `NCTS_MOSEK_LOG=1`.  Compared with the earlier
+32-thread run, the reported bound was 1.86e-5/spin weaker and peak RSS was
+about 26 GiB higher.  With both threads and tolerance changed, these two
+outcomes do not establish monotonic improvement, isolate either parameter's
+effect, or distinguish incomplete convergence from a model mismatch.
+
+## 2026-08-14: k=10 gap campaign evidence — parity remains unresolved
+
+The captured Mosek iteration logs (enabled by `NCTS_MOSEK_LOG=1` after
+PR #376) provide more evidence than the unlogged diagnostic, but do not
+settle whether the separation-5 gap is numerical or structural.  Three
+logged runs on `6xa800` used the moment-LMI form,
+`N=100`, `rdm=10`, `linear_psd` state optimality, axis symmetry, 32 Mosek
+threads, and `1e-8` tolerances.
+
+In the logs, `PFEAS` and `DFEAS` measure primal and dual feasibility
+residuals, respectively; `MU` is the interior-point complementarity
+measure.  Small objective disagreement alone does not certify feasibility
+or identify the model's true optimum.
+
+**Run 1 — separation-5 PSD basis (the nominal paper configuration).**
+Log: `perf/results/ti_k10_mosek_log_tol1e-8.txt`.  Mosek reached
+`MU = 2.5e-9` with primal and dual objectives agreeing to `3.4e-7` and
+`PFEAS ≈ 5.3e-8`, `DFEAS ≈ 2.1e-7` before the `SLOW_PROGRESS` exit.
+Both feasibility residuals remained above the requested `1e-8` tolerance.
+The reported bound is `-0.4432912436` per spin, `5.34e-5` below the paper's
+`-0.4432378`, but these diagnostics do not certify that value as the true
+optimum.  Model weakness remains a hypothesis requiring a formulation
+comparison; incomplete numerical convergence has not been excluded.
+Peak RSS 209.2 GiB, solver-harness wall 3369.9 s.
+
+**Run 2 — separation-10 PSD basis (model strengthening attempt).**
+Log: `perf/results/ti_k10_range10_mosek_log.txt`.  The wider two-site words
+grow the model to 170,293 constraints with dense Newton dimension 19,130
+(`3.67e13` flops/factorization; 48,567 unique moments).  Progress becomes
+negligible late in the solve, ending at `PFEAS 1.1e-6`, `DFEAS 7.6e-5`,
+`MU 1.0e-6` with `SLOW_PROGRESS`.  The reported bound `-0.4433962393`
+is **not certified by this run** and cannot establish the strengthened
+model's optimum.  Peak RSS 233.3 GiB, solver-harness wall 4262.9 s.
+
+**Run 3 — separation-10 with `NCTS_MOSEK_SOLVE_FORM=dual`.**
+Log: `perf/results/ti_k10_range10_dualform_mosek_log.txt`.  Despite the
+solve-form hint, the log still reports `Optimizer - solved problem: the
+primal`.  The printed numerical iterates and final values match Run 2;
+iteration timings differ.  Peak RSS 224.1 GiB, solver-harness wall
+3760.3 s.  This option did not improve convergence in the tested model.
+
+| configuration | reported bound / spin | vs paper `-0.4432378` | solver state |
+|:--|--:|--:|:--|
+| paper SDP New (k=10, sep 5) | -0.4432378 | — | — |
+| k=10, sep 5 (Run 1) | -0.4432912436 | 5.34e-5 | SLOW_PROGRESS; feasibility above tolerance |
+| k=10, sep 5, 64t/1e-7 | -0.4433098621 | 7.21e-5 | SLOW_PROGRESS; no iteration log |
+| k=10, sep 10 primal (Run 2) | -0.4433962393 | 1.58e-4 | SLOW_PROGRESS; uncertified |
+| k=10, sep 10 "dual" (Run 3) | -0.4433962393 | 1.58e-4 | SLOW_PROGRESS; same numerical iterates |
+
+The wall times above are the `RESULT wall` measurements inside the harness;
+the enclosing process timings in the logs also include startup overhead.
+
+**Verdict: parity was not demonstrated by these runs.**  Neither a true
+structural gap nor impossibility of convergence with other solver settings
+has been established.  The mechanisms (10-site RDM, linear commutators,
+degree-3 PSD state optimality, axis quotient) nominally match the paper,
+so a useful next investigation is to enumerate QMBCertify's degree-3 basis
+(words and two-site augmentations) at a small `N` and compare it with
+`state_optimality_range`-generated words here.  Any discovered differences
+should be checked for mathematical equivalence before changing the model.
+A converged solve with checked feasibility or an independently validated
+certificate is still needed to resolve the numerical uncertainty.
