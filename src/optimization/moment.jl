@@ -25,10 +25,13 @@ The algebra type `A` determines which cone type to use when solving:
   - `:PSD` - real positive semidefinite cone
   - `:HPSD` - Hermitian positive semidefinite cone
 - `total_basis::Vector{M}`: Union of all basis monomials across constraints
+- `linear::MomentLinearData`: Cached linear-form view used by lowering and diagnostics
 
 # Notes
 This is a purely symbolic representation with no JuMP model. Use `solve_moment_problem`
 to instantiate and solve, or `sos_dualize` to convert to the dual SOS problem.
+The cached `linear` field is the source of truth for lowering and SOS dualization;
+do not mutate `objective`, `constraints`, or `total_basis` after construction.
 
 # Examples
 ```julia
@@ -43,13 +46,427 @@ optimize!(sos.model)
 
 See also: [`moment_relax`](@ref), [`sos_dualize`](@ref)
 """
-struct MomentProblem{A<:AlgebraType, T<:Integer, M<:NormalMonomial{A,T}, P<:Polynomial{A,T}}
+mutable struct MomentProblem{
+    A<:AlgebraType,
+    T<:Integer,
+    M<:NormalMonomial{A,T},
+    P<:Polynomial{A,T},
+    K,
+    C,
+}
     objective::P
     constraints::Vector{Tuple{Symbol, Matrix{P}}}
     total_basis::Vector{M}
     n_unique_moment_matrix_elements::Int
+    linear::MomentLinearData{K,C,M}
 end
 
+function _moment_problem_with_linear(
+    ::Type{A},
+    ::Type{T},
+    ::Type{M},
+    ::Type{P},
+    objective::P,
+    constraints::Vector{Tuple{Symbol,Matrix{P}}},
+    total_basis::Vector{M},
+    n_unique_moment_matrix_elements::Integer,
+    linear::MomentLinearData{K,C,M},
+) where {A<:AlgebraType,T<:Integer,M<:NormalMonomial{A,T},P<:Polynomial{A,T},K,C}
+    return MomentProblem{A,T,M,P,K,C}(
+        objective,
+        constraints,
+        total_basis,
+        Int(n_unique_moment_matrix_elements),
+        linear,
+    )
+end
+
+function MomentProblem{A,T,M,P}(
+    objective::P,
+    constraints::Vector{Tuple{Symbol,Matrix{P}}},
+    total_basis::Vector{M},
+    n_unique_moment_matrix_elements::Integer;
+    block_meta_by_constraint::AbstractDict{Int,BlockMeta{M}}=Dict{Int,BlockMeta{M}}(),
+    real_moments::Bool=false,
+) where {A<:AlgebraType,T<:Integer,M<:NormalMonomial{A,T},P<:Polynomial{A,T}}
+    linear = _build_moment_linear_data(
+        objective,
+        constraints,
+        total_basis;
+        block_meta_by_constraint=block_meta_by_constraint,
+        real_moments=real_moments,
+    )
+    return _moment_problem_with_linear(
+        A,
+        T,
+        M,
+        P,
+        objective,
+        constraints,
+        total_basis,
+        n_unique_moment_matrix_elements,
+        linear,
+    )
+end
+
+function MomentProblem{A,T,M,P,K,LC}(
+    objective::P,
+    constraints::Vector{Tuple{Symbol,Matrix{P}}},
+    total_basis::Vector{M},
+    n_unique_moment_matrix_elements::Integer,
+) where {A<:AlgebraType,T<:Integer,M<:NormalMonomial{A,T},P<:Polynomial{A,T},K,LC}
+    linear = _build_moment_linear_data(objective, constraints, total_basis)
+    return MomentProblem{A,T,M,P,K,LC}(
+        objective,
+        constraints,
+        total_basis,
+        Int(n_unique_moment_matrix_elements),
+        linear,
+    )
+end
+
+function MomentProblem(
+    objective::P,
+    constraints::Vector{Tuple{Symbol,Matrix{P}}},
+    total_basis::Vector{M},
+    n_unique_moment_matrix_elements::Integer;
+    real_moments::Bool=false,
+) where {A<:AlgebraType,T<:Integer,C<:Number,M<:NormalMonomial{A,T},P<:Polynomial{A,T,C}}
+    return MomentProblem{A,T,M,P}(
+        objective,
+        constraints,
+        total_basis,
+        n_unique_moment_matrix_elements;
+        real_moments=real_moments,
+    )
+end
+
+_moment_problem_linear_coeff_type(::MomentProblem{A,T,M,P,K,LC}) where {A,T,M,P,K,LC} = LC
+
+function _is_real_moment_problem(mp::MomentProblem)
+    _moment_problem_linear_coeff_type(mp) <: Real || return false
+    for (cone, _) in mp.constraints
+        (cone == :Zero || cone == :PSD) || return false
+    end
+    return true
+end
+
+# Value-equal to `symmetric_canon(expval(mono))` (a StateSymbol{Arbitrary}
+# canonicalizes its word with `symmetric_canon` on construction), without
+# building the StateSymbol or taking its extra defensive copy.
+@inline _moment_key(::Type{K}, mono::NormalMonomial) where {K} = convert(K, symmetric_canon(mono))
+
+# For non-monoid algebras, Arbitrary-state canonicalization is currently the
+# identity representative, so the monomial's own word IS the key.
+# NormalMonomial words are immutable by contract, so the key may alias
+# `mono.word`; moment keys must never be mutated by consumers.
+@inline function _moment_key(
+    ::Type{Vector{T}}, mono::NormalMonomial{A,T}
+) where {A<:Union{TwistedGroupAlgebra,PBWAlgebra},T<:Integer}
+    return mono.word
+end
+
+@inline _moment_linear_half_safe_real_type(::Type{C}) where {C<:Number} = typeof(real(one(C)) / 2)
+
+@inline function _moment_linear_coeff_type(::Type{A}, ::Type{C}) where {A<:AlgebraType,C<:Number}
+    if _is_complex_problem(A)
+        return Complex{_moment_linear_half_safe_real_type(C)}
+    elseif C <: Real
+        return _moment_linear_half_safe_real_type(C)
+    else
+        return C
+    end
+end
+
+function _register_moment_key!(key_to_monomial::Dict{K,M}, key::K, mono::M) where {K,M}
+    haskey(key_to_monomial, key) || (key_to_monomial[key] = mono)
+    return nothing
+end
+
+function _register_polynomial_keys!(key_to_monomial::Dict{K,M}, ::Type{K}, poly::P) where {K,A<:AlgebraType,T<:Integer,C<:Number,M<:NormalMonomial{A,T},P<:Polynomial{A,T,C}}
+    for (coef, mono) in simplify(poly)
+        iszero(coef) && continue
+        _register_moment_key!(key_to_monomial, _moment_key(K, mono), mono)
+    end
+    return nothing
+end
+
+function _moment_linear_adjoint_monomial(mono::NormalMonomial{A,T}) where {A<:PBWAlgebra,T<:Signed}
+    raw_adj_word = similar(mono.word, length(mono.word))
+    raw_adj_word .= .-@view(mono.word[end:-1:1])
+    adj_terms = _simplified_to_terms(A, simplify!(A, raw_adj_word), T)
+    length(adj_terms) == 1 || throw(ArgumentError(
+        "Adjoint of PBW monomial $(repr(mono)) expanded to $(length(adj_terms)) terms; " *
+        "MomentLinearData requires a single canonical adjoint key"
+    ))
+    return only(adj_terms)[2]
+end
+
+_moment_linear_adjoint_monomial(mono::NormalMonomial) = adjoint(mono)
+
+function _close_adjoint_keys!(key_to_monomial::Dict{K,M}, ::Type{K}, ::Type{A}) where {K,A<:AlgebraType,M}
+    _is_complex_problem(A) || return nothing
+
+    idx = 1
+    monomials_to_visit = collect(values(key_to_monomial))
+    while idx <= length(monomials_to_visit)
+        mono = monomials_to_visit[idx]
+        adj_mono = _moment_linear_adjoint_monomial(mono)
+        adj_key = _moment_key(K, adj_mono)
+        if !haskey(key_to_monomial, adj_key)
+            key_to_monomial[adj_key] = adj_mono
+            push!(monomials_to_visit, adj_mono)
+        end
+        idx += 1
+    end
+    return nothing
+end
+
+function _linearize_moment_polynomial(
+    ::Type{K}, ::Type{C}, poly::P
+) where {K,C,A<:AlgebraType,T<:Integer,PC<:Number,P<:Polynomial{A,T,PC}}
+    pairs = Pair{K,C}[]
+    sizehint!(pairs, length(poly.terms))
+    for (coef, mono) in simplify(poly)
+        converted = convert(C, coef)
+        iszero(converted) && continue
+        push!(pairs, _moment_key(K, mono) => converted)
+    end
+    return _linear_moment_form_from_owned_pairs!(pairs)
+end
+
+function _real_part_form(form::LinearMomentForm{K,C}, adjoint_key::Dict{K,K}) where {K,C}
+    half = convert(C, 0.5)
+    pairs = Pair{K,C}[]
+    sizehint!(pairs, 2 * length(form))
+    for (key, coef) in form
+        adj = _get_key_value(adjoint_key, key, "adjoint key")
+        push!(pairs, key => half * coef)
+        push!(pairs, adj => half * convert(C, conj(coef)))
+    end
+    return _linear_moment_form_from_owned_pairs!(pairs)
+end
+
+function _imag_part_form(form::LinearMomentForm{K,C}, adjoint_key::Dict{K,K}) where {K,C}
+    neg_half_im = convert(C, -0.5im)
+    pos_half_im = convert(C, 0.5im)
+    pairs = Pair{K,C}[]
+    sizehint!(pairs, 2 * length(form))
+    for (key, coef) in form
+        adj = _get_key_value(adjoint_key, key, "adjoint key")
+        push!(pairs, key => neg_half_im * coef)
+        push!(pairs, adj => pos_half_im * convert(C, conj(coef)))
+    end
+    return _linear_moment_form_from_owned_pairs!(pairs)
+end
+
+function _append_zero_linear_constraints!(
+    zero_constraints::Vector{ScalarLinearConstraint{K,C}},
+    ::Type{A},
+    ::Type{K},
+    ::Type{C},
+    adjoint_key::Dict{K,K},
+    constraint_idx::Int,
+    mat::Matrix{P},
+) where {A<:AlgebraType,K,C,T<:Integer,PC<:Number,P<:Polynomial{A,T,PC}}
+    if _is_complex_problem(A) && !(C <: Real)
+        size(mat, 1) == size(mat, 2) || throw(DimensionMismatch(
+            "complex Zero constraint $constraint_idx must be square, got $(size(mat))"
+        ))
+        n = size(mat, 1)
+        for i in 1:n, j in i:n
+            raw = _linearize_moment_polynomial(K, C, mat[i, j])
+            isempty(raw) && continue
+
+            real_form = _real_part_form(raw, adjoint_key)
+            isempty(real_form) || push!(
+                zero_constraints,
+                ScalarLinearConstraint(real_form, :zero, ZeroMatrixOrigin(constraint_idx, i, j, i == j ? :scalar : :real)),
+            )
+
+            imag_form = _imag_part_form(raw, adjoint_key)
+            isempty(imag_form) || push!(
+                zero_constraints,
+                ScalarLinearConstraint(imag_form, :zero, ZeroMatrixOrigin(constraint_idx, i, j, :imag)),
+            )
+        end
+    else
+        for i in axes(mat, 1), j in axes(mat, 2)
+            form = _linearize_moment_polynomial(K, C, mat[i, j])
+            isempty(form) || push!(
+                zero_constraints,
+                ScalarLinearConstraint(form, :zero, ZeroMatrixOrigin(constraint_idx, i, j, :scalar)),
+            )
+        end
+    end
+    return nothing
+end
+
+function _default_block_meta(::Type{M}, cone::Symbol, constraint_idx::Int, block_size::Int) where {M}
+    return BlockMeta{M}(cone, GlobalOrigin(constraint_idx), [one(M) for _ in 1:block_size])
+end
+
+function _psd_linear_block(
+    ::Type{K},
+    ::Type{C},
+    ::Type{M},
+    cone::Symbol,
+    mat::Matrix{P},
+    meta::BlockMeta{M},
+) where {K,C,M,A<:AlgebraType,T<:Integer,PC<:Number,P<:Polynomial{A,T,PC}}
+    size(mat, 1) == size(mat, 2) || throw(DimensionMismatch(
+        "$cone constraint must be square, got $(size(mat))"
+    ))
+    n = size(mat, 1)
+    entries = Matrix{LinearMomentForm{K,C}}(undef, n, n)
+    for i in 1:n, j in 1:n
+        entries[i, j] = _linearize_moment_polynomial(K, C, mat[i, j])
+    end
+    return PSDBlockLin{K,C,M}(n, entries, meta)
+end
+
+function _moment_linear_unit_phase(::Type{C}, coef) where {C}
+    coef == one(coef) && return convert(C, one(coef))
+    coef == -one(coef) && return convert(C, -one(coef))
+    if C <: Complex
+        coef == im * one(coef) && return convert(C, im * one(coef))
+        coef == -im * one(coef) && return convert(C, -im * one(coef))
+    end
+    return nothing
+end
+
+function _discover_linear_pivots(
+    psd_blocks_lin::Vector{PSDBlockLin{K,C,M}},
+    adjoint_key::Dict{K,K},
+) where {K,C,M}
+    pivots = Dict{K,Pivot{C}}()
+
+    for (block_idx, block) in enumerate(psd_blocks_lin)
+        if block.meta.cone == :HPSD
+            for i in 1:block.size, j in i:block.size
+                form = block.entries[i, j]
+                length(form.terms) == 1 || continue
+                key, coef = only(form.terms)
+                phase = _moment_linear_unit_phase(C, coef)
+                phase === nothing && continue
+
+                if !haskey(pivots, key)
+                    pivots[key] = Pivot{C}(block_idx, i, j, phase, false)
+                end
+
+                adj = _get_key_value(adjoint_key, key, "adjoint key")
+                if i != j && !key_isequal(adj, key) && !haskey(pivots, adj)
+                    pivots[adj] = Pivot{C}(block_idx, i, j, phase, true)
+                end
+            end
+        else
+            for i in 1:block.size, j in 1:block.size
+                form = block.entries[i, j]
+                length(form.terms) == 1 || continue
+                key, coef = only(form.terms)
+                phase = _moment_linear_unit_phase(C, coef)
+                phase === nothing && continue
+                haskey(pivots, key) || (pivots[key] = Pivot{C}(block_idx, i, j, phase, false))
+            end
+        end
+    end
+
+    return pivots
+end
+
+function _build_pivot_at(pivots::Dict{K,Pivot{C}}) where {K,C}
+    pivot_at = Dict{Tuple{Int,Int,Int},Vector{K}}()
+    for (key, pivot) in pivots
+        push!(get!(pivot_at, (pivot.block, pivot.row, pivot.col), K[]), key)
+    end
+    for keys_at_position in values(pivot_at)
+        sort!(keys_at_position; lt=key_lt)
+    end
+    return pivot_at
+end
+
+function _build_moment_linear_data(
+    objective::P,
+    constraints::Vector{Tuple{Symbol,Matrix{P}}},
+    total_basis::Vector{M};
+    block_meta_by_constraint::AbstractDict{Int,BlockMeta{M}}=Dict{Int,BlockMeta{M}}(),
+    real_moments::Bool=false,
+) where {A<:AlgebraType,T<:Integer,C<:Number,M<:NormalMonomial{A,T},P<:Polynomial{A,T,C}}
+    if real_moments && !(C <: Real)
+        throw(ArgumentError("real_moments=true requires real polynomial coefficients, got $C."))
+    end
+    identity = symmetric_canon(expval(one(M)))
+    K = typeof(identity)
+    LC = real_moments ? _moment_linear_half_safe_real_type(C) : _moment_linear_coeff_type(A, C)
+
+    key_to_monomial = Dict{K,M}()
+    _register_moment_key!(key_to_monomial, convert(K, identity), one(M))
+    _register_polynomial_keys!(key_to_monomial, K, objective)
+    for (_, mat) in constraints
+        for poly in mat
+            _register_polynomial_keys!(key_to_monomial, K, poly)
+        end
+    end
+    _close_adjoint_keys!(key_to_monomial, K, A)
+
+    moments = sort!(collect(keys(key_to_monomial)); lt=key_lt)
+    moment_index = Dict{K,Int}(key => idx for (idx, key) in enumerate(moments))
+
+    adjoint_key = Dict{K,K}()
+    if _is_complex_problem(A)
+        for key in moments
+            mono = _get_key_value(key_to_monomial, key, "representative monomial")
+            adjoint_key[key] = _moment_key(K, _moment_linear_adjoint_monomial(mono))
+        end
+    else
+        for key in moments
+            adjoint_key[key] = key
+        end
+    end
+
+    objective_lin = _linearize_moment_polynomial(K, LC, objective)
+
+    psd_blocks_lin = PSDBlockLin{K,LC,M}[]
+    psd_block_constraint_idx = Int[]
+    zero_constraints = ScalarLinearConstraint{K,LC}[]
+
+    for (constraint_idx, (cone, mat)) in pairs(constraints)
+        if cone == :PSD || cone == :HPSD
+            meta = get(block_meta_by_constraint, constraint_idx) do
+                _default_block_meta(M, cone, constraint_idx, size(mat, 1))
+            end
+            push!(psd_blocks_lin, _psd_linear_block(K, LC, M, cone, mat, meta))
+            push!(psd_block_constraint_idx, constraint_idx)
+        elseif cone == :Zero
+            _append_zero_linear_constraints!(zero_constraints, A, K, LC, adjoint_key, constraint_idx, mat)
+        else
+            # Keep legacy manual-construction behavior: invalid cones are rejected
+            # by the consumer that understands cones (lowering/SOS), not by this
+            # cache. Their polynomial keys are already in `moments` and become
+            # free keys if they have no PSD/HPSD pivot.
+            continue
+        end
+    end
+
+    pivots = _discover_linear_pivots(psd_blocks_lin, adjoint_key)
+    free_keys = K[key for key in moments if !haskey(pivots, key)]
+    pivot_at = _build_pivot_at(pivots)
+
+    return MomentLinearData{K,LC,M}(
+        moments,
+        moment_index,
+        convert(K, identity),
+        key_to_monomial,
+        adjoint_key,
+        psd_blocks_lin,
+        psd_block_constraint_idx,
+        zero_constraints,
+        objective_lin,
+        pivots,
+        pivot_at,
+        free_keys,
+    )
+end
 
 # =============================================================================
 # Constraint Matrix Construction (Symbolic)
@@ -79,21 +496,38 @@ function _build_constraint_matrix(
     local_basis::Vector{M},
     cone::Symbol
 ) where {A<:AlgebraType,T<:Integer,C<:Number,M<:NormalMonomial{A,T}}
-    # Each matrix element is a polynomial: bilinear expansion over basis terms
-    moment_mtx = Matrix{Polynomial{A,T,C}}(undef, length(local_basis), length(local_basis))
+    # Each matrix element is a polynomial: bilinear expansion over basis terms.
+    # Accumulate raw terms directly; constructing one tiny Polynomial per product
+    # is allocator bait and dominates large moment assembly.
+    EC = promote_type(C, coeff_type(A))
+    EP = Polynomial{A,T,EC}
+    moment_mtx = Matrix{EP}(undef, length(local_basis), length(local_basis))
 
+    buf = T[]  # scratch word reused across all products
     for (i, row_mono) in enumerate(local_basis)
         for (j, col_mono) in enumerate(local_basis)
-            # Build polynomial for this matrix element with full bilinear expansion
-            # For each (c_row, row_word) in row_mono and (c_col, col_word) in col_mono,
-            # compute conj(c_row) * c_col * sum over poly terms
-            element_poly = sum(
-                _conj_coef(A, c_row) * c_col * coef * Polynomial(_simplified_to_terms(A, simplify(A, _neat_dot3(row_word, mono, col_word)), T))
-                for (c_row, row_word) in row_mono
+            element_terms = Tuple{EC,NormalMonomial{A,T}}[]
+            sizehint!(element_terms, length(row_mono) * length(col_mono) * length(poly.terms))
+
+            for (c_row, row_word) in row_mono
+                conj_row = _conj_coef(A, c_row)
                 for (c_col, col_word) in col_mono
-                for (coef, mono) in poly.terms
-            )
-            moment_mtx[i, j] = element_poly
+                    row_col_coef = conj_row * c_col
+                    for (coef, mono) in poly.terms
+                        scale = row_col_coef * coef
+                        _push_scaled_buffered_terms!(
+                            element_terms,
+                            scale,
+                            A,
+                            simplify!(A, _neat_dot3!(buf, row_word, mono, col_word)),
+                            T,
+                            EC,
+                        )
+                    end
+                end
+            end
+
+            moment_mtx[i, j] = _polynomial_from_owned_terms!(element_terms)
         end
     end
 
@@ -140,24 +574,149 @@ function _truncate_moment_eq_row_bases(
     return iszero(len) ? M[] : all_moment_bases[1:len]
 end
 
+@inline function _remember_simplified_monomials!(
+    basis::Dict{M,Nothing},
+    ::Type{A},
+    simplified::Vector{Tuple{Int,Vector{T}}},
+    ::Type{T},
+) where {A<:PBWAlgebra,T<:Integer,M<:NormalMonomial{A,T}}
+    for (coef, word) in simplified
+        iszero(coef) && continue
+        basis[_unchecked_monomial(A, word)] = nothing
+    end
+    return basis
+end
+
+@inline function _push_scaled_simplified_terms!(
+    terms::Vector{Tuple{C,NormalMonomial{A,T}}},
+    scale,
+    ::Type{A},
+    simplified::Vector{Tuple{Int,Vector{T}}},
+    ::Type{T},
+    ::Type{C},
+) where {A<:PBWAlgebra,T<:Integer,C<:Number}
+    base_coef = C(scale)
+    iszero(base_coef) && return terms
+    for (prod_coef, word) in simplified
+        iszero(prod_coef) && continue
+        coef = base_coef * C(prod_coef)
+        iszero(coef) || push!(terms, (coef, _unchecked_monomial(A, word)))
+    end
+    return terms
+end
+
+# Buffered term insertion: `simplified` may alias a reusable scratch buffer
+# (Monoid/TwistedGroup `simplify!` mutates in place), so the word is copied at
+# insertion time — and only then. PBW `simplify!` returns fresh words, so its
+# variant delegates without copying.
+@inline function _push_scaled_buffered_terms!(
+    terms::Vector{Tuple{C,NormalMonomial{A,T}}},
+    scale,
+    ::Type{A},
+    simplified::Vector{T},
+    ::Type{T},
+    ::Type{C},
+) where {A<:MonoidAlgebra,T<:Integer,C<:Number}
+    coef = C(scale)
+    iszero(coef) || push!(terms, (coef, _unchecked_monomial(A, copy(simplified))))
+    return terms
+end
+
+@inline function _push_scaled_buffered_terms!(
+    terms::Vector{Tuple{C,NormalMonomial{A,T}}},
+    scale,
+    ::Type{A},
+    simplified::Tuple{Vector{T},UInt8},
+    ::Type{T},
+    ::Type{C},
+) where {A<:TwistedGroupAlgebra,T<:Integer,C<:Number}
+    word, phase_k = simplified
+    phase_k == 0x04 && return terms
+    coef = C(scale) * C(_coeff_to_number(A, phase_k))
+    iszero(coef) || push!(terms, (coef, _unchecked_monomial(A, copy(word))))
+    return terms
+end
+
+@inline function _push_scaled_buffered_terms!(
+    terms::Vector{Tuple{C,NormalMonomial{A,T}}},
+    scale,
+    ::Type{A},
+    simplified::Vector{Tuple{Int,Vector{T}}},
+    ::Type{T},
+    ::Type{C},
+) where {A<:PBWAlgebra,T<:Integer,C<:Number}
+    return _push_scaled_simplified_terms!(terms, scale, A, simplified, T, C)
+end
+
+# Buffered basis insertion: probe the Dict with a transient buffer-aliased
+# wrapper and copy the word only on first insertion.
+@inline function _remember_buffered_monomials!(
+    basis::Dict{M,Nothing},
+    ::Type{A},
+    simplified::Vector{T},
+    ::Type{T},
+) where {A<:MonoidAlgebra,T<:Integer,M<:NormalMonomial{A,T}}
+    probe = _unchecked_monomial(A, simplified)  # transient: aliases the buffer
+    haskey(basis, probe) || (basis[_unchecked_monomial(A, copy(simplified))] = nothing)
+    return basis
+end
+
+@inline function _remember_buffered_monomials!(
+    basis::Dict{M,Nothing},
+    ::Type{A},
+    simplified::Tuple{Vector{T},UInt8},
+    ::Type{T},
+) where {A<:TwistedGroupAlgebra,T<:Integer,M<:NormalMonomial{A,T}}
+    word, phase_k = simplified
+    phase_k == 0x04 && return basis
+    probe = _unchecked_monomial(A, word)  # transient: aliases the buffer
+    haskey(basis, probe) || (basis[_unchecked_monomial(A, copy(word))] = nothing)
+    return basis
+end
+
+@inline function _remember_buffered_monomials!(
+    basis::Dict{M,Nothing},
+    ::Type{A},
+    simplified::Vector{Tuple{Int,Vector{T}}},
+    ::Type{T},
+) where {A<:PBWAlgebra,T<:Integer,M<:NormalMonomial{A,T}}
+    return _remember_simplified_monomials!(basis, A, simplified, T)
+end
+
+@inline function _sorted_basis_keys(basis::Dict{M,Nothing}) where {M}
+    result = collect(keys(basis))
+    sort!(result)
+    return result
+end
+
 function _moment_matrix_basis(
     cliques_term_sparsities::Vector{Vector{TermSparsity{M}}}
 ) where {A<:AlgebraType,T<:Integer,M<:NormalMonomial{A,T}}
     one_word = one(NormalMonomial{A,T})
-    basis = sorted_union(map(cliques_term_sparsities) do term_sparsities
-        reduce(vcat, [
-            [
-                mono
-                for row_mono in basis
-                for col_mono in basis
-                for (_, row_word) in row_mono
-                for (_, col_word) in col_mono
-                for (_, mono) in _simplified_to_terms(A, simplify(A, _neat_dot3(row_word, one_word, col_word)), T)
-            ]
-            for basis in term_sparsities[1].block_bases
-        ])
-    end...)
-    return convert(Vector{M}, basis)
+    basis = Dict{M,Nothing}()
+    buf = T[]  # scratch word reused across all products
+
+    for term_sparsities in cliques_term_sparsities
+        for block_basis in term_sparsities[1].block_bases
+            sizehint!(basis, length(basis) + length(block_basis)^2)
+            for row_mono in block_basis
+                for col_mono in block_basis
+                    for (_, row_word) in row_mono
+                        for (_, col_word) in col_mono
+                            _remember_buffered_monomials!(
+                                basis,
+                                A,
+                                simplify!(A, _neat_dot3!(buf, row_word, one_word, col_word)),
+                                T,
+                            )
+                        end
+                    end
+                end
+            end
+        end
+    end
+
+    return _sorted_basis_keys(basis)
 end
 
 function _polynomial_total_basis(
@@ -166,25 +725,37 @@ function _polynomial_total_basis(
     cliques_term_sparsities::Vector{Vector{TermSparsity{M}}}
 ) where {A<:AlgebraType,TI<:Integer,C<:Number,P<:Polynomial{A,TI,C},M<:NormalMonomial{A,TI}}
     one_word = one(NormalMonomial{A,TI})
-    total_basis = sorted_union(map(zip(corr_sparsity.clq_cons, cliques_term_sparsities)) do (cons_idx, term_sparsities)
-        reduce(vcat, [
-            [mono
-             for m in last.(poly.terms)
-             for (_, row_word) in row_mono
-             for (_, col_word) in col_mono
-             for (_, mono) in _simplified_to_terms(A, simplify(A, _neat_dot3(row_word, m, col_word)), TI)]
-            for (poly, term_sparsity) in zip([one(pop.objective); corr_sparsity.cons[cons_idx]], term_sparsities)
-            for basis in term_sparsity.block_bases
-            for row_mono in basis
-            for col_mono in basis
-        ])
-    end...)
+    total_basis = Dict{M,Nothing}()
+    buf = TI[]  # scratch word reused across all products
+
+    for (cons_idx, term_sparsities) in zip(corr_sparsity.clq_cons, cliques_term_sparsities)
+        for (poly, term_sparsity) in zip((one(pop.objective), corr_sparsity.cons[cons_idx]...), term_sparsities)
+            for block_basis in term_sparsity.block_bases
+                sizehint!(total_basis, length(total_basis) + length(poly.terms) * length(block_basis)^2)
+                for row_mono in block_basis
+                    for col_mono in block_basis
+                        for (_, row_word) in row_mono
+                            for (_, col_word) in col_mono
+                                for (_, mono) in poly.terms
+                                    _remember_buffered_monomials!(
+                                        total_basis,
+                                        A,
+                                        simplify!(A, _neat_dot3!(buf, row_word, mono, col_word)),
+                                        TI,
+                                    )
+                                end
+                            end
+                        end
+                    end
+                end
+            end
+        end
+    end
 
     moment_eq_row_bases = M[]
     moment_eq_row_basis_degrees = Int[]
 
     if !isempty(pop.moment_eq_constraints)
-        meq_monomials = NormalMonomial{A,TI}[]
         moment_eq_row_bases, moment_eq_row_basis_degrees = _collect_moment_eq_row_bases(cliques_term_sparsities)
         for g in pop.moment_eq_constraints
             row_bases = _truncate_moment_eq_row_bases(moment_eq_row_bases, moment_eq_row_basis_degrees, g)
@@ -192,18 +763,15 @@ function _polynomial_total_basis(
             for row_mono in row_bases
                 for (_, row_word) in row_mono
                     for (_, mono) in g.terms
-                        product = _neat_dot3(row_word, mono, one_word)
-                        for (_, m) in _simplified_to_terms(A, simplify(A, product), TI)
-                            push!(meq_monomials, m)
-                        end
+                        _neat_dot3!(buf, row_word, mono, one_word)
+                        _remember_buffered_monomials!(total_basis, A, simplify!(A, buf), TI)
                     end
                 end
             end
         end
-        total_basis = sorted_union(total_basis, meq_monomials)
     end
 
-    return convert(Vector{M}, total_basis), moment_eq_row_bases, moment_eq_row_basis_degrees
+    return _sorted_basis_keys(total_basis), moment_eq_row_bases, moment_eq_row_basis_degrees
 end
 
 function _summarize_normal_monomials(words; limit::Int=5)
@@ -227,19 +795,41 @@ function _missing_polynomial_monomials(
     available_moments::AbstractSet
 ) where {A<:AlgebraType,T<:Integer,C<:Number,P<:Polynomial{A,T,C}}
     missing = NormalMonomial{A,T}[]
+    K = eltype(available_moments)
     for mono in monomials(poly)
-        canon_mono = symmetric_canon(expval(mono))
+        canon_mono = _moment_key(K, mono)
         canon_mono in available_moments || push!(missing, mono)
     end
     return missing
 end
+
+function _missing_polynomial_monomials(
+    poly::P,
+    available_moments::AbstractSet
+) where {A<:Union{TwistedGroupAlgebra,PBWAlgebra},T<:Integer,C<:Number,P<:Polynomial{A,T,C}}
+    missing = NormalMonomial{A,T}[]
+    for mono in monomials(poly)
+        mono.word in available_moments || push!(missing, mono)
+    end
+    return missing
+end
+
+_moment_matrix_element_count(::Type{A}, basis) where {A<:AlgebraType} =
+    length(_sorted_symmetric_basis(basis))
+_moment_matrix_element_count(::Type{A}, basis) where {A<:Union{TwistedGroupAlgebra,PBWAlgebra}} =
+    length(basis)
+
+_available_moment_set(::Type{A}, total_basis) where {A<:AlgebraType} =
+    Set(_sorted_symmetric_basis(total_basis))
+_available_moment_set(::Type{A}, total_basis) where {A<:Union{TwistedGroupAlgebra,PBWAlgebra}} =
+    Set(m.word for m in total_basis)
 
 function _validate_polynomial_relaxation_support(
     pop::PolyOpt{A,TI,P},
     total_basis::AbstractVector;
     source::AbstractString="Relaxation basis"
 ) where {A<:AlgebraType,TI<:Integer,C<:Number,P<:Polynomial{A,TI,C}}
-    available_moments = Set(_sorted_symmetric_basis(total_basis))
+    available_moments = _available_moment_set(A, total_basis)
 
     _throw_missing_polynomial_monomials(
         _missing_polynomial_monomials(pop.objective, available_moments),
@@ -368,7 +958,7 @@ function moment_relax(
     # not by the full set of localizing matrices.
     # For Monomial bases, we expand over all term pairs from the bilinear form.
     moment_matrix_basis = _moment_matrix_basis(cliques_term_sparsities)
-    n_unique_moment_matrix_elements = length(_sorted_symmetric_basis(moment_matrix_basis))
+    n_unique_moment_matrix_elements = _moment_matrix_element_count(A, moment_matrix_basis)
 
     total_basis, moment_eq_row_bases, moment_eq_row_basis_degrees =
         _polynomial_total_basis(pop, corr_sparsity, cliques_term_sparsities)
@@ -390,17 +980,25 @@ function moment_relax(
     # symbolic data to complex coefficients up front so zero-cone constraints can
     # be split into Hermitian real/imaginary components when needed.
     constraints = Tuple{Symbol, Matrix{MP_P}}[]
+    block_meta_by_constraint = Dict{Int,BlockMeta{M}}()
 
     # Process clique constraints
-    for (term_sparsities, cons_idx) in zip(cliques_term_sparsities, corr_sparsity.clq_cons)
+    for (clique_idx, (term_sparsities, cons_idx)) in enumerate(zip(cliques_term_sparsities, corr_sparsity.clq_cons))
         polys = [one(pop.objective); corr_sparsity.cons[cons_idx]...]
 
-        for (term_sparsity, poly) in zip(term_sparsities, polys)
-            for ts_sub_basis in term_sparsity.block_bases
+        for (term_idx, (term_sparsity, poly)) in enumerate(zip(term_sparsities, polys))
+            for (ts_block_idx, ts_sub_basis) in enumerate(term_sparsity.block_bases)
                 # Determine cone: Zero for equality constraints, PSD/HPSD otherwise
                 cone = poly in pop.eq_constraints ? :Zero : psd_cone
                 _, mat = _build_constraint_matrix(poly, ts_sub_basis, cone)
+                before = length(constraints)
                 _append_constraint!(constraints, cone, mat, MP_P)
+                if cone != :Zero
+                    origin = term_idx == 1 ?
+                        MomentMatrixOrigin(clique_idx, ts_block_idx) :
+                        LocalizingOrigin(clique_idx, cons_idx[term_idx - 1], ts_block_idx)
+                    block_meta_by_constraint[before + 1] = BlockMeta{M}(cone, origin, ts_sub_basis)
+                end
             end
         end
     end
@@ -410,21 +1008,30 @@ function moment_relax(
         poly = corr_sparsity.cons[global_con]
         cone = poly in pop.eq_constraints ? :Zero : psd_cone
         # Global constraints use identity basis (scalar moment)
-        _, mat = _build_constraint_matrix(poly, [one(M)], cone)
+        global_basis = [one(M)]
+        _, mat = _build_constraint_matrix(poly, global_basis, cone)
+        before = length(constraints)
         _append_constraint!(constraints, cone, mat, MP_P)
+        if cone != :Zero
+            block_meta_by_constraint[before + 1] = BlockMeta{M}(cone, GlobalOrigin(global_con), global_basis)
+        end
     end
 
-    mp = MomentProblem{A, TI, M, MP_P}(objective_mp, constraints, total_basis, n_unique_moment_matrix_elements)
+    # Add parity superselection constraints for fermionic algebras.
+    # This enforces that odd-parity moment entries are zero.
+    _append_parity_constraints!(constraints, A, MP_P)
 
-    # Add parity superselection constraints for fermionic algebras
-    # This enforces that odd-parity moment entries are zero
-    _add_parity_constraints!(mp)
+    # Add one-sided localizing constraints for moment equality constraints.
+    # These implement g|ψ⟩ = 0 via ⟨b_i† g⟩ = 0 for all basis elements b_i.
+    _append_moment_eq_constraints!(constraints, pop, moment_eq_row_bases, moment_eq_row_basis_degrees, MP_P)
 
-    # Add one-sided localizing constraints for moment equality constraints
-    # These implement g|ψ⟩ = 0 via ⟨b_i† g⟩ = 0 for all basis elements b_i
-    _add_moment_eq_constraints!(mp, pop, moment_eq_row_bases, moment_eq_row_basis_degrees)
-
-    return mp
+    return MomentProblem{A, TI, M, MP_P}(
+        objective_mp,
+        constraints,
+        total_basis,
+        n_unique_moment_matrix_elements;
+        block_meta_by_constraint=block_meta_by_constraint,
+    )
 end
 
 
@@ -446,16 +1053,23 @@ This is weaker than the standard equality constraint (which imposes the full
 bilinear ⟨b_i† g b_j⟩ = 0) but is the correct formulation for state-sector
 constraints like particle-number fixing in fermionic systems.
 """
-function _add_moment_eq_constraints!(
-    mp::MomentProblem{A,T,M,MP},
+function _refresh_moment_linear!(mp::MomentProblem{A,T,M,P}) where {A<:AlgebraType,T<:Integer,M<:NormalMonomial{A,T},P<:Polynomial{A,T}}
+    mp.linear = _build_moment_linear_data(mp.objective, mp.constraints, mp.total_basis)
+    return mp
+end
+
+function _append_moment_eq_constraints!(
+    constraints::Vector{Tuple{Symbol,Matrix{MP}}},
     pop::PolyOpt{A,T,PP},
     moment_eq_row_bases::Vector{M},
     moment_eq_row_basis_degrees::Vector{Int},
+    ::Type{MP},
 ) where {A<:AlgebraType,T<:Integer,CMP<:Number,CPP<:Number,M<:NormalMonomial{A,T},MP<:Polynomial{A,T,CMP},PP<:Polynomial{A,T,CPP}}
     isempty(pop.moment_eq_constraints) && return nothing
 
     one_mono = one(NormalMonomial{A,T})
     meq_constraints = Tuple{Symbol, Matrix{MP}}[]
+    buf = T[]  # scratch word reused across all products
 
     for g in pop.moment_eq_constraints
         row_bases = _truncate_moment_eq_row_bases(moment_eq_row_bases, moment_eq_row_basis_degrees, g)
@@ -463,12 +1077,23 @@ function _add_moment_eq_constraints!(
 
         for row_mono in row_bases
             # Build b_i† * g (one-sided: no right multiplier)
-            poly = sum(
-                _conj_coef(A, c_row) * coef * Polynomial(_simplified_to_terms(A, simplify(A, _neat_dot3(row_word, mono, one_mono)), T))
-                for (c_row, row_word) in row_mono
-                for (coef, mono) in g.terms;
-                init=zero(MP)
-            )
+            terms = Tuple{CMP,NormalMonomial{A,T}}[]
+            sizehint!(terms, length(row_mono) * length(g.terms))
+            for (c_row, row_word) in row_mono
+                conj_row = _conj_coef(A, c_row)
+                for (coef, mono) in g.terms
+                    _push_scaled_buffered_terms!(
+                        terms,
+                        conj_row * coef,
+                        A,
+                        simplify!(A, _neat_dot3!(buf, row_word, mono, one_mono)),
+                        T,
+                        CMP,
+                    )
+                end
+            end
+
+            poly = _polynomial_from_owned_terms!(terms)
             iszero(poly) && continue
 
             constraint_mat = Matrix{MP}(undef, 1, 1)
@@ -477,7 +1102,25 @@ function _add_moment_eq_constraints!(
         end
     end
 
-    append!(mp.constraints, meq_constraints)
+    append!(constraints, meq_constraints)
+    return nothing
+end
+
+function _add_moment_eq_constraints!(
+    mp::MomentProblem{A,T,M,MP},
+    pop::PolyOpt{A,T,PP},
+    moment_eq_row_bases::Vector{M},
+    moment_eq_row_basis_degrees::Vector{Int},
+) where {A<:AlgebraType,T<:Integer,CMP<:Number,CPP<:Number,M<:NormalMonomial{A,T},MP<:Polynomial{A,T,CMP},PP<:Polynomial{A,T,CPP}}
+    before = length(mp.constraints)
+    _append_moment_eq_constraints!(
+        mp.constraints,
+        pop,
+        moment_eq_row_bases,
+        moment_eq_row_basis_degrees,
+        MP,
+    )
+    length(mp.constraints) == before || _refresh_moment_linear!(mp)
     return nothing
 end
 
@@ -527,171 +1170,61 @@ See also: [`moment_relax`](@ref), [`MomentProblem`](@ref), [`sos_dualize`](@ref)
 function solve_moment_problem(
     mp::MomentProblem{A,T,M,P},
     optimizer;
-    silent::Bool=true
+    silent::Bool=true,
+    formulation::Symbol=:moment_variables,
+    representation::Symbol=:real,
+    orphan_policy::Symbol=:error,
 ) where {A<:AlgebraType, T<:Integer, M<:NormalMonomial{A,T}, P<:Polynomial{A,T}}
+    model, extract_monomap = build_jump_model(
+        mp;
+        formulation=formulation,
+        representation=representation,
+        orphan_policy=orphan_policy,
+    )
 
-    # Determine coefficient type from polynomial
-    C = eltype(coefficients(mp.objective))
-
-    # For complex algebras, we need real-valued JuMP model
-    # The constraint matrices are Hermitian, dualized to real 2x2 blocks
-    is_complex = _is_complex_problem(A)
-
-    if is_complex
-        return _solve_complex_moment_problem(mp, optimizer, silent)
-    else
-        return _solve_real_moment_problem(mp, optimizer, silent)
-    end
-end
-
-"""
-    _solve_real_moment_problem(mp, optimizer, silent)
-
-Internal: Solve a real-valued moment problem directly.
-"""
-function _solve_real_moment_problem(
-    mp::MomentProblem{A,T,M,P},
-    optimizer,
-    silent::Bool
-) where {A<:AlgebraType, T<:Integer, M<:NormalMonomial{A,T}, P}
-
-    # Get coefficient type
-    C = eltype(coefficients(mp.objective))
-    model = GenericModel{C}()
-
-    basis = [symmetric_canon(expval(m)) for m in mp.total_basis]
-    sorted_unique!(basis)
-
-    @variable(model, y[1:length(basis)], set_string_name=false)
-
-    one_sym = symmetric_canon(expval(one(M)))
-    idx_one = findfirst(==(one_sym), basis)
-    idx_one === nothing && error("Expected identity moment to be present in basis")
-    @constraint(model, y[idx_one] == 1)  # Normalization
-
-    monovars = Dict(zip(basis, y))
-
-    # Add constraints
-    for (cone, mat) in mp.constraints
-        dim = size(mat, 1)
-        # Convert polynomial matrix to JuMP expression matrix
-        jump_mat = [
-            _substitute_poly(mat[i,j], monovars)
-            for i in 1:dim, j in 1:dim
-        ]
-
-        if cone == :Zero
-            @constraint(model, jump_mat in Zeros())
-        elseif cone == :PSD
-            @constraint(model, jump_mat in PSDCone())
-        else
-            error("Unexpected cone type $cone for real problem")
-        end
-    end
-
-    # Set objective
-    obj_expr = _substitute_poly(mp.objective, monovars)
-    @objective(model, Min, obj_expr)
-
-    # Solve
     set_optimizer(model, optimizer)
     silent && set_silent(model)
     optimize!(model)
 
-    monomap = Dict(m => value(monovars[m]) for m in basis)
-    n_unique = mp.n_unique_moment_matrix_elements
-
-    return (objective=objective_value(model), model=model, monomap=monomap, n_unique_elements=n_unique)
-end
-
-"""
-    _solve_complex_moment_problem(mp, optimizer, silent)
-
-Internal: Solve a complex/Hermitian moment problem directly.
-
-For Hermitian PSD constraints, we use the standard embedding:
-H in HPSD <==> [Re(H), -Im(H); Im(H), Re(H)] in PSD (real 2n x 2n)
-"""
-function _solve_complex_moment_problem(
-    mp::MomentProblem{A,T,M,P},
-    optimizer,
-    silent::Bool
-) where {A<:AlgebraType, T<:Integer, M<:NormalMonomial{A,T}, P}
-
-    # Get real coefficient type
-    C = real(eltype(coefficients(mp.objective)))
-    model = GenericModel{C}()
-
-    basis = [symmetric_canon(expval(m)) for m in mp.total_basis]
-    sorted_unique!(basis)
-
-    n_basis = length(basis)
-    @variable(model, y_re[1:n_basis], set_string_name=false)
-    @variable(model, y_im[1:n_basis], set_string_name=false)
-
-    one_sym = symmetric_canon(expval(one(M)))
-    idx_one = findfirst(==(one_sym), basis)
-    idx_one === nothing && error("Expected identity moment to be present in basis")
-
-    # Normalization: y[1] = 1 (real), y_im[1] = 0
-    @constraint(model, y_re[idx_one] == 1)
-    @constraint(model, y_im[idx_one] == 0)
-
-    basis_to_idx = Dict(m => i for (i, m) in enumerate(basis))
-
-    # Add constraints with Hermitian embedding
-    for (cone, mat) in mp.constraints
-        dim = size(mat, 1)
-
-        # Build real and imaginary parts of constraint matrix
-        mat_re = Matrix{Any}(undef, dim, dim)
-        mat_im = Matrix{Any}(undef, dim, dim)
-
-        for i in 1:dim, j in 1:dim
-            re_expr, im_expr = _substitute_complex_poly(mat[i,j], basis_to_idx, y_re, y_im)
-            mat_re[i,j] = re_expr
-            mat_im[i,j] = im_expr
-        end
-
-        if cone == :Zero
-            # Zero cone: both real and imaginary parts must be zero
-            @constraint(model, [mat_re[i,j] for i in 1:dim, j in 1:dim] .== 0)
-            @constraint(model, [mat_im[i,j] for i in 1:dim, j in 1:dim] .== 0)
-        elseif cone == :HPSD
-            # Hermitian PSD: embed as real 2n x 2n PSD
-            # [Re(H), -Im(H); Im(H), Re(H)] in PSD
-            embedded = [
-                [mat_re[i,j] for i in 1:dim, j in 1:dim]   [-mat_im[i,j] for i in 1:dim, j in 1:dim]
-                [mat_im[i,j] for i in 1:dim, j in 1:dim]   [mat_re[i,j] for i in 1:dim, j in 1:dim]
-            ]
-            @constraint(model, embedded in PSDCone())
-        else
-            error("Unexpected cone type $cone for complex problem")
-        end
-    end
-
-    # `polyopt` validates that complex-algebra objectives are Hermitian, so their
-    # expectation values are real. Optimize the real part only.
-    obj_re, _ = _substitute_complex_poly(mp.objective, basis_to_idx, y_re, y_im)
-    @objective(model, Min, obj_re)
-
-    # Solve
-    set_optimizer(model, optimizer)
-    silent && set_silent(model)
-    optimize!(model)
-
-    # Build monomap returning complex values
-    monomap = Dict(m => Complex(value(y_re[i]), value(y_im[i])) for (m, i) in basis_to_idx)
-
-    n_unique = mp.n_unique_moment_matrix_elements
-
-    return (objective=objective_value(model), model=model, monomap=monomap, n_unique_elements=n_unique)
+    return (
+        objective=objective_value(model),
+        model=model,
+        monomap=extract_monomap(),
+        n_unique_elements=mp.n_unique_moment_matrix_elements,
+    )
 end
 
 
 # =============================================================================
 # Helper Functions
 # =============================================================================
+
+function _check_square_psd_matrix(mat::AbstractMatrix, context::AbstractString)
+    size(mat, 1) == size(mat, 2) || throw(DimensionMismatch("$context must be square, got size $(size(mat))"))
+    return nothing
+end
+
+function _checked_symmetric(mat::AbstractMatrix; context::AbstractString="PSD constraint matrix")
+    _check_square_psd_matrix(mat, context)
+
+    for col in axes(mat, 2)
+        for row in first(axes(mat, 1)):(col - 1)
+            diff = mat[row, col] - mat[col, row]
+            iszero(diff) || (diff = try
+                JuMP.simplify(diff)
+            catch err
+                diff
+            end)
+            iszero(diff) || throw(ArgumentError(
+                "$context is not symmetric at entries ($row, $col) and ($col, $row); " *
+                "refusing to wrap it in Symmetric(...) and hide the mismatch."
+            ))
+        end
+    end
+
+    return Symmetric(mat)
+end
+
 
 """
     _substitute_poly(poly::P, monomap::Dict{M,V}) where {T, P<:AbstractPolynomial{T}, M, V}
@@ -705,17 +1238,10 @@ function _substitute_poly(
     poly::P,
     monomap::Dict{M,V}
 ) where {T, P<:AbstractPolynomial{T}, M, V}
-    if iszero(poly)
-        return zero(T) * first(values(monomap))
-    end
-    # Skip monomials not in monomap (expectation value 0)
-    return sum(
-        (
-            canon_mono = symmetric_canon(expval(mono));
-            haskey(monomap, canon_mono) ? coef * monomap[canon_mono] : zero(coef) * first(values(monomap))
-        )
-        for (coef, mono) in zip(coefficients(poly), monomials(poly))
-    )
+    anchor = first(values(monomap))
+    resolver_values = Dict(key => one(T) * value for (key, value) in monomap)
+    resolver = AffineResolver(resolver_values, zero(T) * anchor)
+    return substitute(poly, resolver)
 end
 
 """
@@ -726,13 +1252,11 @@ Returns (real_expr, imag_expr) tuple.
 
 Monomials not in basis_to_idx are treated as having expectation value 0.
 
-# Type Suggestions for mat_re/mat_im
-For optimal type stability in complex moment solving, prefer:
-- `Matrix{JuMP.GenericAffExpr{Cr,JuMP.VariableRef}}` over `Matrix{Any}`
-where `Cr = real(eltype(coefficients(poly)))` (typically Float64).
-This ensures type-stable matrix operations during constraint construction.
-Currently Matrix{Any} is used for simplicity, but typed matrices would
-reduce allocation overhead and enable better JIT optimization.
+# Type note
+Complex moment lowering stores real/imaginary matrices with a concrete JuMP affine
+expression element type before wrapping PSD matrices in `Symmetric(...)`. That is
+not just polish: JuMP dispatches to the triangular PSD cone only for symmetric
+matrices with a concrete JuMP scalar element type.
 """
 function _substitute_complex_poly(
     poly::P,
@@ -741,38 +1265,16 @@ function _substitute_complex_poly(
     y_im::Vector{V}
 ) where {T, P<:AbstractPolynomial{T}, M, V}
 
-    # For zero polynomial, return correctly typed zero expressions
-    # rather than literal (0.0, 0.0) which causes type instability
-    if iszero(poly)
-        # Use the JuMP variable type to construct proper zero expressions
-        zero_re = zero(eltype(y_re)) * y_re[1]
-        zero_im = zero(eltype(y_im)) * y_im[1]
-        return (zero_re, zero_im)
-    end
-
-    # Initialize with properly typed zero expressions
-    re_expr = zero(eltype(y_re)) * y_re[1]
-    im_expr = zero(eltype(y_im)) * y_im[1]
-
-    for (coef, mono) in zip(coefficients(poly), monomials(poly))
-        canon_mono = symmetric_canon(expval(mono))
-
-        # Skip monomials not in basis (expectation value 0)
-        if !haskey(basis_to_idx, canon_mono)
-            continue
-        end
-
-        idx = basis_to_idx[canon_mono]
-
-        # (a + bi)(x + yi) = (ax - by) + (ay + bx)i
-        c_re = real(coef)
-        c_im = imag(coef)
-
-        re_expr += c_re * y_re[idx] - c_im * y_im[idx]
-        im_expr += c_im * y_re[idx] + c_re * y_im[idx]
-    end
-
-    return (re_expr, im_expr)
+    # For zero polynomial, return correctly typed affine zero expressions
+    # rather than literal (0.0, 0.0) which causes type instability. Do not use
+    # `zero(eltype(y_re)) * y_re[1]`: for JuMP variables that constructs a
+    # quadratic zero expression and poisons PSD matrix typing.
+    R = typeof(real(zero(T)))
+    zero_complex = zero(R) * y_re[1] + im * (zero(R) * y_im[1])
+    resolver_values = Dict(key => y_re[idx] + im * y_im[idx] for (key, idx) in basis_to_idx)
+    resolver = AffineResolver(resolver_values, zero_complex)
+    expr = substitute(poly, resolver)
+    return (real(expr), imag(expr))
 end
 
 
@@ -843,27 +1345,38 @@ For non-fermionic algebras, this function is a no-op.
 # Arguments
 - `mp`: A MomentProblem to process (modified in place for fermionic algebras)
 """
-function _add_parity_constraints!(
-    mp::MomentProblem{A,T,M,P}
-) where {A<:AlgebraType,T<:Integer,M,P}
-    # Only FermionicAlgebra needs parity constraints
+function _append_parity_constraints!(
+    constraints::Vector{Tuple{Symbol,Matrix{P}}},
+    ::Type{A},
+    ::Type{P},
+) where {A<:AlgebraType,P<:Polynomial}
+    # Only FermionicAlgebra needs parity constraints.
     A === FermionicAlgebra || return nothing
 
     parity_constraints = Tuple{Symbol, Matrix{P}}[]
 
-    for (cone, mat) in mp.constraints
+    for (_, mat) in constraints
         dim = size(mat, 1)
         for i in 1:dim, j in 1:dim
             poly = mat[i,j]
             if _has_odd_parity_only(poly)
-                # This entry must be zero - add as 1x1 Zero constraint
+                # This entry must be zero - add as 1x1 Zero constraint.
                 _append_constraint!(parity_constraints, :Zero, reshape([poly], 1, 1), P)
             end
         end
     end
 
-    # Add all parity constraints to the problem
-    append!(mp.constraints, parity_constraints)
+    append!(constraints, parity_constraints)
+    return nothing
+end
+
+function _add_parity_constraints!(
+    mp::MomentProblem{A,T,M,P}
+) where {A<:AlgebraType,T<:Integer,M,P}
+    before = length(mp.constraints)
+    _append_parity_constraints!(mp.constraints, A, P)
+    length(mp.constraints) == before || _refresh_moment_linear!(mp)
+    return nothing
 end
 
 # =============================================================================
@@ -1195,7 +1708,7 @@ function solve_moment_problem(
         if cone == :Zero
             @constraint(model, jump_mat in Zeros())
         elseif cone == :PSD
-            @constraint(model, jump_mat in PSDCone())
+            @constraint(model, _checked_symmetric(jump_mat; context="state PSD constraint") in PSDCone())
         else
             error("Unexpected cone type $cone for state polynomial problem")
         end

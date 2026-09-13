@@ -64,7 +64,7 @@ res.objective / N
 ````
 
 ````
--0.46712927289360867
+-0.46712927394112297
 ````
 
 For this small $N = 6$ instance, the sparse order-$3$ lower bound is already
@@ -96,7 +96,7 @@ res.objective / N
 ````
 
 ````
--0.4270083213629547
+-0.4270083243443415
 ````
 
 Again, for this small $N = 6$ instance the sparse order-$3$ lower bound is
@@ -127,7 +127,7 @@ solver_config = SolverConfig(optimizer=Mosek.Optimizer, order=3, cs_algo=MF(), t
 ````
 
 ````
-NCTSSoS.SolverConfig(Mosek.Optimizer, 3, nothing, CliqueTrees.MF(), CliqueTrees.MMD(0))
+NCTSSoS.SolverConfig(Mosek.Optimizer, 3, nothing, CliqueTrees.MF(), CliqueTrees.MMD(0), nothing)
 ````
 
 ## Next step

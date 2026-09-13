@@ -12,8 +12,13 @@ using Test
 
 @testset "Relaxations" begin
     include("interface.jl")
+    include("particle_number.jl")
+    include("moment_linear.jl")
+    include("lowering.jl")
     include("sos.jl")
     include("sparsity.jl")
+    include("symmetry.jl")
+    include("pauli_chains.jl")
     include("gns.jl")
     include("gns_pipeline.jl")
     include("dualization.jl")

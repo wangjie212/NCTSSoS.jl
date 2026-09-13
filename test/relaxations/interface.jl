@@ -268,6 +268,19 @@ end
         @test zero_constraints[2][1, 1] == 1.0 * σy[1]
     end
 
+    @testset "PSD moment lowering uses triangular cones safely" begin
+        model = JuMP.GenericModel{Float64}()
+        @variable(model, x)
+        @variable(model, y)
+
+        symmetric_mat = [1.0 x; x y]
+        cref = @constraint(model, NCTSSoS._checked_symmetric(symmetric_mat; context="test PSD") in PSDCone())
+        @test constraint_object(cref).set == MOI.PositiveSemidefiniteConeTriangle(2)
+
+        asymmetric_mat = [1.0 x; y 1.0]
+        @test_throws ArgumentError NCTSSoS._checked_symmetric(asymmetric_mat; context="bad PSD")
+    end
+
     @testset "2x2 Hermitian lift keeps the factor-of-2 straight" begin
         reg, (b, b_dag) = create_bosonic_variables(1:1)
         objective = -(1.0 * b[1] + 1.0 * b_dag[1])
@@ -304,6 +317,33 @@ end
         @test abs(imag(recovered_obj)) ≤ 1e-8
         @test norm(recovered_block - recovered_block', Inf) ≤ 1e-8
         @test eigmin(Hermitian((recovered_block + recovered_block') / 2)) ≥ -1e-6
+    end
+
+    @testset "Hermitian SOS dualization handles imaginary block coefficients" begin
+        reg, (b, b_dag) = create_bosonic_variables(1:1)
+        objective = -(ComplexF64(1.0) * b[1] + ComplexF64(1.0) * b_dag[1])
+        block = Matrix{typeof(objective)}(undef, 2, 2)
+        block[1, 1] = 1.0 * one(b[1])
+        block[1, 2] = -1.0im * b[1]
+        block[2, 1] = 1.0im * b_dag[1]
+        block[2, 2] = 1.0 * one(b[1])
+
+        mp = NCTSSoS.MomentProblem(
+            objective,
+            [(:HPSD, block)],
+            [one(b[1]), b[1], b_dag[1]],
+            3,
+        )
+
+        direct = NCTSSoS.solve_moment_problem(mp, SOLVER)
+        sos = NCTSSoS.sos_dualize(mp)
+        set_optimizer(sos.model, SOLVER)
+        set_silent(sos.model)
+        optimize!(sos.model)
+        NCTSSoS._check_solver_status(sos.model)
+
+        @test direct.objective ≈ -2.0 atol = 1e-6
+        @test objective_value(sos.model) ≈ direct.objective atol = 1e-6
     end
 end
 
@@ -894,5 +934,209 @@ end
             res,
             SolverConfig(optimizer=SOLVER, moment_basis=get_ncbasis(reg, 1))
         )
+    end
+
+    @testset "cs_nctssos_higher rejects a symmetry-reduced previous result" begin
+        reg, (x, y) = create_unipotent_variables([("x", 1:2), ("y", 1:2)])
+        objective = -(1.0 * x[1] * y[1] + x[1] * y[2] + x[2] * y[1] - x[2] * y[2])
+        pop = polyopt(objective, reg)
+        basis = [one(x[1]), x[1], x[2], y[1], y[2]]
+        symmetry = SymmetrySpec(
+            SignedPermutation(
+                x[1].word[1] => x[2].word[1],
+                x[2].word[1] => x[1].word[1],
+                y[2].word[1] => (-1, y[2].word[1]),
+            ),
+            SignedPermutation(
+                x[2].word[1] => (-1, x[2].word[1]),
+                y[1].word[1] => y[2].word[1],
+                y[2].word[1] => y[1].word[1],
+            ),
+            SignedPermutation(
+                x[1].word[1] => y[1].word[1],
+                x[2].word[1] => y[2].word[1],
+                y[1].word[1] => x[1].word[1],
+                y[2].word[1] => x[2].word[1],
+            ),
+        )
+        sym_res = cs_nctssos(
+            pop,
+            SolverConfig(
+                optimizer=SOLVER,
+                moment_basis=basis,
+                cs_algo=NoElimination(),
+                ts_algo=NoElimination(),
+                symmetry=symmetry,
+            ),
+        )
+
+        err = try
+            cs_nctssos_higher(pop, sym_res, SolverConfig(optimizer=SOLVER))
+            nothing
+        catch caught
+            caught
+        end
+
+        @test !isnothing(sym_res.symmetry)
+        @test err isa ArgumentError
+        @test occursin("symmetry-reduced `prev_res`", sprint(showerror, err))
+    end
+
+    @testset "Symmetry MVP guardrails" begin
+        function symmetry_error(f)
+            try
+                f()
+                return nothing
+            catch err
+                return err
+            end
+        end
+
+        function swap_symmetry(a, b)
+            T = typeof(a.word[1])
+            generator = SignedPermutation(Dict{T,Tuple{Int,T}}(
+                a.word[1] => (1, b.word[1]),
+                b.word[1] => (1, a.word[1]),
+            ))
+            return SymmetrySpec([generator]; check_invariance=true)
+        end
+
+        function swap_group(a, b)
+            domain = sort([a.word[1], b.word[1]])
+            return NCTSSoS._enumerate_symmetry_group(swap_symmetry(a, b), domain)
+        end
+
+        @testset "non-invariant objective and constraint fail fast" begin
+            reg, (x,) = create_unipotent_variables([("x", 1:2)])
+            group = swap_group(x[1], x[2])
+
+            objective_err = symmetry_error() do
+                NCTSSoS._check_symmetry_invariance(polyopt(1.0 * x[1], reg), group)
+            end
+            @test objective_err isa ArgumentError
+            @test occursin("objective", sprint(showerror, objective_err))
+            @test occursin("invariant", sprint(showerror, objective_err))
+
+            constrained_pop = polyopt(
+                1.0 * (x[1] + x[2]),
+                reg;
+                ineq_constraints=[1.0 - x[1]],
+            )
+            constraint_err = symmetry_error() do
+                NCTSSoS._check_symmetry_invariance(constrained_pop, group)
+            end
+            @test constraint_err isa ArgumentError
+            @test occursin("inequality constraint 1", sprint(showerror, constraint_err))
+            @test occursin("invariant", sprint(showerror, constraint_err))
+        end
+
+        @testset "basis closure failure is explicit" begin
+            reg, (x,) = create_unipotent_variables([("x", 1:2)])
+            group = swap_group(x[1], x[2])
+
+            closure_err = symmetry_error() do
+                NCTSSoS._check_basis_closure("test basis", [one(x[1]), x[1]], group)
+            end
+            @test closure_err isa ArgumentError
+            @test occursin("test basis", sprint(showerror, closure_err))
+            @test occursin("maps outside the basis", sprint(showerror, closure_err))
+        end
+
+        @testset "unsupported ordinary solver configs error cleanly" begin
+            reg, (x,) = create_unipotent_variables([("x", 1:2)])
+            pop = polyopt(-(1.0 * x[1] + x[2]), reg)
+            basis = [one(x[1]), x[1], x[2]]
+            symmetry = swap_symmetry(x[1], x[2])
+
+            cs_err = symmetry_error() do
+                cs_nctssos(
+                    pop,
+                    SolverConfig(
+                        optimizer=SOLVER,
+                        moment_basis=basis,
+                        cs_algo=MF(),
+                        ts_algo=NoElimination(),
+                        symmetry=symmetry,
+                    ),
+                )
+            end
+            @test cs_err isa ArgumentError
+            @test occursin("`cs_algo=NoElimination()`", sprint(showerror, cs_err))
+
+            ts_err = symmetry_error() do
+                cs_nctssos(
+                    pop,
+                    SolverConfig(
+                        optimizer=SOLVER,
+                        moment_basis=basis,
+                        cs_algo=NoElimination(),
+                        ts_algo=MMD(),
+                        symmetry=symmetry,
+                    ),
+                )
+            end
+            @test ts_err isa ArgumentError
+            @test occursin("`ts_algo=NoElimination()`", sprint(showerror, ts_err))
+        end
+
+        @testset "unsupported algebra-action combinations fail loudly" begin
+            regf, (a, a_dag) = create_fermionic_variables(1:2)
+            ferm_pop = polyopt(-(a_dag[1] * a[2] + a_dag[2] * a[1]), regf)
+            ferm_basis = [one(a[1]), a[1], a[2], a_dag[1], a_dag[2]]
+
+            signed_err = symmetry_error() do
+                cs_nctssos(
+                    ferm_pop,
+                    SolverConfig(
+                        optimizer=SOLVER,
+                        moment_basis=ferm_basis,
+                        cs_algo=NoElimination(),
+                        ts_algo=NoElimination(),
+                        symmetry=SymmetrySpec(SignedPermutation(1 => 2, 2 => 1)),
+                    ),
+                )
+            end
+            @test signed_err isa ArgumentError
+            @test occursin("`SignedPermutation`", sprint(showerror, signed_err))
+
+            regm, (xm,) = create_unipotent_variables([("x", 1:2)])
+            monoid_pop = polyopt(-(1.0 * xm[1] + xm[2]), regm)
+            monoid_basis = [one(xm[1]), xm[1], xm[2]]
+            sector_err = symmetry_error() do
+                cs_nctssos(
+                    monoid_pop,
+                    SolverConfig(
+                        optimizer=SOLVER,
+                        moment_basis=monoid_basis,
+                        cs_algo=NoElimination(),
+                        ts_algo=NoElimination(),
+                        symmetry=SymmetrySpec(sector=FermionicSectorSpec(split_parity=true)),
+                    ),
+                )
+            end
+            @test sector_err isa ArgumentError
+            @test occursin("Fermionic mode permutations / sector splitting", sprint(showerror, sector_err))
+
+            up_mode = Int(a[1].word[1])
+            dn_mode = Int(a[2].word[1])
+            layout = FermionicModeLayout(
+                Dict(up_mode => 1, dn_mode => 1);
+                spin2_of=Dict(up_mode => 1, dn_mode => -1),
+            )
+            spin_without_sector_err = symmetry_error() do
+                cs_nctssos(
+                    ferm_pop,
+                    SolverConfig(
+                        optimizer=SOLVER,
+                        moment_basis=ferm_basis,
+                        cs_algo=NoElimination(),
+                        ts_algo=NoElimination(),
+                        symmetry=SymmetrySpec(spin_adaptation=FermionicSpinAdaptationSpec(mode_layout=layout)),
+                    ),
+                )
+            end
+            @test spin_without_sector_err isa ArgumentError
+            @test occursin("spin adaptation currently requires", sprint(showerror, spin_without_sector_err))
+        end
     end
 end

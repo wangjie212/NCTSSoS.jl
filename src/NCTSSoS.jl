@@ -120,10 +120,19 @@ include("util/helpers.jl")
 # Optimization Framework
 # ============================================================================
 
+include("optimization/particle_number.jl")
 include("optimization/problem.jl")
 include("optimization/elimination.jl")
 include("optimization/sparsity.jl")
+include("optimization/moment_linear.jl")
+include("optimization/v2rdm_structured.jl")
 include("optimization/moment.jl")
+include("optimization/lowering.jl")
+include("optimization/symmetry.jl")
+include("optimization/pauli_chains.jl")
+include("sympleq/SympleQ.jl")
+include("optimization/fermionic_irreps.jl")
+include("optimization/fermionic_spin.jl")
 include("optimization/sos.jl")
 include("optimization/interface.jl")
 include("optimization/gns.jl")
@@ -137,12 +146,25 @@ include("optimization/gns_diagnostics.jl")
 
 # Problem Definition
 export PolyOpt, polyopt, PolyOptResult, SolverConfig
+export SignedPermutation, FermionicModePermutation, CliffordSymmetry, CliffordSymmetryGroup, FermionicModeLayout, AbelianIrrepTable
+export pauli_site_permutation, pauli_contiguous_chain_basis, pauli_sign_symmetry
+export PauliChargeSectorSpec, PauliSingletConstraintSpec, PauliChargeBlockLabel
+export FermionicSectorSpec, FermionicSectorLabel, FermionicSpinAdaptationSpec, FermionicSpinBlockLabel
+export SymmetrySpec, SymmetryReport
+export heisenberg_chain_hamiltonian
+export pauli_chain_translation, pauli_chain_reflection, pauli_global_axis_rotation_generators, heisenberg_chain_symmetry_spec
+export TranslationInvariantReport, TranslationInvariantResult
+export pauli_translation_invariant_moment_relaxation, pauli_translation_invariant_nctssos
+export SymplecticTableau, SymplecticMatrix, PhaseVector, SympleQGenerator
+export sympleq_generators, sympleq_clifford_symmetry, sympleq_symmetry_spec
 export SparsityResult, compute_sparsity
+export particle_number_constraint
 
 # Solver Interface
-export cs_nctssos, cs_nctssos_higher, reconstruct, gns_reconstruct, GNSResult
+export cs_nctssos, cs_nctssos_higher, build_jump_model, reconstruct, gns_reconstruct, GNSResult
 export FlatnessResult, test_flatness, flat_extend
 export RobustnessReport, robustness_report
+export build_pqg_moment_data
 export VerificationReport, verify_gns
 
 # Elimination Strategies

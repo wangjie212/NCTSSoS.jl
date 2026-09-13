@@ -29,7 +29,10 @@ using .TestExpectations: expectations_oracle
     # 7. Trace polynomial suite
     include("trace_poly/runtests.jl")
 
-    # 8. Curated problems
+    # 8. Structured V2RDM benchmark fast path
+    include("v2rdm_structured/runtests.jl")
+
+    # 9. Curated problems
     @testset "Problems" begin
         include("problems/bell_inequalities/chsh_simple.jl")
         include("problems/bell_inequalities/pironio_toy.jl")
@@ -39,8 +42,11 @@ using .TestExpectations: expectations_oracle
         include("problems/benchmarks/e4_chained_wood.jl")
         include("problems/benchmarks/e5_broyden_tridiagonal.jl")
         include("problems/condensed_matter/ising.jl")
+        include("problems/condensed_matter/heisenberg_symmetry.jl")
         include("problems/condensed_matter/hubbard.jl")
         include("problems/condensed_matter/bose_hubbard.jl")
+        include("problems/fermionic/fermionic.jl")
+        include("problems/fermionic/fermionic_symmetry.jl")
         include("problems/fermionic/fermionic_chain.jl")
         include("problems/fermionic/xy_model.jl")
         include("problems/fermionic/free_fermion.jl")

@@ -15,11 +15,17 @@ makedocs(;
             "Monomials"=>"manual/monomials.md",
             "Polynomial Optimization"=>"manual/polynomial_optimization.md",
             "Sparsities"=>"manual/sparsities.md",
+            "Symmetry-Adapted Basis"=>"manual/symmetry_adapted_basis.md",
+            "Pauli Charge/Singlet Symmetry"=>"manual/pauli_charge_singlet_symmetry.md",
+            "Extending Symmetry Support"=>"manual/extending_symmetry.md",
+            "Clifford Symmetry Detection"=>"manual/clifford_symmetry_detection.md",
             "SDP Relaxation"=>"manual/sdp_relaxation.md",
             "Optimizers"=>"manual/optimizers.md"
         ],
         "Examples"=>Any[
             "Bell inequalities"=>"examples/generated/bell.md",
+            "CHSH with Symmetry Reduction"=>"examples/generated/chsh_symmetry.md",
+            "Pauli Symmetry (Clifford + SympleQ)"=>"examples/generated/pauli_clifford_symmetry.md",
             "CHSH GNS Reconstruction"=>"examples/generated/chsh_gns_reconstruction.md",
             "Trace Polynomial"=>"examples/generated/trace_poly.md",
             "Newton Chip Method"=>"examples/generated/newton_chip_method.md",

@@ -108,9 +108,9 @@ The dualization process involves:
    - `:Zero` constraints -> equality multipliers
    - `:PSD` constraints -> PSDCone (real positive semidefinite)
    - `:HPSD` constraints -> lifted real PSDCone of size `2n × 2n`
-2. Introducing scalar variable `b` to bound the minimum value of the primal
-3. Setting up polynomial equality constraints by matching coefficients
-4. Returning the maximization of `b`
+2. Building coefficient expressions for `objective - Aᴴ(dual)`
+3. Maximizing the affine identity coefficient directly
+4. Constraining all remaining coefficient expressions to zero
 
 For complex algebras (Pauli, Fermionic, Bosonic), Hermitian PSD constraints
 are embedded as real 2n x 2n PSD constraints using the standard construction:
@@ -130,14 +130,109 @@ obj = objective_value(sos.model)
 See also: [`MomentProblem`](@ref), [`moment_relax`](@ref), [`SOSProblem`](@ref)
 """
 function sos_dualize(mp::MomentProblem{A,TI,M,P}) where {A<:AlgebraType, TI<:Integer, M<:NormalMonomial{A,TI}, P<:Polynomial{A,TI}}
-    # Determine if complex based on algebra type
-    is_complex = _is_complex_problem(A)
-
-    if is_complex
+    if _is_real_moment_problem(mp)
+        return _sos_dualize_real(mp)
+    elseif _is_complex_problem(A)
         return _sos_dualize_hermitian(mp)
     else
         return _sos_dualize_real(mp)
     end
+end
+
+
+# =============================================================================
+# SOS Dualization Helpers for MomentLinearData
+# =============================================================================
+
+@inline _sos_coeff_type(::MomentLinearData{K,C,M}) where {K,C,M} = C
+@inline _sos_real_type(::MomentLinearData{K,C,M}) where {K,C,M} = typeof(real(one(C)))
+
+function _sos_moment_index(L::MomentLinearData{K}, key::K) where {K}
+    return _get_key_value(L.moment_index, key, "moment index")
+end
+
+function _check_real_sos_cones!(mp::MomentProblem)
+    for (cone, _) in mp.constraints
+        (cone == :Zero || cone == :PSD) || error("Unexpected cone type $cone for real SOS dualization")
+    end
+    for block in mp.linear.psd_blocks_lin
+        block.meta.cone == :PSD || error("Unexpected cached cone type $(block.meta.cone) for real SOS dualization")
+    end
+    return nothing
+end
+
+function _check_hermitian_sos_cones!(mp::MomentProblem)
+    for (cone, mat) in mp.constraints
+        if cone == :Zero
+            _is_hermitian_poly_matrix(mat) || throw(ArgumentError(
+                "Complex SOS dualization requires Hermitian zero-cone matrices. " *
+                "Pass moment problems built through `moment_relax`, which splits " *
+                "non-Hermitian equalities into Hermitian real/imaginary components first."
+            ))
+        elseif cone != :HPSD
+            error("Unexpected cone type $cone for complex SOS dualization")
+        end
+    end
+    for block in mp.linear.psd_blocks_lin
+        block.meta.cone == :HPSD || error("Unexpected cached cone type $(block.meta.cone) for complex SOS dualization")
+    end
+    return nothing
+end
+
+function _accumulate_dual_contribution!(
+    eqs::AbstractVector,
+    idx::Integer,
+    coef,
+    dual_block,
+    row::Integer,
+    col::Integer,
+    cone::Symbol,
+)
+    cone == :PSD || error("Real SOS dualization expected :PSD block, got $cone")
+    add_to_expression!(eqs[idx], -coef, dual_block[row, col])
+    return nothing
+end
+
+"""
+    _accumulate_dual_contribution!(eqs_re, eqs_im, idx, coef, lifted, row, col, :HPSD, dim)
+
+Accumulate one cached linear-form term into the Hermitian SOS coefficient
+matching equations. This is the single home for the Hermitian real-lift adjoint
+scaling: for a lifted dual matrix `Z`, the effective complex multiplier is
+`X₁ + im*X₂` with `X₁ = Z₁₁ + Z₂₂` and `X₂ = Z₂₁ - Z₁₂`. The `Z₁₁ + Z₂₂`
+sum is intentional; dropping either block is the classic factor-of-2 bug.
+"""
+function _accumulate_dual_contribution!(
+    eqs_re::AbstractVector,
+    eqs_im::AbstractVector,
+    idx::Integer,
+    coef,
+    lifted,
+    row::Integer,
+    col::Integer,
+    cone::Symbol,
+    dim::Integer,
+)
+    cone == :HPSD || error("Hermitian SOS dualization expected :HPSD block, got $cone")
+
+    n = Int(dim)
+    i = Int(row)
+    j = Int(col)
+    c_re = real(coef)
+    c_im = imag(coef)
+
+    X1 = lifted[i, j] + lifted[n + i, n + j]
+    X2 = lifted[n + i, j] - lifted[i, n + j]
+
+    # Coefficient expressions are objective - Aᴴ(dual); the real identity
+    # coefficient is maximized directly and the rest are constrained to zero.
+    # Real(c * (X1 + im*X2)) = c_re*X1 - c_im*X2
+    # Imag(c * (X1 + im*X2)) = c_im*X1 + c_re*X2
+    add_to_expression!(eqs_re[idx], -c_re, X1)
+    add_to_expression!(eqs_re[idx], +c_im, X2)
+    add_to_expression!(eqs_im[idx], -c_im, X1)
+    add_to_expression!(eqs_im[idx], -c_re, X2)
+    return nothing
 end
 
 
@@ -154,74 +249,56 @@ For real algebras (NonCommutative, Projector, Unipotent), constraints use
 standard PSD cones without complex embedding.
 """
 function _sos_dualize_real(mp::MomentProblem{A,TI,M,P}) where {A<:AlgebraType, TI<:Integer, M<:NormalMonomial{A,TI}, P<:Polynomial{A,TI}}
-    # Get coefficient type from polynomial
-    C = eltype(coefficients(mp.objective))
+    _check_real_sos_cones!(mp)
 
+    L = mp.linear
+    C = _sos_coeff_type(L)
     dual_model = GenericModel{C}()
 
-    # Create matrix variables for each constraint
-    dual_variables = map(mp.constraints) do (cone, mat)
-        G_dim = size(mat, 1)
-        if cone == :Zero
-            @variable(dual_model, [1:G_dim, 1:G_dim] in SymmetricMatrixSpace())
-        else  # :PSD
-            @variable(dual_model, [1:G_dim, 1:G_dim] in PSDCone())
-        end
+    psd_duals = Any[]
+    for block in L.psd_blocks_lin
+        push!(psd_duals, @variable(dual_model, [1:block.size, 1:block.size] in PSDCone()))
+    end
+    zero_duals = [@variable(dual_model) for _ in L.zero_constraints]
+
+    fα_constraints = [zero(GenericAffExpr{C,VariableRef}) for _ in L.moments]
+
+    for (key, coef) in L.objective_lin
+        add_to_expression!(fα_constraints[_sos_moment_index(L, key)], coef)
     end
 
-    # Scalar variable b to bound minimum
-    @variable(dual_model, b)
-    @objective(dual_model, Max, b)
-
-    # Symmetrize basis: moment problem uses unsymmetrized basis, but
-    # we need to match coefficients of symmetric (canonicalized) monomials
-    symmetric_basis = _sorted_symmetric_basis(mp.total_basis)
-    n_basis = length(symmetric_basis)
-
-    # Create mapping from unsymmetrized basis to symmetric basis position
-    basis_to_sym_idx = Dict(
-        m => searchsortedfirst(symmetric_basis, symmetric_canon(m))
-        for m in mp.total_basis
-    )
-
-    # Initialize constraint expressions: sum of coefficients must equal objective
-    # For each basis monomial alpha, we have:
-    #   sum_j sum_{k,l} C_alpha_jkl * G_j[k,l] = c_alpha - delta_{alpha,1} * b
-    fα_constraints = [zero(GenericAffExpr{C,VariableRef}) for _ in 1:n_basis]
-
-    # Add objective polynomial coefficients (work in NormalMonomial space)
-    for (coef, mono) in mp.objective.terms
-        canon_mono = symmetric_canon(mono)
-        sym_idx = searchsortedfirst(symmetric_basis, canon_mono)
-        if sym_idx <= n_basis && symmetric_basis[sym_idx] == canon_mono
-            add_to_expression!(fα_constraints[sym_idx], coef)
-        end
-    end
-
-    # Subtract b from the constant term (identity monomial)
-    add_to_expression!(fα_constraints[1], -one(C), b)
-
-    # Process each constraint matrix
-    sorted_basis = sort(mp.total_basis)
-    for (i, (_, mat)) in enumerate(mp.constraints)
-        Cαjs = get_Cαj(sorted_basis, mat)
-        # Deterministic iteration (Dict order is randomized per Julia session).
-        for ky in sort!(collect(keys(Cαjs)))
-            coef = Cαjs[ky]
-            basis_idx, row, col = ky
-            # Map unsymmetrized basis index to symmetric index
-            if basis_idx <= length(sorted_basis)
-                unsym_mono = sorted_basis[basis_idx]
-                sym_idx = basis_to_sym_idx[unsym_mono]
-                add_to_expression!(fα_constraints[sym_idx], -coef, dual_variables[i][row, col])
+    for (block_idx, block) in enumerate(L.psd_blocks_lin)
+        dual_block = psd_duals[block_idx]
+        for i in 1:block.size, j in 1:block.size
+            for (key, coef) in block.entries[i, j]
+                _accumulate_dual_contribution!(
+                    fα_constraints,
+                    _sos_moment_index(L, key),
+                    coef,
+                    dual_block,
+                    i,
+                    j,
+                    block.meta.cone,
+                )
             end
         end
     end
 
-    # All coefficient constraints
-    @constraint(dual_model, fα_constraints .== 0)
+    for (zc_idx, zc) in enumerate(L.zero_constraints)
+        λ = zero_duals[zc_idx]
+        for (key, coef) in zc.form
+            add_to_expression!(fα_constraints[_sos_moment_index(L, key)], -coef, λ)
+        end
+    end
 
-    return SOSProblem(dual_model, n_basis)
+    # Eliminate the usual scalar bound variable: the real identity coefficient is b.
+    identity_idx = _sos_moment_index(L, L.identity)
+    @objective(dual_model, Max, fα_constraints[identity_idx])
+
+    coefficient_indices = [i for i in eachindex(fα_constraints) if i != identity_idx]
+    isempty(coefficient_indices) || @constraint(dual_model, fα_constraints[coefficient_indices] .== 0)
+
+    return SOSProblem(dual_model, length(L.moments))
 end
 
 
@@ -272,10 +349,6 @@ function _sos_dualize_state(mp::StateMomentProblem{A,ST,TI,M,P}) where {A<:Algeb
         end
     end
 
-    # Scalar variable b to bound minimum
-    @variable(dual_model, b)
-    @objective(dual_model, Max, b)
-
     # For state polynomial optimization, we work with expectation values (StateWords)
     # The key insight: expval(<I>*xy) = <xy> = expval(<xy>*I)
     # So we convert NCStateWords to StateWords via expval for comparison
@@ -286,6 +359,12 @@ function _sos_dualize_state(mp::StateMomentProblem{A,ST,TI,M,P}) where {A<:Algeb
     state_basis = _sorted_stateword_basis_from_ncsw(mp.total_basis)
     n_basis = length(state_basis)
     sw_to_idx = Dict(sw => i for (i, sw) in enumerate(state_basis))
+
+    identity_sw = one(SW)
+    identity_idx = searchsortedfirst(state_basis, identity_sw)
+    if identity_idx > n_basis || state_basis[identity_idx] != identity_sw
+        error("Identity StateWord not found in basis - this shouldn't happen")
+    end
 
     # Initialize constraint expressions
     fα_constraints = [zero(GenericAffExpr{C,VariableRef}) for _ in 1:n_basis]
@@ -303,9 +382,6 @@ function _sos_dualize_state(mp::StateMomentProblem{A,ST,TI,M,P}) where {A<:Algeb
         add_to_expression!(fα_constraints[sym_idx], coef)
     end
     _throw_missing_state_words(missing_objective_words, "the objective"; source="Relaxation basis")
-
-    # Subtract b from the constant term (identity StateWord)
-    add_to_expression!(fα_constraints[1], -one(C), b)
 
     # Process each constraint matrix by iterating directly over block (row, col) pairs
     # This ensures all StateWord contributions are accumulated correctly across blocks
@@ -334,8 +410,11 @@ function _sos_dualize_state(mp::StateMomentProblem{A,ST,TI,M,P}) where {A<:Algeb
     end
     _throw_missing_state_words(missing_constraint_words, "the constraint matrices"; source="Relaxation basis")
 
-    # All coefficient constraints
-    @constraint(dual_model, fα_constraints .== 0)
+    # Eliminate the usual scalar bound variable: the identity coefficient is b.
+    @objective(dual_model, Max, fα_constraints[identity_idx])
+
+    coefficient_indices = [i for i in eachindex(fα_constraints) if i != identity_idx]
+    isempty(coefficient_indices) || @constraint(dual_model, fα_constraints[coefficient_indices] .== 0)
 
     return SOSProblem(dual_model, n_basis)
 end
@@ -343,128 +422,76 @@ end
 """
     _sos_dualize_hermitian(mp::MomentProblem{A,TI,M,P}) -> SOSProblem
 
-Internal: Dualize a complex/Hermitian symbolic moment problem.
+Internal: Dualize a complex/Hermitian symbolic moment problem using the cached
+`mp.linear::MomentLinearData` forms.
 
-For complex algebras (Pauli, Fermionic, Bosonic), `:HPSD` constraints use the
-standard real lift `H ↦ [Re(H) -Im(H); Im(H) Re(H)]` and a lifted real PSD dual
-matrix. This is the Wang-style unconstrained lifted dual route for Hermitian
-cones.
-
-` :Zero` constraints are only valid in this route when the symbolic zero matrix
-is Hermitian. In that case the lifted symmetric multiplier is overparameterized
-but correct. The public `moment_relax` path now splits non-Hermitian complex
-zero constraints into Hermitian real/imaginary components before they reach SOS
-dualization. The guard here remains as a safety net for manually constructed
-`MomentProblem`s.
-
-The Hermitian embedding is:
-```
-H in HPSD <=> [Re(H), -Im(H); Im(H), Re(H)] in PSD
-```
-
-Factor-of-2 note: for a lifted dual matrix `Z`, the adjoint map is built from
-`X₁ = Z₁₁ + Z₂₂` and `X₂ = Z₂₁ - Z₁₂`. The sum over both diagonal blocks is
-intentional. The realified Frobenius product doubles the complex Hermitian one,
-so taking only one block would be the classic factor-of-2 bug.
+For complex algebras (Pauli, Fermionic, Bosonic), each cached `:HPSD` block gets
+a lifted real PSD dual matrix. Cached scalar zero constraints get real free
+multipliers. The Hermitian factor-of-2 convention lives only in
+`_accumulate_dual_contribution!`.
 """
 function _sos_dualize_hermitian(mp::MomentProblem{A,TI,M,P}) where {A<:AlgebraType, TI<:Integer, M<:NormalMonomial{A,TI}, P<:Polynomial{A,TI}}
-    # Get coefficient type (should be complex for these algebras)
-    C = eltype(coefficients(mp.objective))
-    RC = real(C)  # Real coefficient type for dual model
+    _check_hermitian_sos_cones!(mp)
 
+    L = mp.linear
+    RC = _sos_real_type(L)
     dual_model = GenericModel{RC}()
 
-    dual_variables = map(mp.constraints) do (cone, mat)
-        dim = size(mat, 1)
-        if cone == :Zero
-            _is_hermitian_poly_matrix(mat) || throw(ArgumentError(
-                "Complex SOS dualization requires Hermitian zero-cone matrices. " *
-                "Pass moment problems built through `moment_relax`, which splits " *
-                "non-Hermitian equalities into Hermitian real/imaginary components first."
-            ))
-            (
-                dim = dim,
-                lifted = @variable(dual_model, [1:2*dim, 1:2*dim] in SymmetricMatrixSpace()),
-            )
-        else  # :HPSD
-            (
-                dim = dim,
-                lifted = @variable(dual_model, [1:2*dim, 1:2*dim] in PSDCone()),
-            )
+    psd_duals = Any[]
+    for block in L.psd_blocks_lin
+        dim = block.size
+        push!(psd_duals, (
+            dim = dim,
+            lifted = @variable(dual_model, [1:2*dim, 1:2*dim] in PSDCone()),
+        ))
+    end
+    zero_duals = [@variable(dual_model) for _ in L.zero_constraints]
+
+    fα_constraints_re = [zero(GenericAffExpr{RC,VariableRef}) for _ in L.moments]
+    fα_constraints_im = [zero(GenericAffExpr{RC,VariableRef}) for _ in L.moments]
+
+    for (key, coef) in L.objective_lin
+        idx = _sos_moment_index(L, key)
+        add_to_expression!(fα_constraints_re[idx], real(coef))
+        add_to_expression!(fα_constraints_im[idx], imag(coef))
+    end
+
+    for (block_idx, block) in enumerate(L.psd_blocks_lin)
+        dual = psd_duals[block_idx]
+        for i in 1:block.size, j in 1:block.size
+            for (key, coef) in block.entries[i, j]
+                _accumulate_dual_contribution!(
+                    fα_constraints_re,
+                    fα_constraints_im,
+                    _sos_moment_index(L, key),
+                    coef,
+                    dual.lifted,
+                    i,
+                    j,
+                    block.meta.cone,
+                    dual.dim,
+                )
+            end
         end
     end
 
-    # Scalar variable b
-    @variable(dual_model, b)
-    @objective(dual_model, Max, b)
-
-    # Symmetrize basis: moment problem uses unsymmetrized basis, but
-    # we need to match coefficients of symmetric (canonicalized) monomials
-    # This is the same canonicalization used in real SOS dualization
-    symmetric_basis = _sorted_symmetric_basis(mp.total_basis)
-    n_basis = length(symmetric_basis)
-
-    # Create mapping from unsymmetrized basis to symmetric basis position
-    # (same approach as real SOS dualization)
-    sorted_unsym_basis = sort(mp.total_basis)
-    basis_to_sym_idx = Dict(
-        m => searchsortedfirst(symmetric_basis, symmetric_canon(m))
-        for m in mp.total_basis
-    )
-
-    # Real and imaginary parts of constraint expressions
-    fα_constraints_re = [zero(GenericAffExpr{RC,VariableRef}) for _ in 1:n_basis]
-    fα_constraints_im = [zero(GenericAffExpr{RC,VariableRef}) for _ in 1:n_basis]
-
-    # Add objective polynomial coefficients (real and imaginary parts; NormalMonomial space)
-    for (coef, mono) in mp.objective.terms
-        canon_mono = symmetric_canon(mono)
-        idx = searchsortedfirst(symmetric_basis, canon_mono)
-        if idx <= n_basis && symmetric_basis[idx] == canon_mono
-            add_to_expression!(fα_constraints_re[idx], real(coef))
-            add_to_expression!(fα_constraints_im[idx], imag(coef))
+    for (zc_idx, zc) in enumerate(L.zero_constraints)
+        λ = zero_duals[zc_idx]
+        for (key, coef) in zc.form
+            idx = _sos_moment_index(L, key)
+            add_to_expression!(fα_constraints_re[idx], -real(coef), λ)
+            add_to_expression!(fα_constraints_im[idx], -imag(coef), λ)
         end
     end
 
-    # Subtract b from the constant term (real part only)
-    add_to_expression!(fα_constraints_re[1], -one(RC), b)
+    # Eliminate only the real identity equation; the imaginary identity equation
+    # still enforces a real scalar bound.
+    identity_idx = _sos_moment_index(L, L.identity)
+    @objective(dual_model, Max, fα_constraints_re[identity_idx])
 
-    # Process each constraint matrix
-    for (i, (_, mat)) in enumerate(mp.constraints)
-        Cαjs = get_Cαj(sorted_unsym_basis, mat)
-        dv = dual_variables[i]
-        lifted = dv.lifted
-        dim = dv.dim
-
-        # Deterministic iteration (Dict order is randomized per Julia session).
-        for ky in sort!(collect(keys(Cαjs)))
-            coef = Cαjs[ky]
-            unsym_basis_idx, row, col = ky
-
-            unsym_basis_idx <= length(sorted_unsym_basis) || continue
-            unsym_mono = sorted_unsym_basis[unsym_basis_idx]
-            sym_idx = basis_to_sym_idx[unsym_mono]
-            c_re = real(coef)
-            c_im = imag(coef)
-
-            # For a lifted dual matrix Z, the adjoint of the block-realification map is
-            # X₁ = Z₁₁ + Z₂₂ and X₂ = Z₂₁ - Z₁₂, so the effective complex multiplier is
-            # G = X₁ + iX₂. The sum over both diagonal blocks is what avoids the factor-of-2 bug.
-            X1 = lifted[row, col] + lifted[dim + row, dim + col]
-            X2 = lifted[dim + row, col] - lifted[row, dim + col]
-
-            # Real(c*G) = c_re*X₁ - c_im*X₂
-            # Imag(c*G) = c_im*X₁ + c_re*X₂
-            add_to_expression!(fα_constraints_re[sym_idx], -c_re, X1)
-            add_to_expression!(fα_constraints_re[sym_idx], +c_im, X2)
-            add_to_expression!(fα_constraints_im[sym_idx], -c_im, X1)
-            add_to_expression!(fα_constraints_im[sym_idx], -c_re, X2)
-        end
-    end
-
-    # All coefficient constraints (real and imaginary parts)
-    @constraint(dual_model, fα_constraints_re .== 0)
+    real_coefficient_indices = [i for i in eachindex(fα_constraints_re) if i != identity_idx]
+    isempty(real_coefficient_indices) || @constraint(dual_model, fα_constraints_re[real_coefficient_indices] .== 0)
     @constraint(dual_model, fα_constraints_im .== 0)
 
-    return SOSProblem(dual_model, n_basis)
+    return SOSProblem(dual_model, length(L.moments))
 end

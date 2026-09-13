@@ -49,8 +49,9 @@ Result of a polynomial optimization problem solution.
 - `objective::T`: Optimal objective value
 - `sparsity::SparsityResult{A,TI,P,M,ST}`: Sparsity structure (correlative + term sparsity + initial activated supports)
 - `model::GenericModel{T}`: JuMP model used for solving
-- `moment_matrix_sizes::Vector{Vector{Int}}`: Per-clique vector of term sparsity block sizes for the moment matrix
+- `moment_matrix_sizes::Vector{Vector{Int}}`: Per-clique vector of term sparsity block sizes for the moment matrix before any symmetry reduction; when `symmetry !== nothing`, the final solver PSD block sizes live in `symmetry.psd_block_sizes`
 - `n_unique_moment_matrix_elements::Int`: Number of unique moment variables in all moment matrices (after canonicalization)
+- `symmetry::Union{Nothing,SymmetryReport}`: Summary of an applied symmetry reduction, or `nothing` for the ordinary path
 """
 struct PolyOptResult{T, A<:AlgebraType, TI<:Integer, P, M, ST}
     objective::T
@@ -58,6 +59,7 @@ struct PolyOptResult{T, A<:AlgebraType, TI<:Integer, P, M, ST}
     model::GenericModel{T}
     moment_matrix_sizes::Vector{Vector{Int}}
     n_unique_moment_matrix_elements::Int
+    symmetry::Union{Nothing,SymmetryReport}
 end
 
 """
@@ -84,7 +86,8 @@ function PolyOptResult(
     objective::T,
     sparsity::SparsityResult{A,TI,P,M,ST},
     model::GenericModel{T},
-    n_unique_elements::Int
+    n_unique_elements::Int;
+    symmetry::Union{Nothing,SymmetryReport}=nothing,
 ) where {T, A<:AlgebraType, TI<:Integer, P, M, ST}
     moment_matrix_sizes = _compute_moment_matrix_sizes(sparsity.cliques_term_sparsities)
 
@@ -93,7 +96,8 @@ function PolyOptResult(
         sparsity,
         model,
         moment_matrix_sizes,
-        n_unique_elements
+        n_unique_elements,
+        symmetry,
     )
 end
 
@@ -114,7 +118,12 @@ function _show_poly_opt_result(io::IO, result::PolyOptResult, prefix::String)
     println(io, "Term Sparsity:")
     for (i, sparsities) in enumerate(result.sparsity.cliques_term_sparsities)
         println(io, "Clique $i:")
-        println(io, "   Moment Matrix Block Sizes: ", result.moment_matrix_sizes[i])
+        if isnothing(result.symmetry)
+            println(io, "   Moment Matrix Block Sizes: ", result.moment_matrix_sizes[i])
+        else
+            println(io, "   Moment Matrix Block Sizes (pre-symmetry): ", result.moment_matrix_sizes[i])
+            i == 1 && println(io, "   Symmetry-Reduced PSD Block Sizes: ", result.symmetry.psd_block_sizes)
+        end
         println(io, "   Moment Matrix:")
         println(io, sparsities[1])
         println(io, "   Localizing Matrix:")
@@ -123,6 +132,9 @@ function _show_poly_opt_result(io::IO, result::PolyOptResult, prefix::String)
         end
     end
     println(io, "Unique Moment Matrix Elements: ", result.n_unique_moment_matrix_elements)
+    if !isnothing(result.symmetry)
+        println(io, "Symmetry: ", result.symmetry)
+    end
 end
 
 """
@@ -232,9 +244,13 @@ function project_to_clique(poly::NCStatePolynomial{C,ST,A,T}, clique_indices) wh
 end
 
 """
-    solve_sdp(moment_problem, optimizer; dualize::Bool=true)
+    solve_sdp(moment_problem, optimizer; dualize::Bool=true, silent::Bool=true)
 
 Solve the SDP relaxation, either via SOS dualization or directly as moment problem.
+
+`silent=true` (the default) suppresses solver output via `set_silent`, overriding
+any logging attribute set on the optimizer; pass `silent=false` to let solver
+log settings (for example Mosek's `MSK_IPAR_LOG`) take effect.
 
 For ordinary complex-algebra polynomial problems (`PauliAlgebra`, `FermionicAlgebra`,
 `BosonicAlgebra`):
@@ -251,10 +267,23 @@ Returns a named tuple `(objective, model, n_unique_elements, status)`.
 
 Throws an error if the solver fails (infeasible, unbounded, numerical error).
 """
-function solve_sdp(moment_problem, optimizer; dualize::Bool=true)
+function solve_sdp(
+    moment_problem,
+    optimizer;
+    dualize::Bool=true,
+    silent::Bool=true,
+    formulation::Symbol=:moment_variables,
+    representation::Symbol=:real,
+    orphan_policy::Symbol=:error,
+)
     if dualize
+        if formulation != :moment_variables || representation != :real || orphan_policy != :error
+            throw(ArgumentError("Moment lowering options apply only with dualize=false; SOS relowering is deferred."))
+        end
+
         sos_problem = sos_dualize(moment_problem)
         set_optimizer(sos_problem.model, optimizer)
+        silent && set_silent(sos_problem.model)
         optimize!(sos_problem.model)
         status = _check_solver_status(sos_problem.model)
         return (
@@ -264,7 +293,21 @@ function solve_sdp(moment_problem, optimizer; dualize::Bool=true)
             status = status
         )
     else
-        result = solve_moment_problem(moment_problem, optimizer)
+        result = if moment_problem isa MomentProblem
+            solve_moment_problem(
+                moment_problem,
+                optimizer;
+                silent=silent,
+                formulation=formulation,
+                representation=representation,
+                orphan_policy=orphan_policy,
+            )
+        else
+            if formulation != :moment_variables || representation != :real || orphan_policy != :error
+                throw(ArgumentError("State moment lowering does not support formulation/representation options."))
+            end
+            solve_moment_problem(moment_problem, optimizer; silent=silent)
+        end
         status = _check_solver_status(result.model)
         return (
             objective = result.objective,
@@ -276,7 +319,7 @@ function solve_sdp(moment_problem, optimizer; dualize::Bool=true)
 end
 
 """
-    SolverConfig(; optimizer, order=0, moment_basis=nothing, cs_algo=NoElimination(), ts_algo=NoElimination())
+    SolverConfig(; optimizer, order=0, moment_basis=nothing, cs_algo=NoElimination(), ts_algo=NoElimination(), symmetry=nothing)
 
 Configuration for solving polynomial optimization problems.
 
@@ -293,12 +336,19 @@ Configuration for solving polynomial optimization problems.
   raise an error instead of silently dropping terms. Default: `nothing`
 - `cs_algo::EliminationAlgorithm`: Algorithm for correlative sparsity exploitation (default: NoElimination())
 - `ts_algo::EliminationAlgorithm`: Algorithm for term sparsity exploitation (default: NoElimination())
-
+- `symmetry::Union{Nothing,SymmetrySpec}`: Optional symmetry reduction spec. The
+  current implementation is still intentionally narrow: dense ordinary polynomial
+  relaxations only (`cs_algo=NoElimination()`, `ts_algo=NoElimination()`), with
+  supported combinations limited to either
+  - `MonoidAlgebra` + `SignedPermutation`,
+  - `PauliAlgebra` + `CliffordSymmetry`, optionally with `PauliChargeSectorSpec` and `PauliSingletConstraintSpec`, or
+  - `FermionicAlgebra` + `FermionicModePermutation`, `FermionicSectorSpec`, and optional `FermionicSpinAdaptationSpec` layered on sector blocks.
+  Unsupported combinations error instead of silently doing the wrong thing.
 
 # Examples
 ```jldoctest; setup=:(using NCTSSoS, COSMO)
 julia> solver_config = SolverConfig(optimizer=COSMO.Optimizer, order=2) # default elimination algorithms
-SolverConfig(COSMO.Optimizer, 2, nothing, NoElimination(), NoElimination())
+SolverConfig(COSMO.Optimizer, 2, nothing, NoElimination(), NoElimination(), nothing)
 ```
 
 """
@@ -308,6 +358,7 @@ SolverConfig(COSMO.Optimizer, 2, nothing, NoElimination(), NoElimination())
     moment_basis::Union{Nothing,Vector} = nothing
     cs_algo::EliminationAlgorithm = NoElimination()
     ts_algo::EliminationAlgorithm = NoElimination()
+    symmetry::Union{Nothing,SymmetrySpec} = nothing
 end
 
 function _resolve_relaxation_spec(pop::OptimizationProblem, solver_config::SolverConfig)
@@ -323,6 +374,78 @@ end
 
 @inline _has_active_sparsity(solver_config::SolverConfig) =
     !(solver_config.cs_algo isa NoElimination && solver_config.ts_algo isa NoElimination)
+
+function _check_symmetry_mvp_support(
+    pop::OptimizationProblem{A,P},
+    solver_config::SolverConfig,
+    sparsity::SparsityResult,
+) where {A<:AlgebraType,P}
+    isnothing(solver_config.symmetry) && return nothing
+
+    symmetry = solver_config.symmetry
+
+    P <: Polynomial || throw(ArgumentError(
+        "Symmetry reduction currently supports ordinary polynomial problems only; state/trace problems are not yet supported."
+    ))
+    solver_config.cs_algo isa NoElimination || throw(ArgumentError(
+        "Symmetry reduction currently requires `cs_algo=NoElimination()`."
+    ))
+    solver_config.ts_algo isa NoElimination || throw(ArgumentError(
+        "Symmetry reduction currently requires `ts_algo=NoElimination()`."
+    ))
+    length(sparsity.corr_sparsity.cliques) == 1 || throw(ArgumentError(
+        "Symmetry reduction currently supports a single dense clique only."
+    ))
+
+    for term_sparsities in sparsity.cliques_term_sparsities, term_sparsity in term_sparsities
+        length(term_sparsity.block_bases) == 1 || throw(ArgumentError(
+            "Symmetry reduction does not yet compose with term-sparsity block splitting."
+        ))
+    end
+
+    if !isempty(symmetry.generators)
+        A <: MonoidAlgebra || throw(ArgumentError(
+            "`SignedPermutation` symmetry is currently supported only for ordinary polynomial problems over `MonoidAlgebra`. Got `$(nameof(A))`."
+        ))
+        (isnothing(symmetry.sector) && isnothing(symmetry.spin_adaptation)) || throw(ArgumentError(
+            "Fermionic sector splitting / spin adaptation cannot be combined with raw `SignedPermutation` symmetry. Use `FermionicModePermutation` for fermionic problems."
+        ))
+    end
+
+    if !isempty(symmetry.clifford_generators) || !isnothing(symmetry.pauli_charge) || !isnothing(symmetry.pauli_singlet)
+        A === PauliAlgebra || throw(ArgumentError(
+            "`CliffordSymmetry` / Pauli charge and singlet reductions are currently supported only for ordinary polynomial problems over `PauliAlgebra`. Got `$(nameof(A))`."
+        ))
+        (isnothing(symmetry.sector) && isnothing(symmetry.spin_adaptation)) || throw(ArgumentError(
+            "Fermionic sector splitting / spin adaptation cannot be combined with `CliffordSymmetry` or Pauli charge/singlet symmetry."
+        ))
+    end
+
+    if !isempty(symmetry.fermionic_generators) || !isnothing(symmetry.sector) || !isnothing(symmetry.spin_adaptation)
+        A === FermionicAlgebra || throw(ArgumentError(
+            "Fermionic mode permutations / sector splitting / spin adaptation are currently supported only for `FermionicAlgebra`. Got `$(nameof(A))`."
+        ))
+    end
+
+    if !isnothing(symmetry.spin_adaptation)
+        isnothing(symmetry.sector) && throw(ArgumentError(
+            "Fermionic spin adaptation currently requires `sector=FermionicSectorSpec(..., split_spin=true)` in the same `SymmetrySpec`."
+        ))
+    end
+
+    return nothing
+end
+
+function _check_symmetry_mvp_support(
+    pop::PolyOpt{A,T,P},
+    solver_config::SolverConfig,
+    _sparsity::SparsityResult,
+) where {A<:MonoidAlgebra,T<:Integer,ST<:StateType,C<:Number,P<:NCStatePolynomial{C,ST,A,T}}
+    isnothing(solver_config.symmetry) && return nothing
+    throw(ArgumentError(
+        "Symmetry reduction MVP does not yet support state/trace polynomial optimization."
+    ))
+end
 
 """
     compute_sparsity(pop::PolyOpt, solver_config::SolverConfig) -> SparsityResult
@@ -421,11 +544,51 @@ This function solves a polynomial optimization problem by:
 
 The moment order is automatically determined from the polynomial degrees if not specified in `solver_config`.
 """
-function cs_nctssos(pop::OP, solver_config::SolverConfig; dualize::Bool=true) where {A<:AlgebraType, P, OP<:OptimizationProblem{A,P}}
+function cs_nctssos(
+    pop::OP,
+    solver_config::SolverConfig;
+    dualize::Bool=true,
+    formulation::Symbol=:moment_variables,
+    representation::Symbol=:real,
+    orphan_policy::Symbol=:error,
+) where {A<:AlgebraType, P, OP<:OptimizationProblem{A,P}}
     sparsity = compute_sparsity(pop, solver_config)
-    moment_problem = moment_relax(pop, sparsity.corr_sparsity, sparsity.cliques_term_sparsities)
-    result = solve_sdp(moment_problem, solver_config.optimizer; dualize)
-    return PolyOptResult(result.objective, sparsity, result.model, result.n_unique_elements)
+    _check_symmetry_mvp_support(pop, solver_config, sparsity)
+
+    if isnothing(solver_config.symmetry)
+        moment_problem = moment_relax(pop, sparsity.corr_sparsity, sparsity.cliques_term_sparsities)
+        result = solve_sdp(
+            moment_problem,
+            solver_config.optimizer;
+            dualize=dualize,
+            formulation=formulation,
+            representation=representation,
+            orphan_policy=orphan_policy,
+        )
+        return PolyOptResult(result.objective, sparsity, result.model, result.n_unique_elements)
+    end
+
+    moment_problem, symmetry_report = moment_relax_symmetric(
+        pop,
+        sparsity.corr_sparsity,
+        sparsity.cliques_term_sparsities,
+        solver_config.symmetry,
+    )
+    result = solve_sdp(
+        moment_problem,
+        solver_config.optimizer;
+        dualize=dualize,
+        formulation=formulation,
+        representation=representation,
+        orphan_policy=orphan_policy,
+    )
+    return PolyOptResult(
+        result.objective,
+        sparsity,
+        result.model,
+        result.n_unique_elements;
+        symmetry=symmetry_report,
+    )
 end
 
 function _higher_step_graph_support(
@@ -467,9 +630,23 @@ This function performs another term-sparsity iteration of the CS-NCTSSOS method 
 
 Importantly, this does **not** increase the relaxation order or switch to a denser basis. It only updates the raw term-sparsity support at the same order. If that raw support is already at a fixed point, `cs_nctssos_higher` may return exactly the same relaxation and objective value as the previous solve. To obtain a tighter bound in that situation, increase `order` or use a less aggressive sparsity configuration.
 """
-function cs_nctssos_higher(pop::OP, prev_res::PolyOptResult, solver_config::SolverConfig; dualize::Bool=true) where {A<:AlgebraType, P, OP<:OptimizationProblem{A,P}}
+function cs_nctssos_higher(
+    pop::OP,
+    prev_res::PolyOptResult,
+    solver_config::SolverConfig;
+    dualize::Bool=true,
+    formulation::Symbol=:moment_variables,
+    representation::Symbol=:real,
+    orphan_policy::Symbol=:error,
+) where {A<:AlgebraType, P, OP<:OptimizationProblem{A,P}}
     isnothing(solver_config.moment_basis) ||
         throw(ArgumentError("`cs_nctssos_higher` reuses the basis from `prev_res`; do not pass `moment_basis`."))
+    isnothing(solver_config.symmetry) ||
+        throw(ArgumentError("`cs_nctssos_higher` does not yet accept `symmetry` in `solver_config`."))
+    isnothing(prev_res.symmetry) ||
+        throw(ArgumentError(
+            "`cs_nctssos_higher` cannot continue from a symmetry-reduced `prev_res`; rerun from `cs_nctssos` without symmetry."
+        ))
 
     prev_sparsity = prev_res.sparsity
     prev_corr_sparsity = prev_sparsity.corr_sparsity
@@ -500,7 +677,14 @@ function cs_nctssos_higher(pop::OP, prev_res::PolyOptResult, solver_config::Solv
 
     moment_problem = moment_relax(pop, prev_corr_sparsity, cliques_term_sparsities)
 
-    result = solve_sdp(moment_problem, solver_config.optimizer; dualize)
+    result = solve_sdp(
+        moment_problem,
+        solver_config.optimizer;
+        dualize=dualize,
+        formulation=formulation,
+        representation=representation,
+        orphan_policy=orphan_policy,
+    )
     return PolyOptResult(result.objective, sparsity, result.model, result.n_unique_elements)
 end
 
@@ -537,9 +721,26 @@ capture the objective. For state polynomials with degree-2 terms like ⟨x₁y�
 use `order >= 1`. If `order=0` is specified, it will be automatically computed
 from the maximum polynomial degree.
 """
-function cs_nctssos(pop::PolyOpt{A,T,P}, solver_config::SolverConfig; dualize::Bool=true) where {A<:AlgebraType,T<:Integer,ST<:StateType,C<:Number,P<:NCStatePolynomial{C,ST,A,T}}
+function cs_nctssos(
+    pop::PolyOpt{A,T,P},
+    solver_config::SolverConfig;
+    dualize::Bool=true,
+    formulation::Symbol=:moment_variables,
+    representation::Symbol=:real,
+    orphan_policy::Symbol=:error,
+) where {A<:AlgebraType,T<:Integer,ST<:StateType,C<:Number,P<:NCStatePolynomial{C,ST,A,T}}
+    isnothing(solver_config.symmetry) || throw(ArgumentError(
+        "Symmetry reduction MVP does not yet support state/trace polynomial optimization."
+    ))
     sparsity = compute_sparsity(pop, solver_config)
     moment_problem = moment_relax(pop, sparsity.corr_sparsity, sparsity.cliques_term_sparsities)
-    result = solve_sdp(moment_problem, solver_config.optimizer; dualize)
+    result = solve_sdp(
+        moment_problem,
+        solver_config.optimizer;
+        dualize=dualize,
+        formulation=formulation,
+        representation=representation,
+        orphan_policy=orphan_policy,
+    )
     return PolyOptResult(result.objective, sparsity, result.model, result.n_unique_elements)
 end

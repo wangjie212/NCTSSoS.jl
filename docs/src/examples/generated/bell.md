@@ -195,7 +195,7 @@ solver_config = SolverConfig(
 ````
 
 ````
-NCTSSoS.SolverConfig(Mosek.Optimizer, 1, nothing, NCTSSoS.NoElimination(), NCTSSoS.NoElimination())
+NCTSSoS.SolverConfig(Mosek.Optimizer, 1, nothing, NCTSSoS.NoElimination(), NCTSSoS.NoElimination(), nothing)
 ````
 
 solver_config: specifies solver and relaxation parameters
@@ -205,7 +205,7 @@ result = cs_nctssos(pop, solver_config)
 ````
 
 ````
-Objective: -2.82842713216232
+Objective: -2.828427124561677
 Correlative Sparsity (UnipotentAlgebra): 
 
    maximum clique size: 4
@@ -219,7 +219,7 @@ Term Sparsity:
 Clique 1:
    Moment Matrix Block Sizes: [5]
    Moment Matrix:
-Number of Activated supp:   11
+Number of Activated supp:   5
 Number of Bases Activated in each sub-block[5]
 
    Localizing Matrix:
@@ -236,7 +236,7 @@ chsh_bound = -result.objective
 ````
 
 ````
-2.82842713216232
+2.828427124561677
 ````
 
 chsh_bound: upper bound on maximal quantum violation (negate since we minimized -f)
@@ -258,8 +258,16 @@ abs(chsh_bound - tsirelson_bound)  # difference (should be ~1e-7)
 ````
 
 ````
-7.41612948829129e-9
+1.8451329353297297e-10
 ````
+
+!!! tip "Going further: shrink this SDP with symmetry"
+    The CHSH operator is invariant under a 16-element symmetry group. The
+    [CHSH with Symmetry Reduction](@ref chsh-symmetry) example shows how to
+    use that group to replace the dense `5\times 5` PSD block with three
+    independent `1\times 1` PSD blocks while still recovering `2\sqrt{2}`.
+    The architectural picture is on the [Symmetry-Adapted Basis](@ref symmetry-adapted-basis)
+    manual page.
 
 ---
 ### $I_{3322}$ Inequality
@@ -347,7 +355,7 @@ solver_config = SolverConfig(optimizer=Mosek.Optimizer, order=2)
 ````
 
 ````
-NCTSSoS.SolverConfig(Mosek.Optimizer, 2, nothing, NCTSSoS.NoElimination(), NCTSSoS.NoElimination())
+NCTSSoS.SolverConfig(Mosek.Optimizer, 2, nothing, NCTSSoS.NoElimination(), NCTSSoS.NoElimination(), nothing)
 ````
 
 order=2: second level of the moment hierarchy
@@ -358,7 +366,7 @@ i3322_bound = -result.objective
 ````
 
 ````
-0.2509397976352535
+0.25093972394553915
 ````
 
 i3322_bound: upper bound on I₃₃₂₂ violation (negate since we minimized -f)
@@ -368,7 +376,7 @@ i3322_bound  # should be close to 0.25
 ````
 
 ````
-0.2509397976352535
+0.25093972394553915
 ````
 
 ---
@@ -394,7 +402,7 @@ solver_config_dense = SolverConfig(optimizer=Mosek.Optimizer, order=3)
 ````
 
 ````
-NCTSSoS.SolverConfig(Mosek.Optimizer, 3, nothing, NCTSSoS.NoElimination(), NCTSSoS.NoElimination())
+NCTSSoS.SolverConfig(Mosek.Optimizer, 3, nothing, NCTSSoS.NoElimination(), NCTSSoS.NoElimination(), nothing)
 ````
 
 solver_config_dense: no sparsity exploitation
@@ -405,7 +413,7 @@ bound_dense = -result_dense.objective
 ````
 
 ````
-0.2508757549955246
+0.25087564645574384
 ````
 
 bound_dense: bound without sparsity
@@ -415,7 +423,7 @@ bound_dense
 ````
 
 ````
-0.2508757549955246
+0.25087564645574384
 ````
 
 #### With correlative sparsity (order=6)
@@ -429,7 +437,7 @@ solver_config_sparse = SolverConfig(
 ````
 
 ````
-NCTSSoS.SolverConfig(Mosek.Optimizer, 6, nothing, CliqueTrees.MF(), NCTSSoS.NoElimination())
+NCTSSoS.SolverConfig(Mosek.Optimizer, 6, nothing, CliqueTrees.MF(), NCTSSoS.NoElimination(), nothing)
 ````
 
 cs_algo=MF(): enables correlative sparsity via chordal graph decomposition
@@ -440,7 +448,7 @@ bound_sparse = -result_sparse.objective
 ````
 
 ````
-0.2508754080902566
+0.2508754128599583
 ````
 
 bound_sparse: improved bound using sparsity
@@ -450,7 +458,7 @@ bound_sparse  # closer to theoretical 0.25
 ````
 
 ````
-0.2508754080902566
+0.2508754128599583
 ````
 
 Improvement in bound:
@@ -460,7 +468,7 @@ bound_dense - bound_sparse  # positive = improvement
 ````
 
 ````
-3.4690526801162136e-7
+2.335957855481574e-7
 ````
 
 ---
@@ -608,7 +616,7 @@ cov_bound = -result.objective
 ````
 
 ````
-4.999999999618061
+5.000000000029369
 ````
 
 cov_bound: upper bound on covariance Bell violation
@@ -618,7 +626,7 @@ cov_bound  # should be close to 5.0
 ````
 
 ````
-4.999999999618061
+5.000000000029369
 ````
 
 Compare with known quantum value:
@@ -628,7 +636,7 @@ abs(cov_bound - 5.0)  # difference from theoretical value
 ````
 
 ````
-3.8193892493154635e-10
+2.936939580422404e-11
 ````
 
 #### Step 6: Improve bound using term sparsity and higher-order iteration
@@ -642,7 +650,7 @@ solver_config_ts = SolverConfig(
 ````
 
 ````
-NCTSSoS.SolverConfig(Mosek.Optimizer, 3, nothing, NCTSSoS.NoElimination(), CliqueTrees.MF())
+NCTSSoS.SolverConfig(Mosek.Optimizer, 3, nothing, NCTSSoS.NoElimination(), CliqueTrees.MF(), nothing)
 ````
 
 ts_algo=MF(): enables term sparsity exploitation
@@ -653,7 +661,7 @@ result_ts = cs_nctssos(spop, solver_config_ts)
 
 ````
 State Optimization Result
-Objective: -4.999999997729253
+Objective: -5.0000000215597895
 Correlative Sparsity (UnipotentAlgebra, Arbitrary): 
 
    maximum clique size: 6
@@ -683,7 +691,7 @@ result_higher = cs_nctssos_higher(spop, result_ts, solver_config_ts)
 
 ````
 State Optimization Result
-Objective: -4.999999988546256
+Objective: -5.000000000910384
 Correlative Sparsity (UnipotentAlgebra, Arbitrary): 
 
    maximum clique size: 6
@@ -712,7 +720,7 @@ improved_bound = -result_higher.objective
 ````
 
 ````
-4.999999988546256
+5.000000000910384
 ````
 
 improved_bound: refined upper bound
@@ -723,7 +731,7 @@ improved_bound: refined upper bound
 ````
 
 ````
-(4.999999988546256, 1.1453743731237864e-8)
+(5.000000000910384, 9.103837683710481e-10)
 ````
 
 ---
