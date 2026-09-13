@@ -157,7 +157,7 @@ moment_result = NCTSSoS.solve_moment_problem(moment_problem, SILENT_MOSEK);
 ````
 
 ````
-(objective = 1.000000000392713, n_moments = 78)
+(objective = 1.0000000005391851, n_moments = 78)
 ````
 
 ## Step 2 — Build the Hankel matrix
@@ -198,7 +198,7 @@ flatness = test_flatness(hankel, full_basis, basis; atol=1e-6)
 ````
 
 ````
-NCTSSoS.FlatnessResult(false, 5, 9, 0.03707385475543612)
+NCTSSoS.FlatnessResult(false, 5, 9, 0.03707343738593964)
 ````
 
 `FlatnessResult` fields:
@@ -278,7 +278,7 @@ The returned `GNSResult` stores everything about the reconstruction:
 ````
 
 ````
-(type = NCTSSoS.GNSResult{Float64, Float64, NCTSSoS.NonCommutativeAlgebra, UInt8, NCTSSoS.NormalMonomial{NCTSSoS.NonCommutativeAlgebra, UInt8}}, rank = 5, full_rank = 5, n_basis = 7, n_full_basis = 15, n_singular_values = 7, xi_norm = 1.0000000000282985)
+(type = NCTSSoS.GNSResult{Float64, Float64, NCTSSoS.NonCommutativeAlgebra, UInt8, NCTSSoS.NormalMonomial{NCTSSoS.NonCommutativeAlgebra, UInt8}}, rank = 5, full_rank = 5, n_basis = 7, n_full_basis = 15, n_singular_values = 7, xi_norm = 1.0000000000067428)
 ````
 
 ### `GNSResult` fields
@@ -346,7 +346,7 @@ max_diff = maximum(
 ````
 
 ````
-(cholesky_rank = 5, max_moment_diff = 1.1319295500911153e-10)
+(cholesky_rank = 5, max_moment_diff = 2.6969315669589378e-11)
 ````
 
 ## Step 7 — Monomap shortcut
@@ -415,7 +415,7 @@ report2 = robustness_report(gns_svd, hankel);
 ````
 
 ````
-(σ_min = 0.12316439652820305, σ_max = 1.5013441894515527, κ = 12.189758012639345, dist_to_flat = 0.04007641602935402, op_error_bound = 0.3253896187456823)
+(σ_min = 0.1231619952667882, σ_max = 1.501343935613296, κ = 12.189993612568143, dist_to_flat = 0.0400769766424155, op_error_bound = 0.32540051462792957)
 ````
 
 ## Step 9 — Full verification suite
@@ -458,7 +458,7 @@ verification
 ````
 
 ````
-NCTSSoS.VerificationReport(true, 1.1319323256486769e-10, 1.0800893512907805e-9, [1.4154053477012228e-9], true)
+NCTSSoS.VerificationReport(true, 2.6969260158438146e-11, 8.812814922265488e-10, [1.4062072863166714e-9], true)
 ````
 
 ## Summary

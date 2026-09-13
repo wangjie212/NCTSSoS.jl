@@ -136,7 +136,7 @@ solve_summary
 ````
 
 ````
-(primal_objective = -0.7499999966623367, dual_objective = -0.7499999999999778, n_unique_moments = 16, solved_moments = 16, max_recovered_moment_error = 4.44889936002113e-9)
+(primal_objective = -0.7499999966623365, dual_objective = -0.7499999999999772, n_unique_moments = 16, solved_moments = 16, max_recovered_moment_error = 4.44889936002113e-9)
 ````
 
 The page should fail loudly if exactness or primal/dual consistency regresses.
@@ -179,7 +179,7 @@ raw_summary
 ````
 
 ````
-(rank = 4, full_rank = 4, xi = ComplexF64[-0.0 - 0.0im, 0.0 + 0.0im, -0.0 + 0.0im, -1.0 + 0.0im], σx₁ = ComplexF64[-0.215 + 0.0im -0.033 + 0.077im -0.022 - 0.931im -0.283 + 0.006im; -0.033 - 0.077im -0.0 + 0.0im -0.019 - 0.282im 0.955 + 0.0im; -0.022 + 0.931im -0.019 + 0.282im 0.215 + 0.0im 0.079 - 0.029im; -0.283 - 0.006im 0.955 - 0.0im 0.079 + 0.029im 0.0 + 0.0im], σz₁ = ComplexF64[-0.045 + 0.0im 0.087 + 0.542im -0.005 - 0.193im 0.809 + 0.07im; 0.087 - 0.542im 0.0 + 0.0im -0.034 + 0.812im 0.198 + 0.0im; -0.005 + 0.193im -0.034 - 0.812im 0.045 + 0.0im 0.537 + 0.111im; 0.809 - 0.07im 0.198 - 0.0im 0.537 - 0.111im 0.0 + 0.0im])
+(rank = 4, full_rank = 4, xi = ComplexF64[0.0 - 0.0im, -0.0 - 0.0im, -0.0 + 0.0im, -1.0 + 0.0im], σx₁ = ComplexF64[-0.117 + 0.0im 0.1 + 0.504im -0.101 - 0.13im -0.833 + 0.032im; 0.1 - 0.504im 0.117 + 0.0im 0.101 - 0.827im 0.121 + 0.112im; -0.101 + 0.13im 0.101 + 0.827im 0.0 + 0.0im 0.527 - 0.0im; -0.833 - 0.032im 0.121 - 0.112im 0.527 + 0.0im -0.0 + 0.0im], σz₁ = ComplexF64[-0.184 + 0.0im 0.157 + 0.792im 0.069 + 0.297im 0.47 + 0.007im; 0.157 - 0.792im 0.184 + 0.0im -0.032 + 0.469im -0.29 - 0.094im; 0.069 - 0.297im -0.032 - 0.469im 0.0 + 0.0im 0.828 - 0.0im; 0.47 - 0.007im -0.29 + 0.094im 0.828 + 0.0im -0.0 + 0.0im])
 ````
 
 The matrices look unfamiliar, but they already satisfy the Pauli algebra.
@@ -197,7 +197,7 @@ raw_representation_errors
 ````
 
 ````
-(σx₁² = 6.602814668715575e-13, σy₁² = 6.600196602127841e-13, σz₁² = 6.602297884160635e-13, anticommutator_σx₁σy₁ = 7.933495450944853e-16, commutator_σz₁σz₂ = 4.3358818419690887e-16)
+(σx₁² = 6.594857734404822e-13, σy₁² = 6.598745879186261e-13, σz₁² = 6.59609862898742e-13, anticommutator_σx₁σy₁ = 8.746812182621608e-16, commutator_σz₁σz₂ = 5.3858495249527e-16)
 ````
 
 This really is a four-dimensional representation with a normalized cyclic
@@ -286,7 +286,7 @@ joint_eigenbasis_summary
 ````
 
 ````
-(σz₁ = ComplexF64[1.0 - 0.0im 0.0 - 0.0im 0.0 - 0.0im 0.0 + 0.0im; 0.0 + 0.0im 1.0 + 0.0im 0.0 - 0.0im -0.0 + 0.0im; 0.0 + 0.0im -0.0 + 0.0im -1.0 - 0.0im 0.0 - 0.0im; 0.0 - 0.0im -0.0 - 0.0im 0.0 + 0.0im -1.0 - 0.0im], σz₂ = ComplexF64[1.0 + 0.0im 0.0 - 0.0im 0.0 - 0.0im 0.0 + 0.0im; -0.0 + 0.0im -1.0 + 0.0im -0.0 + 0.0im 0.0 - 0.0im; 0.0 + 0.0im 0.0 - 0.0im 1.0 + 0.0im 0.0 + 0.0im; 0.0 - 0.0im 0.0 + 0.0im 0.0 - 0.0im -1.0 - 0.0im], ψ_gns = ComplexF64[0.0 - 0.0im, 0.707107 - 0.0im, -0.707107 - 0.0im, -0.0 - 0.0im])
+(σz₁ = ComplexF64[1.0 - 0.0im -0.0 + 0.0im 0.0 - 0.0im 0.0 - 0.0im; -0.0 - 0.0im 1.0 - 0.0im 0.0 - 0.0im 0.0 + 0.0im; 0.0 + 0.0im 0.0 + 0.0im -1.0 - 0.0im -0.0 + 0.0im; 0.0 + 0.0im 0.0 - 0.0im -0.0 - 0.0im -1.0 + 0.0im], σz₂ = ComplexF64[1.0 - 0.0im 0.0 - 0.0im 0.0 + 0.0im 0.0 - 0.0im; 0.0 + 0.0im -1.0 + 0.0im -0.0 + 0.0im -0.0 + 0.0im; 0.0 - 0.0im -0.0 - 0.0im 1.0 + 0.0im 0.0 + 0.0im; 0.0 + 0.0im -0.0 + 0.0im 0.0 - 0.0im -1.0 + 0.0im], ψ_gns = ComplexF64[-0.0 + 0.0im, 0.707107 - 0.0im, -0.707107 - 0.0im, 0.0 + 0.0im])
 ````
 
 ## Step 4 — Compare with the textbook Pauli matrices
@@ -316,7 +316,7 @@ site_1_matrices
 ````
 
 ````
-(σx₁ = ComplexF64[0.0 + 0.0im 0.0 - 0.0im 1.0 + 0.0im -0.0 + 0.0im; 0.0 + 0.0im 0.0 - 0.0im -0.0 + 0.0im 1.0 + 0.0im; 1.0 + 0.0im -0.0 - 0.0im 0.0 + 0.0im 0.0 + 0.0im; -0.0 - 0.0im 1.0 - 0.0im 0.0 - 0.0im -0.0 - 0.0im], σy₁ = ComplexF64[0.0 + 0.0im -0.0 + 0.0im -0.0 - 1.0im 0.0 + 0.0im; -0.0 - 0.0im -0.0 - 0.0im 0.0 + 0.0im 0.0 - 1.0im; -0.0 + 1.0im -0.0 - 0.0im 0.0 - 0.0im -0.0 + 0.0im; 0.0 - 0.0im 0.0 + 1.0im -0.0 - 0.0im -0.0 - 0.0im], σz₁ = ComplexF64[1.0 - 0.0im 0.0 - 0.0im 0.0 - 0.0im 0.0 + 0.0im; 0.0 + 0.0im 1.0 + 0.0im 0.0 - 0.0im -0.0 + 0.0im; 0.0 + 0.0im -0.0 + 0.0im -1.0 - 0.0im 0.0 - 0.0im; 0.0 - 0.0im -0.0 - 0.0im 0.0 + 0.0im -1.0 - 0.0im])
+(σx₁ = ComplexF64[-0.0 + 0.0im -0.0 - 0.0im 1.0 - 0.0im 0.0 + 0.0im; -0.0 + 0.0im 0.0 - 0.0im -0.0 - 0.0im 1.0 - 0.0im; 1.0 + 0.0im -0.0 + 0.0im 0.0 + 0.0im 0.0 - 0.0im; 0.0 - 0.0im 1.0 + 0.0im -0.0 + 0.0im 0.0 + 0.0im], σy₁ = ComplexF64[-0.0 + 0.0im 0.0 - 0.0im -0.0 - 1.0im 0.0 - 0.0im; -0.0 + 0.0im 0.0 - 0.0im -0.0 + 0.0im -0.0 - 1.0im; -0.0 + 1.0im -0.0 - 0.0im -0.0 + 0.0im 0.0 - 0.0im; 0.0 + 0.0im -0.0 + 1.0im 0.0 + 0.0im -0.0 + 0.0im], σz₁ = ComplexF64[1.0 - 0.0im -0.0 + 0.0im 0.0 - 0.0im 0.0 - 0.0im; -0.0 - 0.0im 1.0 - 0.0im 0.0 - 0.0im 0.0 + 0.0im; 0.0 + 0.0im 0.0 + 0.0im -1.0 - 0.0im -0.0 + 0.0im; 0.0 + 0.0im 0.0 - 0.0im -0.0 - 0.0im -1.0 + 0.0im])
 ````
 
 Site 2 should match the second-qubit Pauli operators just as cleanly.
@@ -331,7 +331,7 @@ site_2_matrices
 ````
 
 ````
-(σx₂ = ComplexF64[0.0 - 0.0im 1.0 + 0.0im 0.0 - 0.0im -0.0 + 0.0im; 1.0 - 0.0im 0.0 - 0.0im 0.0 + 0.0im 0.0 + 0.0im; 0.0 + 0.0im 0.0 - 0.0im -0.0 + 0.0im 1.0 + 0.0im; -0.0 - 0.0im 0.0 - 0.0im 1.0 - 0.0im -0.0 - 0.0im], σy₂ = ComplexF64[0.0 - 0.0im 0.0 - 1.0im 0.0 + 0.0im 0.0 + 0.0im; 0.0 + 1.0im 0.0 - 0.0im -0.0 + 0.0im -0.0 + 0.0im; 0.0 - 0.0im -0.0 - 0.0im -0.0 - 0.0im 0.0 - 1.0im; 0.0 - 0.0im -0.0 - 0.0im 0.0 + 1.0im -0.0 - 0.0im], σz₂ = ComplexF64[1.0 + 0.0im 0.0 - 0.0im 0.0 - 0.0im 0.0 + 0.0im; -0.0 + 0.0im -1.0 + 0.0im -0.0 + 0.0im 0.0 - 0.0im; 0.0 + 0.0im 0.0 - 0.0im 1.0 + 0.0im 0.0 + 0.0im; 0.0 - 0.0im 0.0 + 0.0im 0.0 - 0.0im -1.0 - 0.0im])
+(σx₂ = ComplexF64[-0.0 - 0.0im 1.0 + 0.0im -0.0 - 0.0im 0.0 + 0.0im; 1.0 - 0.0im -0.0 + 0.0im 0.0 + 0.0im -0.0 - 0.0im; -0.0 + 0.0im 0.0 + 0.0im -0.0 + 0.0im 1.0 - 0.0im; 0.0 - 0.0im -0.0 + 0.0im 1.0 + 0.0im 0.0 - 0.0im], σy₂ = ComplexF64[-0.0 - 0.0im 0.0 - 1.0im -0.0 - 0.0im 0.0 - 0.0im; 0.0 + 1.0im -0.0 - 0.0im 0.0 + 0.0im 0.0 + 0.0im; -0.0 + 0.0im -0.0 - 0.0im 0.0 - 0.0im 0.0 - 1.0im; 0.0 + 0.0im 0.0 - 0.0im -0.0 + 1.0im -0.0 + 0.0im], σz₂ = ComplexF64[1.0 - 0.0im 0.0 - 0.0im 0.0 + 0.0im 0.0 - 0.0im; 0.0 + 0.0im -1.0 + 0.0im -0.0 + 0.0im -0.0 + 0.0im; 0.0 - 0.0im -0.0 - 0.0im 1.0 + 0.0im 0.0 + 0.0im; 0.0 + 0.0im -0.0 + 0.0im 0.0 - 0.0im -1.0 + 0.0im])
 ````
 
 The actual numerical check is basis-independent: every aligned operator should
@@ -350,7 +350,7 @@ alignment_errors
 ````
 
 ````
-(σx₁ = 3.297776179244054e-13, σy₁ = 3.3011431994980923e-13, σz₁ = 3.299921658991209e-13, σx₂ = 3.299107817914261e-13, σy₂ = 3.3028618394741025e-13, σz₂ = 3.299139290838192e-13)
+(σx₁ = 3.299216778075385e-13, σy₁ = 3.2978382921129067e-13, σz₁ = 3.297482160956835e-13, σx₂ = 3.2990535956595856e-13, σy₂ = 3.2994630233192863e-13, σz₂ = 3.2984535233395416e-13)
 ````
 
 Those errors should stay at the solver-noise level.
@@ -380,7 +380,7 @@ hamiltonian_summary
 ````
 
 ````
-(H = ComplexF64[0.25 - 0.0im -0.0 + 0.0im -0.0 + 0.0im -0.0 - 0.0im; -0.0 - 0.0im -0.25 - 0.0im 0.5 - 0.0im 0.0 + 0.0im; 0.0 + 0.0im 0.5 + 0.0im -0.25 + 0.0im -0.0 + 0.0im; -0.0 - 0.0im -0.0 - 0.0im 0.0 - 0.0im 0.25 + 0.0im], deviation_from_reference = 4.940632106662951e-13)
+(H = ComplexF64[0.25 + 0.0im -0.0 - 0.0im 0.0 + 0.0im 0.0 + 0.0im; 0.0 - 0.0im -0.25 + 0.0im 0.5 - 0.0im 0.0 - 0.0im; -0.0 - 0.0im 0.5 + 0.0im -0.25 + 0.0im 0.0 + 0.0im; 0.0 - 0.0im 0.0 - 0.0im 0.0 - 0.0im 0.25 - 0.0im], deviation_from_reference = 4.940632145928846e-13)
 ````
 
 Diagonalizing the aligned Hamiltonian now exposes the familiar spectrum.
@@ -427,7 +427,7 @@ ground_state_check
 ````
 
 ````
-(ψ_gns = ComplexF64[0.0 - 0.0im, 0.707107 - 0.0im, -0.707107 - 0.0im, -0.0 - 0.0im], ψ_singlet = ComplexF64[0.0 + 0.0im, 0.707107 + 0.0im, -0.707107 + 0.0im, 0.0 + 0.0im], overlap = 1.0000000000000002, eigen_residual = 4.939511374041349e-13)
+(ψ_gns = ComplexF64[-0.0 + 0.0im, 0.707107 - 0.0im, -0.707107 - 0.0im, 0.0 + 0.0im], ψ_singlet = ComplexF64[0.0 + 0.0im, 0.707107 + 0.0im, -0.707107 + 0.0im, 0.0 + 0.0im], overlap = 1.0000000000000002, eigen_residual = 4.939511131340659e-13)
 ````
 
 The aligned cyclic vector should agree with the singlet directly, not just up
