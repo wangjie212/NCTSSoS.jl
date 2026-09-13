@@ -57,9 +57,15 @@ if [[ -n "${MOSEK_LICENSE_B64:-}" || -n "${MOSEK_LICENSE:-}" ]]; then
 fi
 
 echo "==> Instantiating and precompiling the package environment"
-SECONDS=0
-"$julia_bin" --project="$repo_root" -e 'using Pkg; Pkg.instantiate(); Pkg.precompile()'
-echo "==> Package environment ready in ${SECONDS}s"
+"$julia_bin" --startup-file=no --project="$repo_root" -e '
+    using Pkg
+
+    elapsed = @elapsed Pkg.instantiate(; allow_autoprecomp=false)
+    println("==> Package environment instantiated in $(round(elapsed; digits=1))s")
+
+    elapsed = @elapsed Pkg.precompile()
+    println("==> Package environment precompiled in $(round(elapsed; digits=1))s")
+'
 
 # The docs environment includes large optional dependencies (including CairoMakie and Yao),
 # so it is intentionally left on demand. Run `make init-docs` before docs work.
